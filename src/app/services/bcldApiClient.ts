@@ -193,7 +193,7 @@ export class BcldApiClient {
     if (record.type === 'works' || data['@type']?.includes?.('Work')) {
       const work = {
         '@type': 'bf:Work',
-        '@id': record.uri || `http://id.loc.gov/resources/works/${record.uuid}`,
+        '@id': record.uri || `${BASE_URI}/work/bcld-${record.uuid}`,
         'bf:title': {
           '@type': 'bf:Title',
           'bf:mainTitle': normalizedTitle,
@@ -219,7 +219,7 @@ export class BcldApiClient {
 
       const instance = {
         '@type': 'bf:Instance',
-        '@id': data.hasInstance?.[0] || `http://id.loc.gov/resources/instances/${record.uuid}`,
+        '@id': data.hasInstance?.[0] || `${BASE_URI}/instance/bcld-${record.uuid}`,
         'bf:instanceOf': { '@id': work['@id'] },
         'bf:title': {
           '@type': 'bf:Title',
@@ -237,7 +237,7 @@ export class BcldApiClient {
     // Default instance conversion
     const instance = {
       '@type': 'bf:Instance',
-      '@id': record.uri || `http://id.loc.gov/resources/instances/${record.uuid}`,
+      '@id': record.uri || `${BASE_URI}/instance/bcld-${record.uuid}`,
       'bf:title': {
         '@type': 'bf:Title',
         'bf:mainTitle': normalizedTitle,
@@ -246,7 +246,7 @@ export class BcldApiClient {
 
     const work = {
       '@type': 'bf:Work',
-      '@id': `http://id.loc.gov/resources/works/${record.uuid}`,
+      '@id': `${BASE_URI}/work/bcld-${record.uuid}`,
       'bf:title': {
         '@type': 'bf:Title',
         'bf:mainTitle': normalizedTitle,

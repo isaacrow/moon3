@@ -82,6 +82,7 @@ import { BIBFRAMERecord } from "../types/bibframe";
 // === Assets & Styles ===
 import moonLogo from "figma:asset/448923f9298ec547f27dd322785433298cd5ac34.png";
 import "../../styles/glassmorphism.css";
+import { toBibframeJsonLdString } from '../../services/bibframeNormalizer';
 
 // ============================== TYPES ==============================
 
@@ -762,7 +763,7 @@ export default function MoonK({ onBack, initialWork, initialInstance, onRecordSa
               <Upload className="h-4 w-4" /> Import
             </button>
             <button
-              onClick={() => downloadFile(JSON.stringify(graph, null, 2), "bibframe-record.jsonld", "application/ld+json")}
+              onClick={() => downloadFile(toBibframeJsonLdString(graph), "bibframe-record.jsonld", "application/ld+json")}
               className="glass-button px-4 py-2 flex items-center gap-2 text-sm"
             >
               <Download className="h-4 w-4" /> Export JSON-LD

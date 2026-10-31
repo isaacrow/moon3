@@ -65,6 +65,7 @@ import { WolfMoonQuantum } from './components/WolfMoonQuantum';
 import { Moon27Dashboard } from './components/Moon27Dashboard';
 import Moon27Studio from './components/Moon27Studio';
 import AuthorFinder from './components/AuthorFinder';
+import { toBibframeJsonLdString } from '../services/bibframeNormalizer';
 const MoonFaleh = React.lazy(() => import('./components/MoonFaleh'));
 const MoonOshin = React.lazy(() => import('./components/MoonOshin'));
 const MoonOshinEnterprise = React.lazy(() => import('./components/MoonOshinEnterprise'));
@@ -387,7 +388,7 @@ function CatalogApp() {
       instance: instance as BIBFRAMEInstance,
     };
     
-    const blob = new Blob([JSON.stringify(record, null, 2)], { type: 'application/ld+json' });
+    const blob = new Blob([toBibframeJsonLdString(record)], { type: 'application/ld+json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

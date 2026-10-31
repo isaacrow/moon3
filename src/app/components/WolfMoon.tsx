@@ -143,6 +143,7 @@ import {
 import { MarvaToolsModal } from "./marva/MarvaToolsModal";
 import { MarvaHubEditor } from "./marva/MarvaHubEditor";
 import { MarvaRemergeMarc } from "./marva/MarvaRemergeMarc";
+import { toBibframeJsonLdString } from '../../services/bibframeNormalizer';
 import {
   BibframeHub, generateHubAAP, normalizeAAP, createQuickHubStub, SAMPLE_LC_HUBS
 } from "../../services/hubService";
@@ -1394,7 +1395,7 @@ export default function WolfMoon({
           {[
             { onClick: handleResetAll, icon: <RefreshCw className="h-3.5 w-3.5" />, label: t("reset") || "Reset", danger: true },
             { onClick: () => setShowImportDialog(true), icon: <Upload className="h-3.5 w-3.5" />, label: t("import") },
-            { onClick: () => downloadFile(JSON.stringify(w3cJsonLd || graphJsonld || graph, null, 2), `${recordId}-w3c.jsonld`, "application/ld+json"), icon: <Download className="h-3.5 w-3.5" />, label: t("w3cJsonLd") },
+            { onClick: () => downloadFile(toBibframeJsonLdString(w3cJsonLd || graphJsonld || graph), `${recordId}-w3c.jsonld`, "application/ld+json"), icon: <Download className="h-3.5 w-3.5" />, label: t("w3cJsonLd") },
           ].map((btn, i) => (
             <button
               type="button"
@@ -1814,7 +1815,7 @@ export default function WolfMoon({
                 </h3>
                 <div className="flex gap-2">
                   <BMSmallBtn onClick={() => copyToClipboard(JSON.stringify(w3cJsonLd, null, 2))} icon={<Copy className="h-3.5 w-3.5" />} label="Copy" />
-                  <BMSmallBtn onClick={() => downloadFile(JSON.stringify(w3cJsonLd, null, 2), `${recordId}-w3c.jsonld`, "application/ld+json")} icon={<Download className="h-3.5 w-3.5" />} label="Download" />
+                  <BMSmallBtn onClick={() => downloadFile(toBibframeJsonLdString(w3cJsonLd), `${recordId}-w3c.jsonld`, "application/ld+json")} icon={<Download className="h-3.5 w-3.5" />} label="Download" />
                 </div>
               </div>
               <pre className="p-5 rounded-xl overflow-auto text-sm max-h-[calc(100vh-420px)] font-mono leading-relaxed"
@@ -1834,7 +1835,7 @@ export default function WolfMoon({
               </h3>
               <div className="flex gap-2">
                 <BMSmallBtn onClick={() => copyToClipboard(JSON.stringify(graphJsonld || graph, null, 2))} icon={<Copy className="h-3.5 w-3.5" />} label="Copy" />
-                <BMSmallBtn onClick={() => downloadFile(JSON.stringify(graphJsonld || graph, null, 2), `${recordId}.jsonld`, "application/ld+json")} icon={<Download className="h-3.5 w-3.5" />} label="Download" />
+                <BMSmallBtn onClick={() => downloadFile(toBibframeJsonLdString(graphJsonld || graph), `${recordId}.jsonld`, "application/ld+json")} icon={<Download className="h-3.5 w-3.5" />} label="Download" />
               </div>
             </div>
             <div className="mb-3 p-3 rounded-lg text-xs flex items-center gap-2" style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.15)", color: BM.warning }}>

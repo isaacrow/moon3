@@ -16,6 +16,8 @@
  */
 
 import { toTurtle, resolvePropertyUri, KNOWN_NAMESPACES } from './rdfGraphBuilder';
+import { normalizeBibframe } from './bibframeNormalizer';
+import { BASE_URI } from './uriMintingService';
 
 // =====================================================
 // CANONICAL BIBFRAME & LINKED DATA @context
@@ -43,7 +45,7 @@ export const BIBFRAME_JSONLD_CONTEXT: Record<string, string> = {
   "contentTypes": "http://id.loc.gov/vocabulary/contentTypes/",
   "issuance": "http://id.loc.gov/vocabulary/issuance/",
   "descriptionConventions": "http://id.loc.gov/vocabulary/descriptionConventions/",
-  "moon": "https://moonlib.org/resource/"
+  "moon": `${BASE_URI}/`
 };
 
 // =====================================================
@@ -140,10 +142,11 @@ export function buildW3CJsonLd(input: BuilderInput): W3CJsonLdDocument {
   const adminNode = buildAdminNode(adminData || {}, uriSet);
   graph.push(adminNode);
 
-  return {
+  // Only official BIBFRAME/BFLC terms leave the builder (custom fields are preserved as moonext:).
+  return normalizeBibframe({
     "@context": { ...BIBFRAME_JSONLD_CONTEXT },
     "@graph": graph
-  };
+  }) as W3CJsonLdDocument;
 }
 
 // =====================================================
@@ -289,7 +292,7 @@ function buildWorkNode(data: any, uriSet: any, enableExpression?: boolean): W3CJ
 function buildExpressionNode(data: any, uriSet: any): W3CJsonLdNode {
   const node: W3CJsonLdNode = {
     "@id": uriSet.expression,
-    "@type": "bf:Expression",
+    "@type": "bf:Work", // BIBFRAME has no Expression class; expressions are Works with bf:expressionOf
     "bf:expressionOf": { "@id": uriSet.work },
     "bf:hasInstance": [{ "@id": uriSet.instance }]
   };
@@ -359,7 +362,7 @@ function buildInstanceNode(data: any, uriSet: any, hasExpression?: boolean): W3C
       const agent = p["bf:agent"] || p["agent"];
       if (agent) {
         prov["bf:agent"] = {
-          "@id": agent["@id"] || `https://moonlib.org/resource/agent/${simpleHash(agent["rdfs:label"] || "unknown")}`,
+          "@id": agent["@id"] || `${BASE_URI}/agent/${simpleHash(agent["rdfs:label"] || "unknown")}`,
           "@type": agent["@type"] || "bf:Agent",
           "rdfs:label": agent["rdfs:label"] || ""
         };
@@ -368,7 +371,7 @@ function buildInstanceNode(data: any, uriSet: any, hasExpression?: boolean): W3C
       const place = p["bf:place"] || p["place"];
       if (place) {
         prov["bf:place"] = {
-          "@id": place["@id"] || `https://moonlib.org/resource/place/${simpleHash(place["rdfs:label"] || "unknown")}`,
+          "@id": place["@id"] || `${BASE_URI}/place/${simpleHash(place["rdfs:label"] || "unknown")}`,
           "@type": "bf:Place",
           "rdfs:label": place["rdfs:label"] || ""
         };
@@ -454,7 +457,7 @@ function buildItemNode(data: any, uriSet: any): W3CJsonLdNode {
   if (heldBy) {
     node["bf:heldBy"] = typeof heldBy === "object" && heldBy["@id"]
       ? { "@id": heldBy["@id"], "@type": heldBy["@type"] || "bf:Agent", "rdfs:label": heldBy["rdfs:label"] || "" }
-      : { "@id": `https://moonlib.org/resource/org/${simpleHash(String(heldBy))}`, "@type": "bf:Organization", "rdfs:label": String(heldBy) };
+      : { "@id": `${BASE_URI}/org/${simpleHash(String(heldBy))}`, "@type": "bf:Organization", "rdfs:label": String(heldBy) };
   }
 
   // Shelf mark
@@ -500,7 +503,7 @@ function buildAdminNode(data: any, uriSet: any): W3CJsonLdNode {
       "@id": data["bf:descriptionLanguage"]?.["@id"] || "http://id.loc.gov/vocabulary/languages/eng"
     }],
     "bf:source": [{
-      "@id": "https://moonlib.org",
+      "@id": BASE_URI.replace(/\/resource$/, ""),
       "@type": "bf:Source",
       "rdfs:label": "Moon Library System"
     }],
@@ -1029,6 +1032,7 @@ export function jsonLdToTurtle(doc: W3CJsonLdDocument): string {
  * Convert W3C JSON-LD Document to standard N-Triples
  */
 export function jsonLdToNTriples(doc: W3CJsonLdDocument): string {
+  doc = normalizeBibframe(doc) as W3CJsonLdDocument;
   const context = doc["@context"] || BIBFRAME_JSONLD_CONTEXT;
   const lines: string[] = [];
   const graph = doc["@graph"] || [];

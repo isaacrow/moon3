@@ -80,7 +80,7 @@ export function createQuickHubStub(options: {
   language?: string;
 }): BibframeHub {
   const hubId = `hub_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-  const uri = `http://id.loc.gov/resources/hubs/${hubId}`;
+  const uri = `${BASE_URI}/hub/${hubId}`; // local stub until matched to an LC Hub
   const aap = generateHubAAP(options);
   const aapNormalized = normalizeAAP(aap);
 

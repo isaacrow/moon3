@@ -1,3 +1,4 @@
+import { BASE_URI } from './uriMintingService';
 /**
  * REAL BIBFRAME GRAPH BUILDER
  * Entity-based graph construction following institutional standards
@@ -515,7 +516,7 @@ function buildAdminMetadata(uri: string, data?: Record<string, any>): BibframeEn
     admin['bf:source'] = { '@id': data['bf:source'] };
   } else {
     admin['bf:source'] = { 
-      '@id': 'http://id.loc.gov/vocabulary/organizations/moonlib',
+      '@id': `${BASE_URI}/organization/moon`,
       'rdfs:label': 'MOON Library System'
     };
   }

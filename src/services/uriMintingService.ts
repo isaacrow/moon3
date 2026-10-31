@@ -4,7 +4,11 @@
  * Following institutional best practices (LOC, national libraries)
  */
 
-const BASE_URI = 'https://moonlib.org/resource';
+// Records are minted under a domain this institution controls. Never mint under
+// id.loc.gov: only the Library of Congress may create URIs there.
+// Override per deployment with VITE_MOON_URI_BASE (no trailing slash).
+const env = (import.meta as any).env || {};
+export const BASE_URI: string = (env.VITE_MOON_URI_BASE || 'https://mooon.site/resource').replace(/\/+$/, '');
 
 export interface UriSet {
   work: string;

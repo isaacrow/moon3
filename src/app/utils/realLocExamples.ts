@@ -11,7 +11,7 @@ export const realLocExamples = [
   "data": {
     "work": {
       "@type": "bf:Work",
-      "@id": "http://id.loc.gov/resources/works/b125923",
+      "@id": "https://mooon.site/resource/work/b125923",
       "rdfs:label": "القبسات — الميرداماد",
       "bf:title": {
         "@type": "bf:Title",
@@ -130,7 +130,7 @@ export const realLocExamples = [
       },
       "expressionOf": "الميرداماد، محمد باقر بن محمد، توفي 1041 هجري. القبسات",
       "bf:expressionOf": {
-        "@id": "http://id.loc.gov/resources/hubs/mir-damad-qabasat",
+        "@id": "https://mooon.site/resource/hub/mir-damad-qabasat",
         "bflc:aap": "الميرداماد، محمد باقر بن محمد، توفي 1041 هجري. القبسات"
       },
       "supplementaryContent": "الذريعة الى تصانيف الشيعة، الجزء 17، الصفحه 32، الرقم 183.",
@@ -169,7 +169,7 @@ export const realLocExamples = [
       },
       "relatedTo": "الذريعة الى تصانيف الشيعة (الرقم 183)",
       "bf:relatedTo": {
-        "@id": "http://id.loc.gov/resources/works/al-dhariah",
+        "@id": "https://mooon.site/resource/work/al-dhariah",
         "rdfs:label": "الذريعة الى تصانيف الشيعة (الرقم 183)"
       },
       "partOf": "مجموعة مخطوطات الفلسفة والحكمة الإلهية",
@@ -180,9 +180,9 @@ export const realLocExamples = [
       "bf:hasPart": {
         "rdfs:label": "القبسة الأولى في مراتب الوجود والدهر"
       },
-      "hasInstance": "http://id.loc.gov/resources/instances/b125923",
+      "hasInstance": "https://mooon.site/resource/instance/b125923",
       "bf:hasInstance": {
-        "@id": "http://id.loc.gov/resources/instances/b125923",
+        "@id": "https://mooon.site/resource/instance/b125923",
         "rdfs:label": "نسخة مخطوطة كاملة 1061 هـ."
       },
       "originalVersion": "النسخة الأصلية بخط المؤلف سنة 1041 هـ.",
@@ -198,7 +198,7 @@ export const realLocExamples = [
         "rdfs:label": "الأصل العربي — مخطوط في دار الكتب والوثائق"
       },
       "bf:hasExpression": {
-        "@id": "http://id.loc.gov/resources/instances/b125923",
+        "@id": "https://mooon.site/resource/instance/b125923",
         "rdfs:label": "النسخة المخطوطة المحفوظة في العتبة العباسية"
       },
       "hasExpression": "النسخة المخطوطة المحفوظة في العتبة العباسية",
@@ -218,11 +218,11 @@ export const realLocExamples = [
     },
     "instance": {
       "@type": "bf:Instance",
-      "@id": "http://id.loc.gov/resources/instances/b125923",
+      "@id": "https://mooon.site/resource/instance/b125923",
       "rdfs:label": "القبسات — نسخة مخطوطة 1061 هـ.",
-      "instanceOf": "http://id.loc.gov/resources/works/b125923",
+      "instanceOf": "https://mooon.site/resource/work/b125923",
       "bf:instanceOf": {
-        "@id": "http://id.loc.gov/resources/works/b125923",
+        "@id": "https://mooon.site/resource/work/b125923",
         "rdfs:label": "القبسات — الميرداماد"
       },
       "bf:title": {
@@ -354,7 +354,7 @@ export const realLocExamples = [
       ],
       "heldBy": "مكتبة العتبة العباسية المقدسة (IQ-KaCCS)",
       "bf:hasItem": {
-        "@id": "http://id.loc.gov/resources/items/b125923",
+        "@id": "https://mooon.site/resource/item/b125923",
         "@type": "bf:Item",
         "bf:heldBy": {
           "@type": "bf:Agent",
@@ -416,8 +416,8 @@ export const realLocExamples = [
       "bf:genreForm": "مخطوطات",
       "governmentPublication": "غير حكومي",
       "bf:governmentPublication": "غير حكومي",
-      "itemOf": "http://id.loc.gov/resources/instances/b125923",
-      "bf:itemOf": "http://id.loc.gov/resources/instances/b125923",
+      "itemOf": "https://mooon.site/resource/instance/b125923",
+      "bf:itemOf": "https://mooon.site/resource/instance/b125923",
       "translationOf": "الأصل العربي",
       "bf:translationOf": "الأصل العربي",
       "descriptionAuthentication": "rda",

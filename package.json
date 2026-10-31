@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "npx tsx --test test/serializers.test.ts"
+    "test": "npx tsx --test test/serializers.test.ts test/bibframe.test.ts",
+    "build:terms": "node scripts/build-bibframe-terms.mjs",
+    "build:samples": "npx tsx scripts/build-sample-records.ts"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

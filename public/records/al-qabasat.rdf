@@ -4,468 +4,576 @@
   xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
   xmlns:bf="http://id.loc.gov/ontologies/bibframe/"
   xmlns:bflc="http://id.loc.gov/ontologies/bflc/"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
   xmlns:madsrdf="http://www.loc.gov/mads/rdf/v1#"
-  xmlns:xsd="http://www.w3.org/2001/XMLSchema#">
+  xmlns:moonext="https://mooon.site/ontology/">
 
-  <bf:Work rdf:about="http://id.loc.gov/resources/works/b125923">
+  <bf:Work rdf:about="https://mooon.site/resource/work/b125923">
     <rdfs:label>القبسات — الميرداماد</rdfs:label>
     <bf:title>
       <bf:Title>
-    <bf:mainTitle>القبسات</bf:mainTitle>
-    <bf:mainTitle>القبسات</bf:mainTitle>
-    <bflc:nonSortNum>2</bflc:nonSortNum>
-    <rdfs:label>القبسات</rdfs:label>
-  </bf:Title>
+        <bf:mainTitle>القبسات</bf:mainTitle>
+        <bflc:nonSortNum>2</bflc:nonSortNum>
+        <rdfs:label>القبسات</rdfs:label>
+      </bf:Title>
     </bf:title>
-    <bf:mainTitle>القبسات</bf:mainTitle>
-    <bf:title>القبسات</bf:title>
-    <bf:creator>الميرداماد، محمد باقر بن محمد، توفي 1041 هجري، مؤلف</bf:creator>
-    <bf:creatorUri>http://id.loc.gov/authorities/names/n85043844</bf:creatorUri>
-    <bf:contribution>الميرداماد، محمد باقر بن محمد، توفي 1041 هجري (مؤلف)</bf:contribution>
     <bf:contribution>
       <bf:PrimaryContribution>
-    <bf:agent>
-      <bf:Person rdf:about="http://id.loc.gov/authorities/names/n85043844">
-    <rdfs:label>الميرداماد، محمد باقر بن محمد، توفي 1041 هجري</rdfs:label>
-  </bf:Person>
-    </bf:agent>
-    <bf:role>
-      <bf:Role rdf:about="http://id.loc.gov/vocabulary/relators/aut">
-    <rdfs:label>مؤلف</rdfs:label>
-  </bf:Role>
-    </bf:role>
-  </bf:PrimaryContribution>
+        <bf:agent>
+          <bf:Person rdf:about="http://id.loc.gov/authorities/names/n85043844">
+            <rdfs:label>الميرداماد، محمد باقر بن محمد، توفي 1041 هجري</rdfs:label>
+          </bf:Person>
+        </bf:agent>
+        <bf:role>
+          <bf:Role rdf:about="http://id.loc.gov/vocabulary/relators/aut">
+            <rdfs:label>مؤلف</rdfs:label>
+          </bf:Role>
+        </bf:role>
+      </bf:PrimaryContribution>
     </bf:contribution>
-    <bf:language>ara</bf:language>
+    <bf:contribution>
+      <bf:Contribution>
+        <bf:agent>
+          <bf:Agent>
+            <rdfs:label>خطاط غير مصرح، ناسخ المخطوطة</rdfs:label>
+          </bf:Agent>
+        </bf:agent>
+      </bf:Contribution>
+    </bf:contribution>
     <bf:language>
       <bf:Language rdf:about="http://id.loc.gov/vocabulary/languages/ara">
-    <rdfs:label>العربية</rdfs:label>
-  </bf:Language>
+        <rdfs:label>العربية</rdfs:label>
+      </bf:Language>
     </bf:language>
-    <bf:contentType>نص (مصور مخطوط)</bf:contentType>
-    <bf:content>نص (مصور مخطوط)</bf:content>
     <bf:content>
       <bf:Content rdf:about="http://id.loc.gov/vocabulary/contentTypes/txt">
-    <rdfs:label>نص</rdfs:label>
-  </bf:Content>
+        <rdfs:label>نص</rdfs:label>
+      </bf:Content>
     </bf:content>
-    <bf:classification>B753.D363 Q23 1650</bf:classification>
-    <bf:shelfMark>B753.D363 Q23 1650</bf:shelfMark>
+    <bf:content>
+      <bf:Content>
+        <rdfs:label>نص (مصور مخطوط)</rdfs:label>
+      </bf:Content>
+    </bf:content>
     <bf:classification>
       <bf:ClassificationLcc>
-    <bf:classificationPortion>B753.D363</bf:classificationPortion>
-    <bf:itemPortion>Q23 1650</bf:itemPortion>
-    <bf:classificationPortion>B753.D363</bf:classificationPortion>
-    <bf:itemPortion>Q23 1650</bf:itemPortion>
-    <rdfs:label>B753.D363 Q23 1650</rdfs:label>
-  </bf:ClassificationLcc>
+        <bf:classificationPortion>B753.D363</bf:classificationPortion>
+        <bf:itemPortion>Q23 1650</bf:itemPortion>
+        <rdfs:label>B753.D363 Q23 1650</rdfs:label>
+      </bf:ClassificationLcc>
     </bf:classification>
-    <bf:subject>الفلسفة الاسلامية الشيعية</bf:subject>
+    <bf:classification>
+      <bf:ClassificationDdc>
+        <bf:classificationPortion>181.07</bf:classificationPortion>
+      </bf:ClassificationDdc>
+    </bf:classification>
     <bf:subject>
       <bf:Topic rdf:about="http://id.loc.gov/authorities/subjects/sh85068499">
-    <rdfs:label>الفلسفة الاسلامية الشيعية</rdfs:label>
-  </bf:Topic>
+        <rdfs:label>الفلسفة الاسلامية الشيعية</rdfs:label>
+      </bf:Topic>
     </bf:subject>
     <bf:subject>
       <bf:Topic rdf:about="http://id.loc.gov/authorities/genreForms/gf2014026139">
-    <rdfs:label>مخطوطات اسلامية</rdfs:label>
-  </bf:Topic>
+        <rdfs:label>مخطوطات اسلامية</rdfs:label>
+      </bf:Topic>
     </bf:subject>
-    <bf:genreForm>مخطوطات</bf:genreForm>
+    <bf:subject>
+      <bf:Place>
+        <rdfs:label>إيران -- تاريخ الفلسفة -- القرن 11 هـ</rdfs:label>
+      </bf:Place>
+    </bf:subject>
+    <bf:subject>
+      <bf:Agent>
+        <rdfs:label>الميرداماد، محمد باقر بن محمد، توفي 1041 هـ</rdfs:label>
+      </bf:Agent>
+    </bf:subject>
     <bf:genreForm>
       <bf:GenreForm rdf:about="http://id.loc.gov/authorities/genreForms/gf2014026139">
-    <rdfs:label>مخطوطات</rdfs:label>
-  </bf:GenreForm>
+        <rdfs:label>مخطوطات</rdfs:label>
+      </bf:GenreForm>
     </bf:genreForm>
-    <bf:summary>كتاب فلسفي كلامي للميرداماد يناقش حدوث العالم وقدمه ومسألة الدهر والزمان والمصادر الوجودية وفق الحكمة المتعالية والمشائية.</bf:summary>
-    <bf:summary>كتاب فلسفي كلامي للميرداماد يناقش حدوث العالم وقدمه ومسألة الدهر والزمان والمصادر الوجودية وفق الحكمة المتعالية والمشائية.</bf:summary>
-    <bf:tableOfContents>مقدمة في حدوث العالم، الومضة الأولى في الوجود والعدم، القبسة الأولى في مراتب الوجود والدهر والسرمد، القبسة الثانية في إثبات الواجب، القبسة الثالثة في الحركة والزمان والآن.</bf:tableOfContents>
-    <bf:tableOfContents>مقدمة في حدوث العالم، الومضة الأولى في الوجود والعدم، القبسة الأولى في مراتب الوجود والدهر والسرمد، القبسة الثانية في إثبات الواجب، القبسة الثالثة في الحركة والزمان والآن.</bf:tableOfContents>
-    <bf:originDate>1650 [1061 هـ.]</bf:originDate>
+    <bf:summary>
+      <bf:Summary>
+        <rdfs:label>كتاب فلسفي كلامي للميرداماد يناقش حدوث العالم وقدمه ومسألة الدهر والزمان والمصادر الوجودية وفق الحكمة المتعالية والمشائية.</rdfs:label>
+      </bf:Summary>
+    </bf:summary>
+    <bf:tableOfContents>
+      <bf:TableOfContents>
+        <rdfs:label>مقدمة في حدوث العالم، الومضة الأولى في الوجود والعدم، القبسة الأولى في مراتب الوجود والدهر والسرمد، القبسة الثانية في إثبات الواجب، القبسة الثالثة في الحركة والزمان والآن.</rdfs:label>
+      </bf:TableOfContents>
+    </bf:tableOfContents>
     <bf:originDate>1650 [1061 هـ.]</bf:originDate>
     <bf:date>1650</bf:date>
-    <bf:originPlace>طهران، ايران / كربلاء المقدسة</bf:originPlace>
     <bf:originPlace>
       <bf:Place rdf:about="http://id.loc.gov/vocabulary/countries/ir">
-    <rdfs:label>طهران، ايران (ir)</rdfs:label>
-  </bf:Place>
+        <rdfs:label>طهران، ايران (ir)</rdfs:label>
+      </bf:Place>
+    </bf:originPlace>
+    <bf:originPlace>
+      <rdf:Description>
+        <rdfs:label>طهران، ايران / كربلاء المقدسة</rdfs:label>
+      </rdf:Description>
     </bf:originPlace>
     <bf:temporalCoverage>1041-1061 هـ. / القرن 17 الميلادي</bf:temporalCoverage>
     <bf:temporalCoverage>
-      <bflc:TemporalCoverage>
-    <bf:start>1041 هـ.</bf:start>
-    <bf:end>1061 هـ. (1650 م.)</bf:end>
-    <rdfs:label>1041-1061 هـ. / القرن 17 الميلادي</rdfs:label>
-  </bflc:TemporalCoverage>
+      <moonext:TemporalCoverage>
+        <moonext:start>1041 هـ.</moonext:start>
+        <moonext:end>1061 هـ. (1650 م.)</moonext:end>
+        <rdfs:label>1041-1061 هـ. / القرن 17 الميلادي</rdfs:label>
+      </moonext:TemporalCoverage>
     </bf:temporalCoverage>
-    <bf:note>أوله: الحمد لله الواحد الاحد الصمد المصمود مهيمن كل وجود وجاعل كل موجود...
+    <bf:note>
+      <bf:Note>
+        <rdfs:label>أوله : الحمد لله الواحد الاحد الصمد المصمود مهيمن كل وجود وجاعل كل موجود، والصلاة على من اقتفاه من زمرة الانبياء، واصطفاه من رسل الرسل فابتعثه بالذكر...</rdfs:label>
+      </bf:Note>
+    </bf:note>
+    <bf:note>
+      <bf:Note>
+        <rdfs:label>آخره : ولا تخلنا اللهم مع ذلك من عواطف رأفتك وسوابغ رحمتك ولطايف كفايتك وحوط عنايتك وحسن كلائتك بجودك ومنك وفضلك وطولك يا أرحم الراحمين.</rdfs:label>
+      </bf:Note>
+    </bf:note>
+    <bf:note>
+      <bf:Note>
+        <rdfs:label>الذريعة الى تصانيف الشيعة، الجزء 17، الصفحه 32، الرقم 183.</rdfs:label>
+      </bf:Note>
+    </bf:note>
+    <bf:note>
+      <bf:Note>
+        <rdfs:label>مكتبة مجلس الشورى : 4662، طهران، ايران (ir)</rdfs:label>
+      </bf:Note>
+    </bf:note>
+    <bf:note>
+      <bf:Note>
+        <rdfs:label>أوله: الحمد لله الواحد الاحد الصمد المصمود مهيمن كل وجود وجاعل كل موجود...
 آخره: ولا تخلنا اللهم مع ذلك من عواطف رأفتك وسوابغ رحمتك ولطايف كفايتك وحوط عنايتك...
 الذريعة الى تصانيف الشيعة: ج 17، ص 32، رقم 183.
-مكتبة مجلس الشورى: 4662، طهران، ايران.</bf:note>
-    <bf:note>
-      <bf:Note>
-    <rdfs:label>أوله : الحمد لله الواحد الاحد الصمد المصمود مهيمن كل وجود وجاعل كل موجود، والصلاة على من اقتفاه من زمرة الانبياء، واصطفاه من رسل الرسل فابتعثه بالذكر...</rdfs:label>
-  </bf:Note>
+مكتبة مجلس الشورى: 4662، طهران، ايران.</rdfs:label>
+      </bf:Note>
     </bf:note>
-    <bf:note>
-      <bf:Note>
-    <rdfs:label>آخره : ولا تخلنا اللهم مع ذلك من عواطف رأفتك وسوابغ رحمتك ولطايف كفايتك وحوط عنايتك وحسن كلائتك بجودك ومنك وفضلك وطولك يا أرحم الراحمين.</rdfs:label>
-  </bf:Note>
-    </bf:note>
-    <bf:note>
-      <bf:Note>
-    <rdfs:label>الذريعة الى تصانيف الشيعة، الجزء 17، الصفحه 32، الرقم 183.</rdfs:label>
-  </bf:Note>
-    </bf:note>
-    <bf:note>
-      <bf:Note>
-    <rdfs:label>مكتبة مجلس الشورى : 4662، طهران، ايران (ir)</rdfs:label>
-  </bf:Note>
-    </bf:note>
-    <bf:hasSeries>تراث الحكمة والفلسفة الاسلامية</bf:hasSeries>
     <bf:hasSeries>
       <bf:Series>
-    <bf:title>تراث الحكمة والفلسفة الاسلامية</bf:title>
-    <bf:title>تراث الحكمة والفلسفة الاسلامية</bf:title>
-    <bf:number>القسم الفلسفي 14</bf:number>
-  </bf:Series>
+        <bf:title>
+          <bf:Title>
+            <bf:mainTitle>تراث الحكمة والفلسفة الاسلامية</bf:mainTitle>
+          </bf:Title>
+        </bf:title>
+        <moonext:number>القسم الفلسفي 14</moonext:number>
+      </bf:Series>
     </bf:hasSeries>
-    <bf:expressionOf>الميرداماد، محمد باقر بن محمد، توفي 1041 هجري. القبسات</bf:expressionOf>
+    <bf:hasSeries>
+      <rdf:Description>
+        <rdfs:label>تراث الحكمة والفلسفة الاسلامية</rdfs:label>
+      </rdf:Description>
+    </bf:hasSeries>
     <bf:expressionOf>
-      <bf:Work rdf:about="http://id.loc.gov/resources/hubs/mir-damad-qabasat">
-    <bflc:aap>الميرداماد، محمد باقر بن محمد، توفي 1041 هجري. القبسات</bflc:aap>
-  </bf:Work>
+      <rdf:Description rdf:about="https://mooon.site/resource/hub/mir-damad-qabasat">
+        <bflc:aap>الميرداماد، محمد باقر بن محمد، توفي 1041 هجري. القبسات</bflc:aap>
+      </rdf:Description>
     </bf:expressionOf>
-    <bf:supplementaryContent>الذريعة الى تصانيف الشيعة، الجزء 17، الصفحه 32، الرقم 183.</bf:supplementaryContent>
+    <bf:expressionOf>
+      <rdf:Description>
+        <rdfs:label>الميرداماد، محمد باقر بن محمد، توفي 1041 هجري. القبسات</rdfs:label>
+      </rdf:Description>
+    </bf:expressionOf>
     <bf:supplementaryContent>
       <bf:SupplementaryContent>
-    <rdfs:label>الذريعة الى تصانيف الشيعة، الجزء 17، الصفحه 32، الرقم 183.</rdfs:label>
-  </bf:SupplementaryContent>
+        <rdfs:label>الذريعة الى تصانيف الشيعة، الجزء 17، الصفحه 32، الرقم 183.</rdfs:label>
+      </bf:SupplementaryContent>
     </bf:supplementaryContent>
-    <bf:adminMetadata>IQ-KaCCS | ara | RDA | b125923</bf:adminMetadata>
     <bf:adminMetadata>
       <bf:AdminMetadata>
-    <bf:source>IQ-KaCCS</bf:source>
-    <bf:descriptionConventions>rda</bf:descriptionConventions>
-    <bf:descriptionLanguage>ara</bf:descriptionLanguage>
-    <rdfs:label>IQ-KaCCS / العتبة العباسية (RDA)</rdfs:label>
-  </bf:AdminMetadata>
+        <bf:source>
+          <bf:Source>
+            <rdfs:label>IQ-KaCCS</rdfs:label>
+          </bf:Source>
+        </bf:source>
+        <bf:descriptionConventions rdf:resource="http://id.loc.gov/vocabulary/descriptionConventions/rda"/>
+        <bf:descriptionLanguage rdf:resource="http://id.loc.gov/vocabulary/languages/ara"/>
+        <rdfs:label>IQ-KaCCS / العتبة العباسية (RDA)</rdfs:label>
+      </bf:AdminMetadata>
     </bf:adminMetadata>
-    <bf:governmentPublication>غير حكومي (مخطوط تراثي أصيل)</bf:governmentPublication>
-    <bf:governmentPublication>
-      <bf:GovernmentPublication>
-    <rdfs:label>غير حكومي</rdfs:label>
-  </bf:GovernmentPublication>
-    </bf:governmentPublication>
-    <bf:accessibilityContent>نسخة مصورة عالية الدقة متاحة رقمياً</bf:accessibilityContent>
-    <bf:accessibilityContent>
-      <bf:AccessibilityContent>
-    <rdfs:label>نسخة مصورة عالية الدقة متاحة رقمياً</rdfs:label>
-  </bf:AccessibilityContent>
-    </bf:accessibilityContent>
-    <bf:notation>خط عربي (النستعليق الفارسي العربي)</bf:notation>
+    <bf:adminMetadata>
+      <rdf:Description>
+        <rdfs:label>IQ-KaCCS | ara | RDA | b125923</rdfs:label>
+      </rdf:Description>
+    </bf:adminMetadata>
+    <bflc:governmentPubType>
+      <bflc:GovernmentPubType>
+        <rdfs:label>غير حكومي</rdfs:label>
+      </bflc:GovernmentPubType>
+    </bflc:governmentPubType>
+    <bf:contentAccessibility>
+      <bf:ContentAccessibility>
+        <rdfs:label>نسخة مصورة عالية الدقة متاحة رقمياً</rdfs:label>
+      </bf:ContentAccessibility>
+    </bf:contentAccessibility>
     <bf:notation>
       <bf:Notation>
-    <rdfs:label>خط عربي (نستعليق)</rdfs:label>
-  </bf:Notation>
+        <rdfs:label>خط عربي (نستعليق)</rdfs:label>
+      </bf:Notation>
     </bf:notation>
-    <bf:dissertation>أطروحة فلسفية حكيمة في إثبات حدوث الدهر</bf:dissertation>
+    <bf:notation>
+      <rdf:Description>
+        <rdfs:label>خط عربي (النستعليق الفارسي العربي)</rdfs:label>
+      </rdf:Description>
+    </bf:notation>
     <bf:dissertation>
       <bf:Dissertation>
-    <bf:name>أطروحة فلسفية حكيمة في إثبات حدوث الدهر</bf:name>
-    <bf:degree>رسالة حكمية كلامية</bf:degree>
-  </bf:Dissertation>
+        <rdfs:label>أطروحة فلسفية حكيمة في إثبات حدوث الدهر</rdfs:label>
+        <bf:degree>رسالة حكمية كلامية</bf:degree>
+      </bf:Dissertation>
     </bf:dissertation>
-    <bf:relatedTo>الذريعة الى تصانيف الشيعة (الرقم 183)</bf:relatedTo>
     <bf:relatedTo>
-      <bf:Work rdf:about="http://id.loc.gov/resources/works/al-dhariah">
-    <rdfs:label>الذريعة الى تصانيف الشيعة (الرقم 183)</rdfs:label>
-  </bf:Work>
+      <rdf:Description rdf:about="https://mooon.site/resource/work/al-dhariah">
+        <rdfs:label>الذريعة الى تصانيف الشيعة (الرقم 183)</rdfs:label>
+      </rdf:Description>
     </bf:relatedTo>
-    <bf:partOf>مجموعة مخطوطات الفلسفة والحكمة الإلهية</bf:partOf>
     <bf:partOf>
-      <bf:Work>
-    <rdfs:label>مجموعة مخطوطات الفلسفة والحكمة الإلهية</rdfs:label>
-  </bf:Work>
+      <rdf:Description>
+        <rdfs:label>مجموعة مخطوطات الفلسفة والحكمة الإلهية</rdfs:label>
+      </rdf:Description>
     </bf:partOf>
-    <bf:hasPart>القبسة الأولى في مراتب الوجود والدهر</bf:hasPart>
     <bf:hasPart>
-      <bf:Work>
-    <rdfs:label>القبسة الأولى في مراتب الوجود والدهر</rdfs:label>
-  </bf:Work>
+      <rdf:Description>
+        <rdfs:label>القبسة الأولى في مراتب الوجود والدهر</rdfs:label>
+      </rdf:Description>
     </bf:hasPart>
-    <bf:hasInstance>http://id.loc.gov/resources/instances/b125923</bf:hasInstance>
     <bf:hasInstance>
-      <bf:Work rdf:about="http://id.loc.gov/resources/instances/b125923">
-    <rdfs:label>نسخة مخطوطة كاملة 1061 هـ.</rdfs:label>
-  </bf:Work>
+      <rdf:Description rdf:about="https://mooon.site/resource/instance/b125923">
+        <rdfs:label>نسخة مخطوطة كاملة 1061 هـ.</rdfs:label>
+      </rdf:Description>
     </bf:hasInstance>
-    <bf:originalVersion>النسخة الأصلية بخط المؤلف سنة 1041 هـ.</bf:originalVersion>
     <bf:originalVersion>
-      <bf:Work>
-    <rdfs:label>النسخة الأصلية بخط المؤلف سنة 1041 هـ.</rdfs:label>
-  </bf:Work>
+      <rdf:Description>
+        <rdfs:label>النسخة الأصلية بخط المؤلف سنة 1041 هـ.</rdfs:label>
+      </rdf:Description>
     </bf:originalVersion>
-    <bf:hasDerivative>شرح القبسات للعلامة عبد الرزاق اللاهيجي</bf:hasDerivative>
     <bf:hasDerivative>
-      <bf:Work>
-    <rdfs:label>شرح القبسات للعلامة عبد الرزاق اللاهيجي</rdfs:label>
-  </bf:Work>
+      <rdf:Description>
+        <rdfs:label>شرح القبسات للعلامة عبد الرزاق اللاهيجي</rdfs:label>
+      </rdf:Description>
     </bf:hasDerivative>
-    <bf:translationOf>الأصل العربي — مخطوط في دار الكتب والوثائق</bf:translationOf>
     <bf:translationOf>
-      <bf:Work>
-    <rdfs:label>الأصل العربي — مخطوط في دار الكتب والوثائق</rdfs:label>
-  </bf:Work>
+      <rdf:Description>
+        <rdfs:label>الأصل العربي — مخطوط في دار الكتب والوثائق</rdfs:label>
+      </rdf:Description>
     </bf:translationOf>
     <bf:hasExpression>
-      <bf:Work rdf:about="http://id.loc.gov/resources/instances/b125923">
-    <rdfs:label>النسخة المخطوطة المحفوظة في العتبة العباسية</rdfs:label>
-  </bf:Work>
+      <rdf:Description rdf:about="https://mooon.site/resource/instance/b125923">
+        <rdfs:label>النسخة المخطوطة المحفوظة في العتبة العباسية</rdfs:label>
+      </rdf:Description>
     </bf:hasExpression>
-    <bf:hasExpression>النسخة المخطوطة المحفوظة في العتبة العباسية</bf:hasExpression>
     <bf:copyrightDate>1650</bf:copyrightDate>
-    <bf:copyrightDate>1650</bf:copyrightDate>
-    <bf:geographicCoverage>العراق - إيران (الشرق الأوسط)</bf:geographicCoverage>
-    <bf:intendedAudience>باحثو وعلماء الفلسفة الإسلامية والحكمة المتعالية</bf:intendedAudience>
-    <bf:classificationLcc>B753.D363 Q23 1650</bf:classificationLcc>
-    <bf:classificationDdc>181.07</bf:classificationDdc>
-    <bf:subjectTopical>الفلسفة الاسلامية الشيعية</bf:subjectTopical>
-    <bf:subjectGeographic>إيران -- تاريخ الفلسفة -- القرن 11 هـ</bf:subjectGeographic>
-    <bf:subjectName>الميرداماد، محمد باقر بن محمد، توفي 1041 هـ</bf:subjectName>
-    <bf:geographicAreaCode>a-iq / a-ir</bf:geographicAreaCode>
-    <bf:additionalContributors>خطاط غير مصرح، ناسخ المخطوطة</bf:additionalContributors>
-    <bf:descriptionAuthentication>rda</bf:descriptionAuthentication>
-    <bf:descriptionAuthentication>rda</bf:descriptionAuthentication>
+    <bf:geographicCoverage>
+      <bf:GeographicCoverage>
+        <rdfs:label>العراق - إيران (الشرق الأوسط)</rdfs:label>
+      </bf:GeographicCoverage>
+    </bf:geographicCoverage>
+    <bf:geographicCoverage>
+      <bf:GeographicCoverage>
+        <rdfs:label>a-iq / a-ir</rdfs:label>
+      </bf:GeographicCoverage>
+    </bf:geographicCoverage>
+    <bf:intendedAudience>
+      <bf:IntendedAudience>
+        <rdfs:label>باحثو وعلماء الفلسفة الإسلامية والحكمة المتعالية</rdfs:label>
+      </bf:IntendedAudience>
+    </bf:intendedAudience>
+    <bf:descriptionAuthentication>
+      <rdf:Description>
+        <rdfs:label>rda</rdfs:label>
+      </rdf:Description>
+    </bf:descriptionAuthentication>
   </bf:Work>
-  <bf:Instance rdf:about="http://id.loc.gov/resources/instances/b125923">
+
+  <bf:Instance rdf:about="https://mooon.site/resource/instance/b125923">
     <rdfs:label>القبسات — نسخة مخطوطة 1061 هـ.</rdfs:label>
-    <bf:instanceOf>http://id.loc.gov/resources/works/b125923</bf:instanceOf>
     <bf:instanceOf>
-      <bf:Work rdf:about="http://id.loc.gov/resources/works/b125923">
-    <rdfs:label>القبسات — الميرداماد</rdfs:label>
-  </bf:Work>
+      <rdf:Description rdf:about="https://mooon.site/resource/work/b125923">
+        <rdfs:label>القبسات — الميرداماد</rdfs:label>
+      </rdf:Description>
     </bf:instanceOf>
     <bf:title>
       <bf:Title>
-    <bf:mainTitle>القبسات</bf:mainTitle>
-    <bf:mainTitle>القبسات</bf:mainTitle>
-    <rdfs:label>القبسات</rdfs:label>
-  </bf:Title>
+        <bf:mainTitle>القبسات</bf:mainTitle>
+        <rdfs:label>القبسات</rdfs:label>
+      </bf:Title>
     </bf:title>
-    <bf:mainTitle>القبسات</bf:mainTitle>
-    <bf:title>القبسات</bf:title>
-    <bf:contribution>للميرداماد محمد باقر الحسيني الاسترآبادي (مؤلف)</bf:contribution>
     <bf:contribution>
       <bf:Contribution>
-    <bf:agent>
-      <bf:Person rdf:about="http://id.loc.gov/authorities/names/n85043844">
-    <rdfs:label>الميرداماد محمد باقر الحسيني الاسترآبادي</rdfs:label>
-  </bf:Person>
-    </bf:agent>
-    <bf:role>
-      <bf:Work rdf:about="http://id.loc.gov/vocabulary/relators/aut">
-    <rdfs:label>مؤلف</rdfs:label>
-  </bf:Work>
-    </bf:role>
-  </bf:Contribution>
+        <bf:agent>
+          <bf:Person rdf:about="http://id.loc.gov/authorities/names/n85043844">
+            <rdfs:label>الميرداماد محمد باقر الحسيني الاسترآبادي</rdfs:label>
+          </bf:Person>
+        </bf:agent>
+        <bf:role>
+          <bf:Role rdf:about="http://id.loc.gov/vocabulary/relators/aut">
+            <rdfs:label>مؤلف</rdfs:label>
+          </bf:Role>
+        </bf:role>
+      </bf:Contribution>
     </bf:contribution>
-    <bf:statementOfResponsibility>للميرداماد محمد باقر الحسيني الاسترآبادي.</bf:statementOfResponsibility>
+    <bf:contribution>
+      <bf:Contribution>
+        <bf:agent>
+          <bf:Agent>
+            <rdfs:label>للميرداماد محمد باقر الحسيني الاسترآبادي (مؤلف)</rdfs:label>
+          </bf:Agent>
+        </bf:agent>
+      </bf:Contribution>
+    </bf:contribution>
     <bf:responsibilityStatement>للميرداماد محمد باقر الحسيني الاسترآبادي.</bf:responsibilityStatement>
-    <bf:responsibilityStatement>للميرداماد محمد باقر الحسيني الاسترآبادي.</bf:responsibilityStatement>
-    <bf:lccn>b125923</bf:lccn>
-    <bf:identifier>b125923</bf:identifier>
-    <bf:identifiedBy>b125923</bf:identifiedBy>
     <bf:identifiedBy>
       <bf:Local>
-    <rdf:value>b125923</rdf:value>
-    <bf:value>b125923</bf:value>
-    <rdfs:label>b125923</rdfs:label>
-  </bf:Local>
+        <rdf:value>b125923</rdf:value>
+        <rdfs:label>b125923</rdfs:label>
+      </bf:Local>
     </bf:identifiedBy>
     <bf:identifiedBy>
       <bf:Identifier>
-    <rdf:value>(Sirsi) a209527</rdf:value>
-    <bf:value>(Sirsi) a209527</bf:value>
-    <rdfs:label>(Sirsi) a209527</rdfs:label>
-  </bf:Identifier>
+        <rdf:value>(Sirsi) a209527</rdf:value>
+        <rdfs:label>(Sirsi) a209527</rdfs:label>
+      </bf:Identifier>
     </bf:identifiedBy>
     <bf:editionStatement>نسخة مخطوطة كاملة مجدولة ومذهبة</bf:editionStatement>
     <bf:edition>نسخة مخطوطة كاملة مجدولة ومذهبة</bf:edition>
-    <bf:editionStatement>نسخة مخطوطة كاملة مجدولة ومذهبة</bf:editionStatement>
-    <bf:publicationDate>1061 هـ. = [1650]</bf:publicationDate>
-    <bf:placeOfPublication>كربلاء المقدسة / طهران</bf:placeOfPublication>
-    <bf:publisher>نسخة مخطوطة بخط النستعليق</bf:publisher>
-    <bf:provisionActivity>كربلاء المقدسة / طهران : خطاط غير مصرح (خط النستعليق)، 1061 هـ. = [1650]</bf:provisionActivity>
     <bf:provisionActivity>
       <bf:Production>
-    <bflc:simpleDate>1061 هـ. = [1650]</bflc:simpleDate>
-    <bf:date>1650</bf:date>
-    <bf:date>1061 هـ. = [1650]</bf:date>
-    <bf:place>
-      <bf:Place>
-    <rdfs:label>كربلاء المقدسة / طهران</rdfs:label>
-  </bf:Place>
-    </bf:place>
-    <bf:place>كربلاء المقدسة / طهران</bf:place>
-    <bf:agent>
-      <bf:Agent>
-    <rdfs:label>خطاط غير مصرح (خط النستعليق)</rdfs:label>
-  </bf:Agent>
-    </bf:agent>
-    <bf:agent>خطاط غير مصرح (خط النستعليق)</bf:agent>
-  </bf:Production>
+        <bflc:simpleDate>1061 هـ. = [1650]</bflc:simpleDate>
+        <bf:date>1650</bf:date>
+        <bf:date>1061 هـ. = [1650]</bf:date>
+        <bf:place>
+          <bf:Place>
+            <rdfs:label>كربلاء المقدسة / طهران</rdfs:label>
+          </bf:Place>
+        </bf:place>
+        <bf:agent>
+          <bf:Agent>
+            <rdfs:label>خطاط غير مصرح (خط النستعليق)</rdfs:label>
+          </bf:Agent>
+        </bf:agent>
+      </bf:Production>
+    </bf:provisionActivity>
+    <bf:provisionActivity>
+      <bf:Publication>
+        <bf:date>1061 هـ. = [1650]</bf:date>
+        <bf:place>
+          <bf:Place>
+            <rdfs:label>كربلاء المقدسة / طهران</rdfs:label>
+          </bf:Place>
+        </bf:place>
+        <bf:agent>
+          <bf:Agent>
+            <rdfs:label>نسخة مخطوطة بخط النستعليق</rdfs:label>
+          </bf:Agent>
+        </bf:agent>
+      </bf:Publication>
+    </bf:provisionActivity>
+    <bf:provisionActivity>
+      <bf:ProvisionActivity>
+        <rdfs:label>كربلاء المقدسة / طهران : خطاط غير مصرح (خط النستعليق)، 1061 هـ. = [1650]</rdfs:label>
+      </bf:ProvisionActivity>
     </bf:provisionActivity>
     <bf:copyrightDate>1650</bf:copyrightDate>
-    <bf:copyrightDate>1650</bf:copyrightDate>
-    <bf:projectedProvisionDate>1650</bf:projectedProvisionDate>
-    <bf:projectedProvisionDate>1650</bf:projectedProvisionDate>
-    <bf:extent>344 ورقة (18 سطرًا)</bf:extent>
+    <bflc:projectedProvisionDate>1650</bflc:projectedProvisionDate>
     <bf:extent>
       <bf:Extent>
-    <rdfs:label>344 ورقة (18 سطرًا)</rdfs:label>
-    <bf:value>344 ورقة (18 سطرًا)</bf:value>
-  </bf:Extent>
+        <rdfs:label>344 ورقة (18 سطرًا)</rdfs:label>
+        <rdf:value>344 ورقة (18 سطرًا)</rdf:value>
+      </bf:Extent>
     </bf:extent>
     <bf:dimensions>ورق، حبر اسود، خط النستعليق (18 سطرًا في الصفحة)</bf:dimensions>
-    <bf:dimensions>ورق، حبر اسود، خط النستعليق (18 سطرًا في الصفحة)</bf:dimensions>
-    <bf:mediaType>حاسوب</bf:mediaType>
-    <bf:media>حاسوب</bf:media>
     <bf:media>
       <bf:Media rdf:about="http://id.loc.gov/vocabulary/mediaTypes/c">
-    <rdfs:label>حاسوب</rdfs:label>
-  </bf:Media>
+        <rdfs:label>حاسوب</rdfs:label>
+      </bf:Media>
     </bf:media>
-    <bf:carrierType>مصدر الكتروني</bf:carrierType>
-    <bf:carrier>مصدر الكتروني</bf:carrier>
     <bf:carrier>
       <bf:Carrier rdf:about="http://id.loc.gov/vocabulary/carriers/ck">
-    <rdfs:label>مصدر الكتروني</rdfs:label>
-  </bf:Carrier>
+        <rdfs:label>مصدر الكتروني</rdfs:label>
+      </bf:Carrier>
     </bf:carrier>
-    <bf:shelfMark>B753.D363 Q23 1650</bf:shelfMark>
-    <bf:classification>B753.D363 Q23 1650</bf:classification>
     <bf:classification>
       <bf:ClassificationLcc>
-    <bf:classificationPortion>B753.D363</bf:classificationPortion>
-    <bf:itemPortion>Q23 1650</bf:itemPortion>
-    <bf:classificationPortion>B753.D363</bf:classificationPortion>
-    <bf:itemPortion>Q23 1650</bf:itemPortion>
-    <rdfs:label>B753.D363 Q23 1650</rdfs:label>
-  </bf:ClassificationLcc>
+        <bf:classificationPortion>B753.D363</bf:classificationPortion>
+        <bf:itemPortion>Q23 1650</bf:itemPortion>
+        <rdfs:label>B753.D363 Q23 1650</rdfs:label>
+      </bf:ClassificationLcc>
     </bf:classification>
-    <bf:tableOfContents>القبسة الأولى في مراتب الوجود والدهر، القبسة الثانية في إثبات الواجب، القبسة الثالثة في الزمان والحركة</bf:tableOfContents>
-    <bf:tableOfContents>القبسة الأولى في مراتب الوجود والدهر، القبسة الثانية في إثبات الواجب، القبسة الثالثة في الزمان والحركة</bf:tableOfContents>
-    <bf:note>مرتبة بنظام التعقيبات.
-في اولها مجموعة اختام.
-النسخة مجدولة والورقة الاولى عليها زخرفة.
-الغلاف : جلد، احمر.
-مكتبة مجلس الشورى : 4662، طهران، ايران (ir)</bf:note>
+    <bf:tableOfContents>
+      <bf:TableOfContents>
+        <rdfs:label>القبسة الأولى في مراتب الوجود والدهر، القبسة الثانية في إثبات الواجب، القبسة الثالثة في الزمان والحركة</rdfs:label>
+      </bf:TableOfContents>
+    </bf:tableOfContents>
     <bf:note>
       <bf:Note>
-    <rdfs:label>مرتبة بنظام التعقيبات.</rdfs:label>
-  </bf:Note>
+        <rdfs:label>مرتبة بنظام التعقيبات.</rdfs:label>
+      </bf:Note>
     </bf:note>
     <bf:note>
       <bf:Note>
-    <rdfs:label>في اولها مجموعة اختام.</rdfs:label>
-  </bf:Note>
+        <rdfs:label>في اولها مجموعة اختام.</rdfs:label>
+      </bf:Note>
     </bf:note>
     <bf:note>
       <bf:Note>
-    <rdfs:label>النسخة مجدولة والورقة الاولى عليها زخرفة.</rdfs:label>
-  </bf:Note>
+        <rdfs:label>النسخة مجدولة والورقة الاولى عليها زخرفة.</rdfs:label>
+      </bf:Note>
     </bf:note>
     <bf:note>
       <bf:Note>
-    <rdfs:label>الغلاف : جلد، احمر.</rdfs:label>
-  </bf:Note>
+        <rdfs:label>الغلاف : جلد، احمر.</rdfs:label>
+      </bf:Note>
     </bf:note>
     <bf:note>
       <bf:Note>
-    <rdfs:label>مكتبة مجلس الشورى : 4662، طهران، ايران (ir)</rdfs:label>
-  </bf:Note>
+        <rdfs:label>مكتبة مجلس الشورى : 4662، طهران، ايران (ir)</rdfs:label>
+      </bf:Note>
     </bf:note>
-    <bf:heldBy>مكتبة العتبة العباسية المقدسة (IQ-KaCCS)</bf:heldBy>
-    <bf:hasItem>
-      <bf:Item rdf:about="http://id.loc.gov/resources/items/b125923">
     <bf:heldBy>
       <bf:Agent>
-    <rdfs:label>مكتبة العتبة العباسية المقدسة</rdfs:label>
-  </bf:Agent>
+        <rdfs:label>مكتبة العتبة العباسية المقدسة (IQ-KaCCS)</rdfs:label>
+      </bf:Agent>
     </bf:heldBy>
-    <bf:shelfMark>B753.D363 Q23 1650</bf:shelfMark>
-    <bf:shelfMark>B753.D363 Q23 1650</bf:shelfMark>
-  </bf:Item>
+    <bf:hasItem>
+      <bf:Item rdf:about="https://mooon.site/resource/item/b125923">
+        <bf:heldBy>
+          <bf:Agent>
+            <rdfs:label>مكتبة العتبة العباسية المقدسة</rdfs:label>
+          </bf:Agent>
+        </bf:heldBy>
+        <bf:shelfMark>
+          <bf:ShelfMark>
+            <rdfs:label>B753.D363 Q23 1650</rdfs:label>
+          </bf:ShelfMark>
+        </bf:shelfMark>
+      </bf:Item>
     </bf:hasItem>
-    <bf:acquisitionSource>مكتبة العتبة العباسية المقدسة — قسم الشؤون الفكرية والثقافية</bf:acquisitionSource>
-    <bf:acquisitionSource>مكتبة العتبة العباسية المقدسة — قسم الشؤون الفكرية والثقافية</bf:acquisitionSource>
-    <bf:immediateAcquisition>إهداء / تصوير من أصل مخطوطة مجلس الشورى الإيراني رقم 4662</bf:immediateAcquisition>
-    <bf:immediateAcquisition>إهداء / تصوير من أصل مخطوطة مجلس الشورى الإيراني رقم 4662</bf:immediateAcquisition>
-    <bf:hasSeries>تراث الحكمة والفلسفة الاسلامية</bf:hasSeries>
+    <bf:hasItem rdf:resource="https://mooon.site/resource/instance/b125923-item"/>
+    <bf:acquisitionSource>
+      <rdf:Description>
+        <rdfs:label>مكتبة العتبة العباسية المقدسة — قسم الشؤون الفكرية والثقافية</rdfs:label>
+      </rdf:Description>
+    </bf:acquisitionSource>
+    <bf:immediateAcquisition>
+      <rdf:Description>
+        <rdfs:label>إهداء / تصوير من أصل مخطوطة مجلس الشورى الإيراني رقم 4662</rdfs:label>
+      </rdf:Description>
+    </bf:immediateAcquisition>
     <bf:hasSeries>
       <bf:Series>
-    <bf:title>تراث الحكمة والفلسفة الاسلامية</bf:title>
-    <bf:number>القسم الفلسفي 14</bf:number>
-  </bf:Series>
+        <bf:title>
+          <bf:Title>
+            <bf:mainTitle>تراث الحكمة والفلسفة الاسلامية</bf:mainTitle>
+          </bf:Title>
+        </bf:title>
+        <moonext:number>القسم الفلسفي 14</moonext:number>
+      </bf:Series>
     </bf:hasSeries>
-    <bf:accessibilityContent>نسخة مصورة عالية الدقة متاحة رقمياً</bf:accessibilityContent>
-    <bf:accessibilityContent>
-      <bf:AccessibilityContent>
-    <rdfs:label>نسخة مصورة عالية الدقة متاحة رقمياً</rdfs:label>
-  </bf:AccessibilityContent>
-    </bf:accessibilityContent>
-    <bf:notation>خط عربي (النستعليق الفارسي العربي)</bf:notation>
+    <bf:hasSeries>
+      <rdf:Description>
+        <rdfs:label>تراث الحكمة والفلسفة الاسلامية</rdfs:label>
+      </rdf:Description>
+    </bf:hasSeries>
+    <bf:contentAccessibility>
+      <bf:ContentAccessibility>
+        <rdfs:label>نسخة مصورة عالية الدقة متاحة رقمياً</rdfs:label>
+      </bf:ContentAccessibility>
+    </bf:contentAccessibility>
     <bf:notation>
       <bf:Notation>
-    <rdfs:label>خط عربي (نستعليق)</rdfs:label>
-  </bf:Notation>
+        <rdfs:label>خط عربي (نستعليق)</rdfs:label>
+      </bf:Notation>
     </bf:notation>
-    <bf:relatedTo>مخطوطة الخزانة الغروية رقم 1205</bf:relatedTo>
+    <bf:notation>
+      <rdf:Description>
+        <rdfs:label>خط عربي (النستعليق الفارسي العربي)</rdfs:label>
+      </rdf:Description>
+    </bf:notation>
     <bf:relatedTo>
-      <bf:Work>
-    <rdfs:label>مخطوطة الخزانة الغروية رقم 1205</rdfs:label>
-  </bf:Work>
+      <rdf:Description>
+        <rdfs:label>مخطوطة الخزانة الغروية رقم 1205</rdfs:label>
+      </rdf:Description>
     </bf:relatedTo>
-    <bf:partOf>خزانة المخطوطات المصورة — العتبة العباسية المقدسة</bf:partOf>
     <bf:partOf>
-      <bf:Work>
-    <rdfs:label>خزانة المخطوطات المصورة — العتبة العباسية المقدسة</rdfs:label>
-  </bf:Work>
+      <rdf:Description>
+        <rdfs:label>خزانة المخطوطات المصورة — العتبة العباسية المقدسة</rdfs:label>
+      </rdf:Description>
     </bf:partOf>
-    <bf:hasPart>الورقة 1-344 (كامل المخطوط)</bf:hasPart>
     <bf:hasPart>
-      <bf:Work>
-    <rdfs:label>الورقة 1-344 (كامل المخطوط)</rdfs:label>
-  </bf:Work>
+      <rdf:Description>
+        <rdfs:label>الورقة 1-344 (كامل المخطوط)</rdfs:label>
+      </rdf:Description>
     </bf:hasPart>
-    <bf:adminMetadata>IQ-KaCCS | ara | RDA | b125923</bf:adminMetadata>
     <bf:adminMetadata>
       <bf:AdminMetadata>
-    <bf:source>IQ-KaCCS</bf:source>
-    <bf:descriptionConventions>rda</bf:descriptionConventions>
-    <bf:descriptionLanguage>ara</bf:descriptionLanguage>
-    <rdfs:label>IQ-KaCCS / العتبة العباسية (RDA)</rdfs:label>
-  </bf:AdminMetadata>
+        <bf:source>
+          <bf:Source>
+            <rdfs:label>IQ-KaCCS</rdfs:label>
+          </bf:Source>
+        </bf:source>
+        <bf:descriptionConventions rdf:resource="http://id.loc.gov/vocabulary/descriptionConventions/rda"/>
+        <bf:descriptionLanguage rdf:resource="http://id.loc.gov/vocabulary/languages/ara"/>
+        <rdfs:label>IQ-KaCCS / العتبة العباسية (RDA)</rdfs:label>
+      </bf:AdminMetadata>
+    </bf:adminMetadata>
+    <bf:adminMetadata>
+      <rdf:Description>
+        <rdfs:label>IQ-KaCCS | ara | RDA | b125923</rdfs:label>
+      </rdf:Description>
     </bf:adminMetadata>
     <bf:seriesStatement>تراث الحكمة والفلسفة الاسلامية ؛ القسم الفلسفي 14</bf:seriesStatement>
-    <bf:illustrativeContent>زخرفة وتذهيب وتجديل في الورقة الأولى وعناوين مؤطرة</bf:illustrativeContent>
-    <bf:supplementaryContent>الذريعة الى تصانيف الشيعة، ج 17، ص 32، رقم 183</bf:supplementaryContent>
-    <bf:issuance>مخطوط وحيد / أحادي (Single unit)</bf:issuance>
-    <bf:issuance>مخطوط وحيد / أحادي (Single unit)</bf:issuance>
+    <bf:illustrativeContent>
+      <bf:Illustration>
+        <rdfs:label>زخرفة وتذهيب وتجديل في الورقة الأولى وعناوين مؤطرة</rdfs:label>
+      </bf:Illustration>
+    </bf:illustrativeContent>
+    <bf:supplementaryContent>
+      <rdf:Description>
+        <rdfs:label>الذريعة الى تصانيف الشيعة، ج 17، ص 32، رقم 183</rdfs:label>
+      </rdf:Description>
+    </bf:supplementaryContent>
+    <bf:issuance>
+      <bf:Issuance>
+        <rdfs:label>مخطوط وحيد / أحادي (Single unit)</rdfs:label>
+      </bf:Issuance>
+    </bf:issuance>
     <bf:originDate>1061 هـ. = [1650]</bf:originDate>
-    <bf:originDate>1061 هـ. = [1650]</bf:originDate>
-    <bf:originPlace>كربلاء المقدسة / طهران</bf:originPlace>
-    <bf:originPlace>كربلاء المقدسة / طهران</bf:originPlace>
-    <bf:genreForm>مخطوطات</bf:genreForm>
-    <bf:genreForm>مخطوطات</bf:genreForm>
-    <bf:governmentPublication>غير حكومي</bf:governmentPublication>
-    <bf:governmentPublication>غير حكومي</bf:governmentPublication>
-    <bf:itemOf>http://id.loc.gov/resources/instances/b125923</bf:itemOf>
-    <bf:itemOf>http://id.loc.gov/resources/instances/b125923</bf:itemOf>
-    <bf:translationOf>الأصل العربي</bf:translationOf>
-    <bf:translationOf>الأصل العربي</bf:translationOf>
-    <bf:descriptionAuthentication>rda</bf:descriptionAuthentication>
-    <bf:descriptionAuthentication>rda</bf:descriptionAuthentication>
+    <bf:originPlace>
+      <rdf:Description>
+        <rdfs:label>كربلاء المقدسة / طهران</rdfs:label>
+      </rdf:Description>
+    </bf:originPlace>
+    <bf:genreForm>
+      <bf:GenreForm>
+        <rdfs:label>مخطوطات</rdfs:label>
+      </bf:GenreForm>
+    </bf:genreForm>
+    <bflc:governmentPubType>
+      <rdf:Description>
+        <rdfs:label>غير حكومي</rdfs:label>
+      </rdf:Description>
+    </bflc:governmentPubType>
+    <bf:itemOf rdf:resource="https://mooon.site/resource/instance/b125923"/>
+    <bf:translationOf>
+      <rdf:Description>
+        <rdfs:label>الأصل العربي</rdfs:label>
+      </rdf:Description>
+    </bf:translationOf>
+    <bf:descriptionAuthentication>
+      <rdf:Description>
+        <rdfs:label>rda</rdfs:label>
+      </rdf:Description>
+    </bf:descriptionAuthentication>
   </bf:Instance>
+
+  <bf:Item rdf:about="https://mooon.site/resource/instance/b125923-item">
+    <bf:itemOf rdf:resource="https://mooon.site/resource/instance/b125923"/>
+    <bf:shelfMark>
+      <bf:ShelfMark>
+        <rdfs:label>B753.D363 Q23 1650</rdfs:label>
+      </bf:ShelfMark>
+    </bf:shelfMark>
+  </bf:Item>
+
 </rdf:RDF>

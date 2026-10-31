@@ -29,6 +29,7 @@ import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { VuFindApiClient, VuFindSolrDoc } from '../../services/vufindApiClient';
 import { toast } from 'sonner';
+import { BASE_URI } from '../../../services/uriMintingService';
 
 interface WolfMoonVuFindPortalProps {
   onImportToEditor?: (record: any) => void;
@@ -155,7 +156,7 @@ export function WolfMoonVuFindPortal({
       const bibframeRecord = {
         '@graph': [
           {
-            '@id': `http://id.loc.gov/resources/works/${doc.id}`,
+            '@id': `${BASE_URI}/work/vufind-${doc.id}`,
             '@type': ['bf:Work', 'bf:Text'],
             'bf:title': {
               '@type': 'bf:Title',
@@ -172,7 +173,7 @@ export function WolfMoonVuFindPortal({
             })),
           },
           {
-            '@id': `http://id.loc.gov/resources/instances/${doc.id}-inst`,
+            '@id': `${BASE_URI}/instance/vufind-${doc.id}`,
             '@type': ['bf:Instance'],
             'bf:title': {
               '@type': 'bf:Title',

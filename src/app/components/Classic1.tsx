@@ -38,6 +38,7 @@ import { Button } from './ui/button';
 import { saveRecord } from '../utils/recordStorageBackend';
 import { toast } from 'sonner';
 import { exampleWork, exampleInstance } from '../utils/exampleData';
+import { toBibframeJsonLdString } from '../../services/bibframeNormalizer';
 
 interface Classic1Props {
   onBack: () => void;
@@ -213,7 +214,7 @@ export function Classic1({ onBack, initialRecord }: Classic1Props) {
       }
     };
     
-    const blob = new Blob([JSON.stringify(record, null, 2)], { type: 'application/ld+json' });
+    const blob = new Blob([toBibframeJsonLdString(record)], { type: 'application/ld+json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

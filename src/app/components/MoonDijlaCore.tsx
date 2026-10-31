@@ -37,6 +37,7 @@ import {
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 import moonLogo from "figma:asset/448923f9298ec547f27dd322785433298cd5ac34.png";
 import "../../styles/dijla-theme.css";
+import { toBibframeJsonLdString } from '../../services/bibframeNormalizer';
 
 // ─── API ─────────────────────────────────────────────────────────
 const API = `https://${projectId}.supabase.co/functions/v1/make-server-49c0e13c`;
@@ -254,7 +255,7 @@ function CatalogingTab() {
             ))}
             {jsonLd && (
               <div className="ml-auto flex gap-2">
-                <button className="dijla-btn text-xs" onClick={() => exportFile(JSON.stringify(jsonLd, null, 2), `record-${Date.now()}.jsonld`, "application/ld+json")}>
+                <button className="dijla-btn text-xs" onClick={() => exportFile(toBibframeJsonLdString(jsonLd), `record-${Date.now()}.jsonld`, "application/ld+json")}>
                   <Download className="h-3 w-3" /> JSON-LD
                 </button>
                 {turtle && (

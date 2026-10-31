@@ -32,6 +32,7 @@ import {
 import { SavedRecord, searchRecords, deleteRecord, getAllRecords } from '../utils/recordStorageBackend';
 import { BIBFRAMERecord } from '../types/bibframe';
 import '../../styles/glassmorphism.css';
+import { toBibframeJsonLdString } from '../../services/bibframeNormalizer';
 
 interface SearchPageProps {
   onLoadRecord: (record: BIBFRAMERecord) => void;
@@ -127,7 +128,7 @@ export function SearchPage({ onLoadRecord, onNewRecord }: SearchPageProps) {
     }
 
     // Create blob and download
-    const blob = new Blob([JSON.stringify(jsonldDocument, null, 2)], { type: 'application/ld+json' });
+    const blob = new Blob([toBibframeJsonLdString(jsonldDocument)], { type: 'application/ld+json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

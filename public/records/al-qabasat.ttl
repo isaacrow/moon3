@@ -1,0 +1,423 @@
+@prefix bf: <http://id.loc.gov/ontologies/bibframe/> .
+@prefix bflc: <http://id.loc.gov/ontologies/bflc/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix madsrdf: <http://www.loc.gov/mads/rdf/v1#> .
+@prefix relators: <http://id.loc.gov/vocabulary/relators/> .
+@prefix languages: <http://id.loc.gov/vocabulary/languages/> .
+@prefix carriers: <http://id.loc.gov/vocabulary/carriers/> .
+@prefix mediaTypes: <http://id.loc.gov/vocabulary/mediaTypes/> .
+@prefix contentTypes: <http://id.loc.gov/vocabulary/contentTypes/> .
+@prefix issuance: <http://id.loc.gov/vocabulary/issuance/> .
+@prefix descriptionConventions: <http://id.loc.gov/vocabulary/descriptionConventions/> .
+@prefix genreForms: <http://id.loc.gov/authorities/genreForms/> .
+@prefix subjects: <http://id.loc.gov/authorities/subjects/> .
+@prefix names: <http://id.loc.gov/authorities/names/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix moon: <https://mooon.site/resource/> .
+@prefix moonext: <https://mooon.site/ontology/> .
+
+<https://mooon.site/resource/work/b125923>
+    a bf:Work ;
+    rdfs:label "القبسات — الميرداماد" ;
+    bf:title [
+        a bf:Title ;
+        bf:mainTitle "القبسات" ;
+        bflc:nonSortNum "2" ;
+        rdfs:label "القبسات"
+    ] ;
+    bf:contribution [
+        a bf:PrimaryContribution ;
+        bf:agent [
+            a bf:Person ;
+            rdfs:label "الميرداماد، محمد باقر بن محمد، توفي 1041 هجري"
+        ] ;
+        bf:role [
+            a bf:Role ;
+            rdfs:label "مؤلف"
+        ]
+    ], [
+        a bf:Contribution ;
+        bf:agent [
+            a bf:Agent ;
+            rdfs:label "خطاط غير مصرح، ناسخ المخطوطة"
+        ]
+    ] ;
+    bf:language [
+        a bf:Language ;
+        rdfs:label "العربية"
+    ] ;
+    bf:content [
+        a bf:Content ;
+        rdfs:label "نص"
+    ], [
+        a bf:Content ;
+        rdfs:label "نص (مصور مخطوط)"
+    ] ;
+    bf:classification [
+        a bf:ClassificationLcc ;
+        bf:classificationPortion "B753.D363" ;
+        bf:itemPortion "Q23 1650" ;
+        rdfs:label "B753.D363 Q23 1650"
+    ], [
+        a bf:ClassificationDdc ;
+        bf:classificationPortion "181.07"
+    ] ;
+    bf:subject [
+        a bf:Topic ;
+        rdfs:label "الفلسفة الاسلامية الشيعية"
+    ], [
+        a bf:Topic ;
+        rdfs:label "مخطوطات اسلامية"
+    ], [
+        a bf:Place ;
+        rdfs:label "إيران -- تاريخ الفلسفة -- القرن 11 هـ"
+    ], [
+        a bf:Agent ;
+        rdfs:label "الميرداماد، محمد باقر بن محمد، توفي 1041 هـ"
+    ] ;
+    bf:genreForm [
+        a bf:GenreForm ;
+        rdfs:label "مخطوطات"
+    ] ;
+    bf:summary [
+        a bf:Summary ;
+        rdfs:label "كتاب فلسفي كلامي للميرداماد يناقش حدوث العالم وقدمه ومسألة الدهر والزمان والمصادر الوجودية وفق الحكمة المتعالية والمشائية."
+    ] ;
+    bf:tableOfContents [
+        a bf:TableOfContents ;
+        rdfs:label "مقدمة في حدوث العالم، الومضة الأولى في الوجود والعدم، القبسة الأولى في مراتب الوجود والدهر والسرمد، القبسة الثانية في إثبات الواجب، القبسة الثالثة في الحركة والزمان والآن."
+    ] ;
+    bf:originDate "1650 [1061 هـ.]" ;
+    bf:date "1650" ;
+    bf:originPlace [
+        a bf:Place ;
+        rdfs:label "طهران، ايران (ir)"
+    ], [
+        rdfs:label "طهران، ايران / كربلاء المقدسة"
+    ] ;
+    bf:temporalCoverage "1041-1061 هـ. / القرن 17 الميلادي", [
+        a moonext:TemporalCoverage ;
+        moonext:start "1041 هـ." ;
+        moonext:end "1061 هـ. (1650 م.)" ;
+        rdfs:label "1041-1061 هـ. / القرن 17 الميلادي"
+    ] ;
+    bf:note [
+        a bf:Note ;
+        rdfs:label "أوله : الحمد لله الواحد الاحد الصمد المصمود مهيمن كل وجود وجاعل كل موجود، والصلاة على من اقتفاه من زمرة الانبياء، واصطفاه من رسل الرسل فابتعثه بالذكر..."
+    ], [
+        a bf:Note ;
+        rdfs:label "آخره : ولا تخلنا اللهم مع ذلك من عواطف رأفتك وسوابغ رحمتك ولطايف كفايتك وحوط عنايتك وحسن كلائتك بجودك ومنك وفضلك وطولك يا أرحم الراحمين."
+    ], [
+        a bf:Note ;
+        rdfs:label "الذريعة الى تصانيف الشيعة، الجزء 17، الصفحه 32، الرقم 183."
+    ], [
+        a bf:Note ;
+        rdfs:label "مكتبة مجلس الشورى : 4662، طهران، ايران (ir)"
+    ], [
+        a bf:Note ;
+        rdfs:label "أوله: الحمد لله الواحد الاحد الصمد المصمود مهيمن كل وجود وجاعل كل موجود...\nآخره: ولا تخلنا اللهم مع ذلك من عواطف رأفتك وسوابغ رحمتك ولطايف كفايتك وحوط عنايتك...\nالذريعة الى تصانيف الشيعة: ج 17، ص 32، رقم 183.\nمكتبة مجلس الشورى: 4662، طهران، ايران."
+    ] ;
+    bf:hasSeries [
+        a bf:Series ;
+        bf:title [
+            a bf:Title ;
+            bf:mainTitle "تراث الحكمة والفلسفة الاسلامية"
+        ] ;
+        moonext:number "القسم الفلسفي 14"
+    ], [
+        rdfs:label "تراث الحكمة والفلسفة الاسلامية"
+    ] ;
+    bf:expressionOf [
+        bflc:aap "الميرداماد، محمد باقر بن محمد، توفي 1041 هجري. القبسات"
+    ], [
+        rdfs:label "الميرداماد، محمد باقر بن محمد، توفي 1041 هجري. القبسات"
+    ] ;
+    bf:supplementaryContent [
+        a bf:SupplementaryContent ;
+        rdfs:label "الذريعة الى تصانيف الشيعة، الجزء 17، الصفحه 32، الرقم 183."
+    ] ;
+    bf:adminMetadata [
+        a bf:AdminMetadata ;
+        bf:source [
+            a bf:Source ;
+            rdfs:label "IQ-KaCCS"
+        ] ;
+        bf:descriptionConventions <http://id.loc.gov/vocabulary/descriptionConventions/rda> ;
+        bf:descriptionLanguage <http://id.loc.gov/vocabulary/languages/ara> ;
+        rdfs:label "IQ-KaCCS / العتبة العباسية (RDA)"
+    ], [
+        rdfs:label "IQ-KaCCS | ara | RDA | b125923"
+    ] ;
+    bflc:governmentPubType [
+        a bflc:GovernmentPubType ;
+        rdfs:label "غير حكومي"
+    ] ;
+    bf:contentAccessibility [
+        a bf:ContentAccessibility ;
+        rdfs:label "نسخة مصورة عالية الدقة متاحة رقمياً"
+    ] ;
+    bf:notation [
+        a bf:Notation ;
+        rdfs:label "خط عربي (نستعليق)"
+    ], [
+        rdfs:label "خط عربي (النستعليق الفارسي العربي)"
+    ] ;
+    bf:dissertation [
+        a bf:Dissertation ;
+        rdfs:label "أطروحة فلسفية حكيمة في إثبات حدوث الدهر" ;
+        bf:degree "رسالة حكمية كلامية"
+    ] ;
+    bf:relatedTo [
+        rdfs:label "الذريعة الى تصانيف الشيعة (الرقم 183)"
+    ] ;
+    bf:partOf [
+        rdfs:label "مجموعة مخطوطات الفلسفة والحكمة الإلهية"
+    ] ;
+    bf:hasPart [
+        rdfs:label "القبسة الأولى في مراتب الوجود والدهر"
+    ] ;
+    bf:hasInstance [
+        rdfs:label "نسخة مخطوطة كاملة 1061 هـ."
+    ] ;
+    bf:originalVersion [
+        rdfs:label "النسخة الأصلية بخط المؤلف سنة 1041 هـ."
+    ] ;
+    bf:hasDerivative [
+        rdfs:label "شرح القبسات للعلامة عبد الرزاق اللاهيجي"
+    ] ;
+    bf:translationOf [
+        rdfs:label "الأصل العربي — مخطوط في دار الكتب والوثائق"
+    ] ;
+    bf:hasExpression [
+        rdfs:label "النسخة المخطوطة المحفوظة في العتبة العباسية"
+    ] ;
+    bf:copyrightDate "1650" ;
+    bf:geographicCoverage [
+        a bf:GeographicCoverage ;
+        rdfs:label "العراق - إيران (الشرق الأوسط)"
+    ], [
+        a bf:GeographicCoverage ;
+        rdfs:label "a-iq / a-ir"
+    ] ;
+    bf:intendedAudience [
+        a bf:IntendedAudience ;
+        rdfs:label "باحثو وعلماء الفلسفة الإسلامية والحكمة المتعالية"
+    ] ;
+    bf:descriptionAuthentication [
+        rdfs:label "rda"
+    ] .
+
+<https://mooon.site/resource/instance/b125923>
+    a bf:Instance ;
+    rdfs:label "القبسات — نسخة مخطوطة 1061 هـ." ;
+    bf:instanceOf [
+        rdfs:label "القبسات — الميرداماد"
+    ] ;
+    bf:title [
+        a bf:Title ;
+        bf:mainTitle "القبسات" ;
+        rdfs:label "القبسات"
+    ] ;
+    bf:contribution [
+        a bf:Contribution ;
+        bf:agent [
+            a bf:Person ;
+            rdfs:label "الميرداماد محمد باقر الحسيني الاسترآبادي"
+        ] ;
+        bf:role [
+            a bf:Role ;
+            rdfs:label "مؤلف"
+        ]
+    ], [
+        a bf:Contribution ;
+        bf:agent [
+            a bf:Agent ;
+            rdfs:label "للميرداماد محمد باقر الحسيني الاسترآبادي (مؤلف)"
+        ]
+    ] ;
+    bf:responsibilityStatement "للميرداماد محمد باقر الحسيني الاسترآبادي." ;
+    bf:identifiedBy [
+        a bf:Local ;
+        rdf:value "b125923" ;
+        rdfs:label "b125923"
+    ], [
+        a bf:Identifier ;
+        rdf:value "(Sirsi) a209527" ;
+        rdfs:label "(Sirsi) a209527"
+    ] ;
+    bf:editionStatement "نسخة مخطوطة كاملة مجدولة ومذهبة" ;
+    bf:edition "نسخة مخطوطة كاملة مجدولة ومذهبة" ;
+    bf:provisionActivity [
+        a bf:Production ;
+        bflc:simpleDate "1061 هـ. = [1650]" ;
+        bf:date "1650", "1061 هـ. = [1650]" ;
+        bf:place [
+            a bf:Place ;
+            rdfs:label "كربلاء المقدسة / طهران"
+        ] ;
+        bf:agent [
+            a bf:Agent ;
+            rdfs:label "خطاط غير مصرح (خط النستعليق)"
+        ]
+    ], [
+        a bf:Publication ;
+        bf:date "1061 هـ. = [1650]" ;
+        bf:place [
+            a bf:Place ;
+            rdfs:label "كربلاء المقدسة / طهران"
+        ] ;
+        bf:agent [
+            a bf:Agent ;
+            rdfs:label "نسخة مخطوطة بخط النستعليق"
+        ]
+    ], [
+        a bf:ProvisionActivity ;
+        rdfs:label "كربلاء المقدسة / طهران : خطاط غير مصرح (خط النستعليق)، 1061 هـ. = [1650]"
+    ] ;
+    bf:copyrightDate "1650" ;
+    bflc:projectedProvisionDate "1650" ;
+    bf:extent [
+        a bf:Extent ;
+        rdfs:label "344 ورقة (18 سطرًا)" ;
+        rdf:value "344 ورقة (18 سطرًا)"
+    ] ;
+    bf:dimensions "ورق، حبر اسود، خط النستعليق (18 سطرًا في الصفحة)" ;
+    bf:media [
+        a bf:Media ;
+        rdfs:label "حاسوب"
+    ] ;
+    bf:carrier [
+        a bf:Carrier ;
+        rdfs:label "مصدر الكتروني"
+    ] ;
+    bf:classification [
+        a bf:ClassificationLcc ;
+        bf:classificationPortion "B753.D363" ;
+        bf:itemPortion "Q23 1650" ;
+        rdfs:label "B753.D363 Q23 1650"
+    ] ;
+    bf:tableOfContents [
+        a bf:TableOfContents ;
+        rdfs:label "القبسة الأولى في مراتب الوجود والدهر، القبسة الثانية في إثبات الواجب، القبسة الثالثة في الزمان والحركة"
+    ] ;
+    bf:note [
+        a bf:Note ;
+        rdfs:label "مرتبة بنظام التعقيبات."
+    ], [
+        a bf:Note ;
+        rdfs:label "في اولها مجموعة اختام."
+    ], [
+        a bf:Note ;
+        rdfs:label "النسخة مجدولة والورقة الاولى عليها زخرفة."
+    ], [
+        a bf:Note ;
+        rdfs:label "الغلاف : جلد، احمر."
+    ], [
+        a bf:Note ;
+        rdfs:label "مكتبة مجلس الشورى : 4662، طهران، ايران (ir)"
+    ] ;
+    bf:heldBy [
+        a bf:Agent ;
+        rdfs:label "مكتبة العتبة العباسية المقدسة (IQ-KaCCS)"
+    ] ;
+    bf:hasItem [
+        a bf:Item ;
+        bf:heldBy [
+            a bf:Agent ;
+            rdfs:label "مكتبة العتبة العباسية المقدسة"
+        ] ;
+        bf:shelfMark [
+            a bf:ShelfMark ;
+            rdfs:label "B753.D363 Q23 1650"
+        ]
+    ], <https://mooon.site/resource/instance/b125923-item> ;
+    bf:acquisitionSource [
+        rdfs:label "مكتبة العتبة العباسية المقدسة — قسم الشؤون الفكرية والثقافية"
+    ] ;
+    bf:immediateAcquisition [
+        rdfs:label "إهداء / تصوير من أصل مخطوطة مجلس الشورى الإيراني رقم 4662"
+    ] ;
+    bf:hasSeries [
+        a bf:Series ;
+        bf:title [
+            a bf:Title ;
+            bf:mainTitle "تراث الحكمة والفلسفة الاسلامية"
+        ] ;
+        moonext:number "القسم الفلسفي 14"
+    ], [
+        rdfs:label "تراث الحكمة والفلسفة الاسلامية"
+    ] ;
+    bf:contentAccessibility [
+        a bf:ContentAccessibility ;
+        rdfs:label "نسخة مصورة عالية الدقة متاحة رقمياً"
+    ] ;
+    bf:notation [
+        a bf:Notation ;
+        rdfs:label "خط عربي (نستعليق)"
+    ], [
+        rdfs:label "خط عربي (النستعليق الفارسي العربي)"
+    ] ;
+    bf:relatedTo [
+        rdfs:label "مخطوطة الخزانة الغروية رقم 1205"
+    ] ;
+    bf:partOf [
+        rdfs:label "خزانة المخطوطات المصورة — العتبة العباسية المقدسة"
+    ] ;
+    bf:hasPart [
+        rdfs:label "الورقة 1-344 (كامل المخطوط)"
+    ] ;
+    bf:adminMetadata [
+        a bf:AdminMetadata ;
+        bf:source [
+            a bf:Source ;
+            rdfs:label "IQ-KaCCS"
+        ] ;
+        bf:descriptionConventions <http://id.loc.gov/vocabulary/descriptionConventions/rda> ;
+        bf:descriptionLanguage <http://id.loc.gov/vocabulary/languages/ara> ;
+        rdfs:label "IQ-KaCCS / العتبة العباسية (RDA)"
+    ], [
+        rdfs:label "IQ-KaCCS | ara | RDA | b125923"
+    ] ;
+    bf:seriesStatement "تراث الحكمة والفلسفة الاسلامية ؛ القسم الفلسفي 14" ;
+    bf:illustrativeContent [
+        a bf:Illustration ;
+        rdfs:label "زخرفة وتذهيب وتجديل في الورقة الأولى وعناوين مؤطرة"
+    ] ;
+    bf:supplementaryContent [
+        rdfs:label "الذريعة الى تصانيف الشيعة، ج 17، ص 32، رقم 183"
+    ] ;
+    bf:issuance [
+        a bf:Issuance ;
+        rdfs:label "مخطوط وحيد / أحادي (Single unit)"
+    ] ;
+    bf:originDate "1061 هـ. = [1650]" ;
+    bf:originPlace [
+        rdfs:label "كربلاء المقدسة / طهران"
+    ] ;
+    bf:genreForm [
+        a bf:GenreForm ;
+        rdfs:label "مخطوطات"
+    ] ;
+    bflc:governmentPubType [
+        rdfs:label "غير حكومي"
+    ] ;
+    bf:itemOf <https://mooon.site/resource/instance/b125923> ;
+    bf:translationOf [
+        rdfs:label "الأصل العربي"
+    ] ;
+    bf:descriptionAuthentication [
+        rdfs:label "rda"
+    ] .
+
+<https://mooon.site/resource/instance/b125923-item>
+    a bf:Item ;
+    bf:itemOf <https://mooon.site/resource/instance/b125923> ;
+    bf:shelfMark [
+        a bf:ShelfMark ;
+        rdfs:label "B753.D363 Q23 1650"
+    ] .

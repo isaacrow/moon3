@@ -98,6 +98,7 @@ import { BIBFRAMERecord } from "../types/bibframe";
 // ===== ASSETS =====
 import moonLogo from "figma:asset/448923f9298ec547f27dd322785433298cd5ac34.png";
 import "../../styles/glassmorphism.css";
+import { toBibframeJsonLdString } from '../../services/bibframeNormalizer';
 
 // Background image for the blur view effect (expo-ios-visual-blur style)
 const BG_IMAGE = "https://images.unsplash.com/photo-1771803426175-f412a2de69b0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2Z0JTIwZ29sZGVuJTIwc3VucmlzZSUyMGFic3RyYWN0JTIwZ3JhZGllbnQlMjBsaWdodHxlbnwxfHx8fDE3NzIyODcwMzZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral";
@@ -754,7 +755,7 @@ export default function SunMoon({
             <button onClick={() => setShowImportDialog(true)} className="glass-button-dark px-4 py-2 flex items-center gap-2 text-sm">
               <Upload className="h-4 w-4" /> Import
             </button>
-            <button onClick={() => downloadFile(JSON.stringify(w3cJsonLd || graphJsonld || graph, null, 2), `${recordId}-w3c.jsonld`, "application/ld+json")}
+            <button onClick={() => downloadFile(toBibframeJsonLdString(w3cJsonLd || graphJsonld || graph), `${recordId}-w3c.jsonld`, "application/ld+json")}
               className="glass-button-dark px-4 py-2 flex items-center gap-2 text-sm">
               <Download className="h-4 w-4" /> W3C JSON-LD
             </button>
@@ -1045,7 +1046,7 @@ export default function SunMoon({
                 </h3>
                 <div className="flex gap-2">
                   <button onClick={() => copyToClipboard(JSON.stringify(w3cJsonLd, null, 2))} className="glass-button-dark px-3 py-1.5 text-xs flex items-center gap-1.5"><Copy className="h-3.5 w-3.5" /> Copy</button>
-                  <button onClick={() => downloadFile(JSON.stringify(w3cJsonLd, null, 2), `${recordId}-w3c.jsonld`, "application/ld+json")} className="glass-button-dark px-3 py-1.5 text-xs flex items-center gap-1.5"><Download className="h-3.5 w-3.5" /> Download</button>
+                  <button onClick={() => downloadFile(toBibframeJsonLdString(w3cJsonLd), `${recordId}-w3c.jsonld`, "application/ld+json")} className="glass-button-dark px-3 py-1.5 text-xs flex items-center gap-1.5"><Download className="h-3.5 w-3.5" /> Download</button>
                 </div>
               </div>
               <pre className="p-6 rounded-lg overflow-auto text-sm max-h-[calc(100vh-450px)] font-mono" style={{ background: 'rgba(240,240,248,0.7)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: '#1a1a2e', border: '1px solid rgba(200,200,220,0.5)' }}>
@@ -1062,7 +1063,7 @@ export default function SunMoon({
               <h3 className="text-xl font-bold flex items-center gap-2"><Braces className="h-5 w-5" style={{ color: '#16a34a' }} /> Raw JSON-LD (GraphStore output)</h3>
               <div className="flex gap-2">
                 <button onClick={() => copyToClipboard(JSON.stringify(graphJsonld || graph, null, 2))} className="glass-button-dark px-3 py-1.5 text-xs"><Copy className="h-3.5 w-3.5" /></button>
-                <button onClick={() => downloadFile(JSON.stringify(graphJsonld || graph, null, 2), `${recordId}.jsonld`, "application/ld+json")} className="glass-button-dark px-3 py-1.5 text-xs"><Download className="h-3.5 w-3.5" /></button>
+                <button onClick={() => downloadFile(toBibframeJsonLdString(graphJsonld || graph), `${recordId}.jsonld`, "application/ld+json")} className="glass-button-dark px-3 py-1.5 text-xs"><Download className="h-3.5 w-3.5" /></button>
               </div>
             </div>
             <div className="mb-3 p-3 bg-yellow-500/10 rounded-lg text-xs" style={{ border: '1px solid #e5c07b', color: '#92600a' }}>

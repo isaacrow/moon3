@@ -108,6 +108,7 @@ import { BIBFRAMERecord } from "../types/bibframe";
 // ===== ASSETS =====
 import moonLogo from "figma:asset/448923f9298ec547f27dd322785433298cd5ac34.png";
 import "../../styles/glassmorphism.css";
+import { toBibframeJsonLdString } from '../../services/bibframeNormalizer';
 
 // ============================== TYPES ==============================
 
@@ -767,7 +768,7 @@ export default function MoonBibframeTemplate({
             <button onClick={() => setShowImportDialog(true)} className="glass-button-dark px-4 py-2 flex items-center gap-2 text-sm">
               <Upload className="h-4 w-4" /> Import
             </button>
-            <button onClick={() => downloadFile(JSON.stringify(w3cJsonLd || graphJsonld || graph, null, 2), `${recordId}-w3c.jsonld`, "application/ld+json")}
+            <button onClick={() => downloadFile(toBibframeJsonLdString(w3cJsonLd || graphJsonld || graph), `${recordId}-w3c.jsonld`, "application/ld+json")}
               className="glass-button-dark px-4 py-2 flex items-center gap-2 text-sm">
               <Download className="h-4 w-4" /> W3C JSON-LD
             </button>
@@ -1056,7 +1057,7 @@ export default function MoonBibframeTemplate({
                 </h3>
                 <div className="flex gap-2">
                   <button onClick={() => copyToClipboard(JSON.stringify(w3cJsonLd, null, 2))} className="glass-button-dark px-3 py-1.5 text-xs flex items-center gap-1.5"><Copy className="h-3.5 w-3.5" /> Copy</button>
-                  <button onClick={() => downloadFile(JSON.stringify(w3cJsonLd, null, 2), `${recordId}-w3c.jsonld`, "application/ld+json")} className="glass-button-dark px-3 py-1.5 text-xs flex items-center gap-1.5"><Download className="h-3.5 w-3.5" /> Download</button>
+                  <button onClick={() => downloadFile(toBibframeJsonLdString(w3cJsonLd), `${recordId}-w3c.jsonld`, "application/ld+json")} className="glass-button-dark px-3 py-1.5 text-xs flex items-center gap-1.5"><Download className="h-3.5 w-3.5" /> Download</button>
                 </div>
               </div>
               <pre className="bg-gray-900 text-green-400 p-6 rounded-lg overflow-auto text-sm max-h-[calc(100vh-450px)] font-mono">
@@ -1073,7 +1074,7 @@ export default function MoonBibframeTemplate({
               <h3 className="text-xl font-bold text-white flex items-center gap-2"><Braces className="h-5 w-5 text-green-400" /> Raw JSON-LD (GraphStore output)</h3>
               <div className="flex gap-2">
                 <button onClick={() => copyToClipboard(JSON.stringify(graphJsonld || graph, null, 2))} className="glass-button-dark px-3 py-1.5 text-xs"><Copy className="h-3.5 w-3.5" /></button>
-                <button onClick={() => downloadFile(JSON.stringify(graphJsonld || graph, null, 2), `${recordId}.jsonld`, "application/ld+json")} className="glass-button-dark px-3 py-1.5 text-xs"><Download className="h-3.5 w-3.5" /></button>
+                <button onClick={() => downloadFile(toBibframeJsonLdString(graphJsonld || graph), `${recordId}.jsonld`, "application/ld+json")} className="glass-button-dark px-3 py-1.5 text-xs"><Download className="h-3.5 w-3.5" /></button>
               </div>
             </div>
             <div className="mb-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-xs text-yellow-300">

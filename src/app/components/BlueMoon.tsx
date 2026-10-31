@@ -124,6 +124,7 @@ import {
 } from "./ScriptShifterEngine";
 import moonLogo from "figma:asset/448923f9298ec547f27dd322785433298cd5ac34.png";
 import "../../styles/glassmorphism.css";
+import { toBibframeJsonLdString } from '../../services/bibframeNormalizer';
 
 // ============================== TYPES ==============================
 
@@ -1047,7 +1048,7 @@ export default function BlueMoon({
               { onClick: () => setShowExampleMenu(!showExampleMenu), icon: <Database className="h-3.5 w-3.5" />, label: t("examples") },
               { onClick: () => setShowAuthoritySearch(true), icon: <Search className="h-3.5 w-3.5" />, label: t("authoritySearch") },
               { onClick: () => setShowImportDialog(true), icon: <Upload className="h-3.5 w-3.5" />, label: t("import") },
-              { onClick: () => downloadFile(JSON.stringify(w3cJsonLd || graphJsonld || graph, null, 2), `${recordId}-w3c.jsonld`, "application/ld+json"), icon: <Download className="h-3.5 w-3.5" />, label: t("w3cJsonLd") },
+              { onClick: () => downloadFile(toBibframeJsonLdString(w3cJsonLd || graphJsonld || graph), `${recordId}-w3c.jsonld`, "application/ld+json"), icon: <Download className="h-3.5 w-3.5" />, label: t("w3cJsonLd") },
             ].map((btn: any, i) => (
               <button key={i} onClick={btn.onClick}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-all"
@@ -1341,7 +1342,7 @@ export default function BlueMoon({
                 </h3>
                 <div className="flex gap-2">
                   <BMSmallBtn onClick={() => copyToClipboard(JSON.stringify(w3cJsonLd, null, 2))} icon={<Copy className="h-3.5 w-3.5" />} label="Copy" />
-                  <BMSmallBtn onClick={() => downloadFile(JSON.stringify(w3cJsonLd, null, 2), `${recordId}-w3c.jsonld`, "application/ld+json")} icon={<Download className="h-3.5 w-3.5" />} label="Download" />
+                  <BMSmallBtn onClick={() => downloadFile(toBibframeJsonLdString(w3cJsonLd), `${recordId}-w3c.jsonld`, "application/ld+json")} icon={<Download className="h-3.5 w-3.5" />} label="Download" />
                 </div>
               </div>
               <pre className="p-5 rounded-xl overflow-auto text-sm max-h-[calc(100vh-420px)] font-mono leading-relaxed"
@@ -1361,7 +1362,7 @@ export default function BlueMoon({
               </h3>
               <div className="flex gap-2">
                 <BMSmallBtn onClick={() => copyToClipboard(JSON.stringify(graphJsonld || graph, null, 2))} icon={<Copy className="h-3.5 w-3.5" />} label="Copy" />
-                <BMSmallBtn onClick={() => downloadFile(JSON.stringify(graphJsonld || graph, null, 2), `${recordId}.jsonld`, "application/ld+json")} icon={<Download className="h-3.5 w-3.5" />} label="Download" />
+                <BMSmallBtn onClick={() => downloadFile(toBibframeJsonLdString(graphJsonld || graph), `${recordId}.jsonld`, "application/ld+json")} icon={<Download className="h-3.5 w-3.5" />} label="Download" />
               </div>
             </div>
             <div className="mb-3 p-3 rounded-lg text-xs flex items-center gap-2" style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.15)", color: BM.warning }}>

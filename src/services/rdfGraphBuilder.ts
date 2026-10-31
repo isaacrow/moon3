@@ -3,7 +3,13 @@
  * Generates semantically correct BIBFRAME RDF
  * Supports Turtle, RDF/XML, and JSON-LD serialization
  * Triple store ready output
+ *
+ * Every serializer runs its input through normalizeBibframe() first, so only
+ * official BIBFRAME 3.0.1 / BFLC terms are emitted in the bf: and bflc: namespaces.
  */
+
+import { normalizeBibframe } from './bibframeNormalizer';
+import { BASE_URI } from './uriMintingService';
 
 export interface GraphNode {
   uri: string;
@@ -41,14 +47,14 @@ export const KNOWN_NAMESPACES: Record<string, string> = {
   skos: 'http://www.w3.org/2004/02/skos/core#',
   foaf: 'http://xmlns.com/foaf/0.1/',
   owl: 'http://www.w3.org/2002/07/owl#',
-  moon: 'https://moonlib.org/resource/'
+  moon: `${BASE_URI}/`
 };
 
 /**
  * Generate stable URI
  */
 export function generateUri(type: string, id?: string): string {
-  const namespace = 'https://moonlib.org/';
+  const namespace = BASE_URI.replace(/resource$/, '');
   const identifier = id || (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`);
   return `${namespace}${type}/${identifier}`;
 }
@@ -320,6 +326,7 @@ function formatTurtleValue(value: any, context: Record<string, string>, indentLe
  */
 export function toTurtle(jsonld: any): string {
   if (!jsonld) return '';
+  jsonld = normalizeBibframe(jsonld);
 
   const nodes = jsonld['@graph'] || (Array.isArray(jsonld) ? jsonld : [jsonld]);
   const docContext: Record<string, string> = {
@@ -390,6 +397,7 @@ export function toJsonLd(graph: any[]): any {
 export function extractTriples(jsonld: any): RDFTriple[] {
   const triples: RDFTriple[] = [];
   if (!jsonld) return triples;
+  jsonld = normalizeBibframe(jsonld);
 
   const nodes = jsonld['@graph'] || (Array.isArray(jsonld) ? jsonld : [jsonld]);
   const context = jsonld['@context'] || KNOWN_NAMESPACES;
@@ -569,6 +577,7 @@ function collectReferences(value: any, refs: Set<string>) {
  */
 export function toRdfXml(jsonld: any): string {
   if (!jsonld) return '';
+  jsonld = normalizeBibframe(jsonld);
   const nodes = jsonld['@graph'] || (Array.isArray(jsonld) ? jsonld : [jsonld]);
   const docContext: Record<string, string> = {
     ...KNOWN_NAMESPACES,
