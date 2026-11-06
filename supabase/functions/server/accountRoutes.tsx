@@ -29,7 +29,8 @@ const VIP_CODES = new Set(["wolfmoonalqamiisaac", "moon2026", "vip"]);
 
 // Set MOON_ADMIN_PASSWORD in the Supabase function secrets to change it.
 // Trimmed so a space or line break pasted into the dashboard doesn't lock the admin out.
-const ADMIN_PASSWORD = (Deno.env.get("MOON_ADMIN_PASSWORD") || "").trim() || "Eshak1996";
+// No built-in fallback: without the secret, the Super Admin cannot sign in (better than a password in the code).
+const ADMIN_PASSWORD = (Deno.env.get("MOON_ADMIN_PASSWORD") || "").trim();
 
 type AccountStatus = "pending" | "approved" | "rejected";
 
@@ -277,6 +278,10 @@ accountRoutes.post("/api/accounts/login", async (c) => {
     }
 
     if (identifier === SUPER_ADMIN_USERNAME || identifier === SUPER_ADMIN_EMAIL) {
+      if (!ADMIN_PASSWORD) {
+        console.error("[accounts] MOON_ADMIN_PASSWORD is not set; Super Admin sign-in is disabled.");
+        return c.json({ success: false, status: "unknown", message: "Super Admin sign-in is not configured." }, 503);
+      }
       if (!safeEqual(password, ADMIN_PASSWORD)) {
         return c.json({ success: false, status: "unknown", message: "Invalid password for Super Admin account." }, 401);
       }
