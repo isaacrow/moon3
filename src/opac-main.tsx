@@ -11,7 +11,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ErrorBoundary fallbackTitle="تعذّر عرض الفهرس">
       <OpacApp
         onOpenEditor={() => {
-          window.location.href = '/moon/';
+          // The dashboard (sign-in first when needed); page-reveal.js plays the card reveal.
+          window.location.href = '/dashboard/';
         }}
       />
     </ErrorBoundary>

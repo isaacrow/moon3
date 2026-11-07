@@ -407,10 +407,11 @@ Each is a real edition from Open Library; its author is linked to Wikidata, LC a
               </div>
               <div>
                 <h1 className="text-5xl font-black tracking-tight" style={{ color: '#2d3748' }}>
-                  {t('dashboard')}
+                  {/* .reveal-line: lifts into place after the reveal from the OPAC (public/page-reveal.css) */}
+                  <span className="reveal-line"><span>{t('dashboard')}</span></span>
                 </h1>
                 <p className="text-lg mt-2 font-medium" style={{ color: '#4a5568' }}>
-                  Moon • BIBFRAME 3.0.1 Cataloging Platform
+                  <span className="reveal-line" style={{ '--lift-delay': '620ms' } as React.CSSProperties}><span>Moon • BIBFRAME 3.0.1 Cataloging Platform</span></span>
                 </p>
               </div>
             </div>
