@@ -1,0 +1,73 @@
+/*
+ * Page reveal between the public catalogue (OPAC) and Moon Studio.
+ *
+ * The OPAC (opac.html) and Studio (/dashboard/, /moon/, ...) are separate pages, so this uses the
+ * browser's cross-document View Transitions. Both pages load this file and page-reveal.js early.
+ *
+ * OPAC -> Studio: the catalogue dims and steps back; the Studio rises from below as a card cut 9% in
+ * from every edge, then opens out to the full screen. The dashboard heading then lifts into place.
+ * Studio -> OPAC (Back): the card closes and drops away, and the catalogue comes back to full light.
+ *
+ * page-reveal.js sets html.vt-opac-to-studio / html.vt-studio-to-opac on the new page, and skips every
+ * other navigation, so nothing else changes. Browsers without cross-document View Transitions
+ * (Firefox today) simply open the page.
+ */
+@view-transition { navigation: auto; }
+
+/* Only the whole page takes part: named parts of the OPAC (header, covers, pill) would float on top. */
+html.vt-plain * { view-transition-name: none !important; }
+
+html.vt-opac-to-studio::view-transition-image-pair(root),
+html.vt-studio-to-opac::view-transition-image-pair(root) { isolation: auto; }
+
+html.vt-opac-to-studio::view-transition-old(root),
+html.vt-opac-to-studio::view-transition-new(root),
+html.vt-studio-to-opac::view-transition-old(root),
+html.vt-studio-to-opac::view-transition-new(root) {
+  mix-blend-mode: normal;
+  animation-duration: 1000ms;
+  animation-timing-function: cubic-bezier(.16, 1, .3, 1);
+  animation-fill-mode: both;
+}
+
+html.vt-opac-to-studio::view-transition-old(root) { animation-name: moon-step-back; }
+html.vt-opac-to-studio::view-transition-new(root) { animation-name: moon-card-in; }
+
+html.vt-studio-to-opac::view-transition-old(root) { z-index: 1; animation-name: moon-card-out; }
+html.vt-studio-to-opac::view-transition-new(root) { animation-name: moon-step-forward; }
+
+@keyframes moon-step-back {
+  from { filter: none; transform: none; }
+  to   { filter: brightness(.3) saturate(.8); transform: scale(.96); }
+}
+@keyframes moon-step-forward {
+  from { filter: brightness(.3) saturate(.8); transform: scale(.96); }
+  to   { filter: none; transform: none; }
+}
+@keyframes moon-card-in {
+  0%   { clip-path: inset(9% round 28px); transform: translateY(14vh); }
+  55%  { clip-path: inset(9% round 28px); transform: none; }
+  100% { clip-path: inset(0 round 0); transform: none; }
+}
+@keyframes moon-card-out {
+  0%   { clip-path: inset(0 round 0); transform: none; }
+  45%  { clip-path: inset(9% round 28px); transform: none; }
+  100% { clip-path: inset(9% round 28px); transform: translateY(105vh); }
+}
+
+/* Masked lift: each .reveal-line rises from below its own edge once the card has opened. */
+.reveal-line { display: block; }
+html.moon-revealed .reveal-line { overflow: hidden; padding-block: .1em; margin-block: -.1em; }
+html.moon-revealed .reveal-line > span {
+  display: block;
+  animation: moon-lift 900ms cubic-bezier(.16, 1, .3, 1) both;
+  animation-delay: var(--lift-delay, 520ms);
+}
+@keyframes moon-lift {
+  from { transform: translateY(105%); }
+  to   { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.moon-revealed .reveal-line > span { animation: none; }
+}
