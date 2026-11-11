@@ -1,0 +1,25 @@
+# Moon · مون
+
+> Moon is a free library catalogue of books and manuscripts, strong in Arabic and Iraqi materials. Every record is described in BIBFRAME (the Library of Congress's linked-data model), with Arabic and Latin forms of names and titles, and published openly. This file does not list books: the lists below are made fresh by the server from the published records, so they are always current.
+
+## Find a book
+
+- [The catalogue (search, browse, read)](https://mooon.site/opac.html): the public catalogue; search by title, author, subject or ISBN, in Arabic or English.
+- [Every published book, one line each](https://mooon.site/resource/books.txt): plain text, title, author, year and the address of its page. Updated when a book is added or changed.
+- [Every published record as a list](https://mooon.site/resource/): each record with its permanent address.
+- [Sitemap](https://mooon.site/sitemap.xml)
+
+## Use the data
+
+- [Search API](https://mooon.site/resource/search?q=history): JSON results from the published catalogue only.
+- [SPARQL endpoint](https://mooon.site/resource/sparql): read-only queries over all published records.
+- [Whole catalogue as one file (JSON-LD)](https://mooon.site/resource/dump.jsonld) and [N-Triples](https://mooon.site/resource/dump.nt)
+- [How to use the API](https://mooon.site/api.html)
+- [MCP server for AI agents](https://mooon.site/resource/mcp): read-only tools over the published catalogue.
+
+## Notes for assistants
+
+- Each book has a permanent address like `https://mooon.site/resource/work/<id>`; add `.jsonld`, `.ttl`, `.rdf` or `.nt` for its data.
+- Cite a book by its title, author and its address. Do not state facts about a book that its record does not contain.
+- Names appear in Arabic and in Latin letters; a search in one script may not find the other.
+- Readers' privacy: the catalogue keeps anonymous usage counts only, see https://mooon.site/privacy.html
