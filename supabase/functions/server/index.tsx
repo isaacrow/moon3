@@ -94,6 +94,7 @@ import { reconcile, manifest } from "./reconcile.tsx";
 import { linkAuthorities, mirrorOutsideLinked, headingsOf, moonAuthorityId, authorityReport } from "./authorityLinking.tsx";
 import { relatedFrom, resolveRelated } from "./entityRelations.tsx";
 import { isBot, visitFrom, visitDay, visitorKey } from "./opacVisits.tsx";
+import { bookFactsOf, bookPageHtml, booksText } from "./seoPages.tsx";
 import { baghdadHour, countryFrom, MAX_SEARCHES_PER_VISITOR_DAY, parseEvent } from "./opacInsights.tsx";
 import { buildFolioInstance, folioClient, loadReference, sendInstance, instanceHash, type FolioConfig, type FolioRef, type FolioLink } from "./folio.tsx";
 import { marcProblems, sendMarc } from "./folioMarc.tsx";
@@ -904,7 +905,22 @@ app.post("/make-server-49c0e13c/records/save", async (c) => {
 // (303 See Other) to the record's page in the OPAC. Only published versions are ever served.
 // 📚 https://mooon.site/resource/ itself: a page listing every published record with its Work and Instance
 // addresses and data formats (JSON with ?format=json or Accept: application/json).
+// One published book as a plain page, for crawlers and AI assistants that do not run JavaScript:
+// https://mooon.site/resource/?book=<id>. Made from the record every time, so it follows every change.
+async function bookPage(c: any, id: string) {
+  try {
+    const record = /^[A-Za-z0-9._:-]{1,120}$/.test(id) ? await recordStore.getPublishedRecord(id).catch(() => null) : null;
+    if (!record) return c.html('<!doctype html><meta charset="utf-8"><title>Not found</title><p>No published book has this address. <a href="/resource/">All published records</a></p>', 404);
+    return c.html(bookPageHtml(bookFactsOf({ id: record.id, title: record.title, document: record.document })), 200, { 'Cache-Control': 'public, max-age=300', 'Access-Control-Allow-Origin': '*' });
+  } catch (error) {
+    console.error('Book page error:', error);
+    return c.json({ error: 'Failed to build the book page' }, 500);
+  }
+}
+
 async function resourceIndex(c: any) {
+  const bookId = c.req.query('book');
+  if (bookId) return await bookPage(c, bookId);
   try {
     const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
     const nodeId = (doc: any, cls: string) => (Array.isArray(doc?.['@graph']) ? doc['@graph'] : [])
@@ -1541,6 +1557,17 @@ app.get("/make-server-49c0e13c/resource/dump.jsonld", (c) => resourceDump(c, 'js
 app.get("/make-server-49c0e13c/resource/dump.nt", (c) => resourceDump(c, 'nt'));
 
 app.get("/make-server-49c0e13c/resource", resourceIndex);
+// Every published book, one line each, for AI assistants and tools: https://mooon.site/resource/books.txt
+app.get("/make-server-49c0e13c/resource/books.txt", async (c) => {
+  try {
+    const records = await recordStore.listPublishedRecords();
+    const facts = records.map((r) => bookFactsOf({ id: r.id, title: r.title, document: r.document }));
+    return c.body(booksText(facts), 200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600', 'Access-Control-Allow-Origin': '*' });
+  } catch (error) {
+    console.error('Books list error:', error);
+    return c.json({ error: 'Failed to list the books' }, 500);
+  }
+});
 app.get("/make-server-49c0e13c/resource/", resourceIndex);
 
 app.get("/make-server-49c0e13c/resource/:kind/:id", async (c) => {
