@@ -1150,11 +1150,6 @@ export function LoginPage({ onLanguageChange, currentLanguage }: LoginPageProps)
                           />
                         </div>
                       </div>
-                            disabled={loading}
-                            dir={isAr ? "rtl" : "ltr"}
-                          />
-                        </div>
-                      </div>
 
                       <AnimatePresence mode="wait">
                         {error && (
