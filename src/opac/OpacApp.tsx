@@ -38,7 +38,7 @@ import { whatItIs, formatChips, editionLines, exactMatch, alphaIndex, letterOf, 
 import { usePreferredForms } from '../app/utils/preferredNames';
 import { bookScript } from '../services/nameForms';
 import { MARK_KINDS, ITEM_ACTIONS, maqamOf } from '../services/specialVocab';
-import { reportContext, reportOpen, reportSearch } from './insights';
+import { countPage, reportAction, reportContext, reportOpen, reportSearch } from './insights';
 import { canonical as canonicalOutside, sourceOf as outsideSource, pickLabel, type Label as OutsideLabel } from '../../supabase/functions/server/labelCache.tsx';
 import { whoOf, aboutPerson, teachersAndStudents, personPlaces, shelfNeighbours, subjectsAlongside, type Link as KnowledgeLink } from './knowledge';
 import './opac.css';
@@ -256,6 +256,7 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
   const [navOpen, setNavOpen] = useState(false);
   const [lang, setLang] = useState<OpacLang>(opacLang);
   const switchLang = useCallback(() => {
+    reportAction('switch_lang');
     const next: OpacLang = lang === 'ar' ? 'en' : 'ar';
     setOpacLang(next);
     // A ?lang= in the address would win on reload; keep it in step with the choice.
@@ -286,6 +287,7 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
   const previousView = useRef<View | null>(null);
   useEffect(() => {
     reportVisit(view);
+    countPage();
     reportContext(view.mode, lang);
     const before = previousView.current;
     if (before && before.mode === 'search' && view.mode === 'work') {
@@ -356,7 +358,7 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
             </button>
             <button className="btn-ghost lang-switch" onClick={switchLang} lang={lang === 'ar' ? 'en' : 'ar'}
               aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}>{lang === 'ar' ? 'English' : 'العربية'}</button>
-            <button className="btn-black" onClick={onOpenEditor}>{t('دخول المفهرسين', 'Cataloguer sign-in')}</button>
+            <button className="btn-black" onClick={() => { reportAction('sign_in'); onOpenEditor?.(); }}>{t('دخول المفهرسين', 'Cataloguer sign-in')}</button>
             <button className="icon-btn menu-toggle" onClick={() => setNavOpen(o => !o)} aria-expanded={navOpen} aria-label={t('القائمة', 'Menu')}>
               {navOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -660,7 +662,7 @@ function AskMoon({ ctx }: { ctx: Ctx }) {
   if (!open) {
     return (
       <div className="quick">
-        <button className="chip" onClick={() => setOpen(true)}>✦ {t('اسأل مون بكلماتك', 'Ask Moon in your own words')}</button>
+        <button className="chip" onClick={() => { reportAction('ask_moon'); setOpen(true); }}>✦ {t('اسأل مون بكلماتك', 'Ask Moon in your own words')}</button>
       </div>
     );
   }
@@ -988,7 +990,7 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
     return () => window.clearTimeout(timer);
   }, [query, resultCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onToggle = (k: FacetKey, v: string) => { setSel(s => toggle(s, k, v)); setPage(1); };
+  const onToggle = (k: FacetKey, v: string) => { reportAction('filter'); setSel(s => toggle(s, k, v)); setPage(1); };
   const clear = () => { setSel({}); setPage(1); };
   const chips = (Object.entries(sel) as [FacetKey, string[]][]).flatMap(([k, vs]) => vs.map(v => ({ k, v, label: valueLabel(k, v) })));
   const activeCount = chips.length;
@@ -1090,6 +1092,7 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
 // Work page
 
 function download(name: string, text: string, type: string) {
+  if (/.(bib|ris)$/.test(name)) reportAction('export');
   const blob = new Blob([text], { type });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1160,6 +1163,7 @@ function ResultNav({ ctx, id }: { ctx: Ctx; id: string }) {
 
 /** Downloads the record as MARC 21 (ISO 2709), MARCXML or MarcEdit text, made from its stored BIBFRAME. */
 async function downloadMarc(work: OpacWorkEntity, kind: 'mrc' | 'xml' | 'mrk', say: (s: string) => void) {
+  reportAction('marc');
   try {
     const [{ bibframeToMarc }, marc] = await Promise.all([import('../services/marc/bibframeToMarc'), import('../services/marc/marcRecord')]);
     const [{ loadPreferredForms }, { agentUris, withPreferredNames }] = await Promise.all([import('../app/utils/preferredNames'), import('../services/nameForms')]);
@@ -1261,6 +1265,7 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
   const shownDetails = showAll ? details : details.slice(0, 6);
 
   const copyLink = async () => {
+    reportAction('copy_link');
     await navigator.clipboard?.writeText(pageUrl(work.id)).catch(() => {});
     ctx.say(t('نُسخ رابط الكتاب', 'Link copied'));
   };
@@ -1276,12 +1281,12 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
         <aside className="work-aside">
           <div className="frame glass"><Cover work={work} big /></div>
           <div className="actions glass">
-            <button className="btn-black" onClick={() => ctx.toggleSave(work.id)} aria-pressed={isSaved}>
+            <button className="btn-black" onClick={() => { if (!isSaved) reportAction('save'); ctx.toggleSave(work.id); }} aria-pressed={isSaved}>
               <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
                 {isSaved ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}{isSaved ? t('في قائمتك', 'In your list') : t('احفظ في قائمتك', 'Save to your list')}
               </span>
             </button>
-            <button className="btn-ghost" onClick={() => setCiteOpen(true)}><Quote size={16} />{t('استشهد', 'Cite')}</button>
+            <button className="btn-ghost" onClick={() => { reportAction('cite'); setCiteOpen(true); }}><Quote size={16} />{t('استشهد', 'Cite')}</button>
             <button className="btn-ghost" onClick={copyLink}><Link2 size={16} />{t('انسخ الرابط', 'Copy link')}</button>
           </div>
         </aside>

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanQuery, countryFrom, deviceClass, parseEvent, scriptOf, sourceOf } from '../supabase/functions/server/opacInsights.tsx';
+import { ACTIONS, baghdadHour, cleanQuery, countryFrom, deviceClass, parseEvent, scriptOf, sourceOf } from '../supabase/functions/server/opacInsights.tsx';
 
 test('cleanQuery makes searches the same and drops private ones', () => {
   assert.equal(cleanQuery('  Ibn  Khaldun '), 'ibn khaldun');
@@ -48,10 +48,28 @@ test('parseEvent accepts only the known shapes', () => {
   assert.equal(parseEvent(null), null);
   assert.equal(parseEvent({ t: 'context', device: 'watch' }), null);
   assert.deepEqual(parseEvent({ t: 'context', device: 'phone', lang: 'AR', browserLang: 'en', source: 'google', entry: 'bogus' }),
-    { t: 'context', device: 'phone', lang: 'ar', browserLang: 'en', source: 'google', entry: 'home' });
+    { t: 'context', device: 'phone', lang: 'ar', browserLang: 'en', source: 'google', entry: 'home', country: '' });
   const s = parseEvent({ t: 'search', query: ' Mahfouz ', results: -5, filters: 3 });
   assert.deepEqual(s, { t: 'search', query: 'mahfouz', results: 0, script: 'latin', lang: 'ar', filters: 3 });
   assert.equal(parseEvent({ t: 'search', query: 'a@b.com', results: 1 }), null);
   assert.deepEqual(parseEvent({ t: 'open', query: 'mahfouz', rank: 2 }), { t: 'open', query: 'mahfouz', rank: 2 });
   assert.equal(parseEvent({ t: 'open', query: 'mahfouz', rank: 0 }), null);
+});
+
+test('parseEvent: country, actions and the end of a visit', () => {
+  assert.equal((parseEvent({ t: 'context', device: 'phone', country: 'IQ' }) as any).country, 'IQ');
+  assert.equal((parseEvent({ t: 'context', device: 'phone', country: 'iq' }) as any).country, '');
+  assert.equal((parseEvent({ t: 'context', device: 'phone', country: 'T1' }) as any).country, '');
+  assert.equal((parseEvent({ t: 'context', device: 'phone', country: 'XX' }) as any).country, '');
+  for (const a of ACTIONS) assert.deepEqual(parseEvent({ t: 'action', action: a }), { t: 'action', action: a });
+  assert.equal(parseEvent({ t: 'action', action: 'my secret note' }), null);
+  assert.equal(parseEvent({ t: 'action' }), null);
+  assert.deepEqual(parseEvent({ t: 'end', pages: 4, seconds: 95.7 }), { t: 'end', pages: 4, seconds: 95 });
+  assert.deepEqual(parseEvent({ t: 'end', pages: -3, seconds: 999999 }), { t: 'end', pages: 1, seconds: 14400 });
+});
+
+test('baghdadHour is the hour in Baghdad (UTC+3)', () => {
+  assert.equal(baghdadHour(new Date('2026-11-11T21:00:00Z')), 0);
+  assert.equal(baghdadHour(new Date('2026-11-11T06:30:00Z')), 9);
+  assert.equal(baghdadHour(new Date('2026-11-11T20:59:00Z')), 23);
 });

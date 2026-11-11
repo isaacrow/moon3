@@ -21,6 +21,10 @@ interface Insights {
   countries: Array<{ country: string; visitors: number }>;
   sources: Array<{ source: string; visitors: number }>;
   entries: Record<string, number>;
+  hours?: Record<string, number>;
+  daily?: Array<{ day: string; visitors: number }>;
+  actions?: Array<{ action: string; visitors: number; times: number }>;
+  depth?: { avgPages: number; onePageShare: number; avgSeconds: number };
 }
 
 const GLASS: React.CSSProperties = {
@@ -35,6 +39,23 @@ const INNER: React.CSSProperties = { background: 'rgba(255, 255, 255, 0.5)', bor
 
 /** Share of the total as a whole percent, 0 when there is nothing. */
 export const percent = (part: number, total: number) => (total > 0 ? Math.round((100 * part) / total) : 0);
+
+/** Columns for a series of counts (busiest hours, visitors per day); the tallest is full height. */
+function Columns({ title, note, values, labels, tip }: { title: string; note?: string; values: number[]; labels: [string, string]; tip: (i: number, n: number) => string }) {
+  const max = Math.max(1, ...values);
+  return (
+    <div className="p-4 min-w-0" style={INNER}>
+      <div className="text-xs font-bold" style={{ color: '#334155' }}>{title}</div>
+      {note && <div className="text-[11px] mb-2" style={{ color: '#64748b' }}>{note}</div>}
+      <div className="flex items-end gap-[2px] h-16" dir="ltr">
+        {values.map((n, i) => (
+          <div key={i} title={tip(i, n)} className="flex-1 rounded-sm" style={{ height: `${Math.max(n > 0 ? 6 : 2, (100 * n) / max)}%`, background: n > 0 ? '#0369a1' : 'rgba(15,23,42,0.12)' }} />
+        ))}
+      </div>
+      <div className="flex justify-between text-[10px] mt-1" style={{ color: '#94a3b8' }} dir="ltr"><span>{labels[0]}</span><span>{labels[1]}</span></div>
+    </div>
+  );
+}
 
 function Bars({ title, rows, total, label }: { title: string; rows: Array<[string, number]>; total: number; label?: (k: string) => string }) {
   return (
@@ -84,6 +105,12 @@ export function OpacInsightsCard({ isAr }: { isAr: boolean }) {
   const scriptLabel = (k: string) => ({ arabic: t('عربي', 'Arabic'), latin: t('لاتيني', 'Latin letters'), mixed: t('مختلط', 'Mixed'), digits: t('أرقام', 'Numbers'), other: t('غير ذلك', 'Other') } as Record<string, string>)[k] || k;
   const entryLabel = (k: string) => ({ home: t('الرئيسية', 'Home'), search: t('بحث', 'A search'), work: t('كتاب', 'A book'), person: t('شخص', 'A person'), subject: t('موضوع', 'A subject'), hub: t('عمل', 'A work group'), place: t('مكان', 'A place'), authors: t('المؤلفون', 'Authors'), subjects: t('المواضيع', 'Subjects') } as Record<string, string>)[k] || k;
   const sourceLabel = (k: string) => (k === 'direct' ? t('مباشر (رابط أو كتابة العنوان)', 'Direct (a link or typed address)') : k);
+  const actionLabel = (k: string) => ({
+    save: t('حفظ في القائمة', 'Saved to a list'), cite: t('استشهاد', 'Opened Cite'), copy_link: t('نسخ رابط', 'Copied a link'),
+    marc: t('تنزيل MARC', 'Downloaded MARC'), export: t('تصدير BibTeX/RIS', 'Exported BibTeX/RIS'), switch_lang: t('تبديل اللغة', 'Switched language'),
+    ask_moon: t('اسأل مون', 'Opened Ask Moon'), sign_in: t('ضغط دخول المفهرسين', 'Clicked cataloguer sign-in'), filter: t('استخدم فلتراً', 'Used a filter'),
+  } as Record<string, string>)[k] || k;
+  const minutes = (s: number) => (s < 90 ? `${s} ${t('ثانية', 'sec')}` : `${Math.round(s / 60)} ${t('دقيقة', 'min')}`);
   const entries = (o: Record<string, number>): Array<[string, number]> => Object.entries(o).sort((a, b) => b[1] - a[1]);
   const sum = (o: Record<string, number>) => Object.values(o).reduce((a, b) => a + b, 0);
 
@@ -168,6 +195,44 @@ export function OpacInsightsCard({ isAr }: { isAr: boolean }) {
               )}
             </div>
           </div>
+
+          {data.depth && (
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                [String(data.depth.avgPages), t('صفحة في الزيارة', 'pages per visit')],
+                [`${data.depth.onePageShare}%`, t('نظروا إلى صفحة واحدة فقط', 'looked at one page only')],
+                [data.depth.avgSeconds ? minutes(data.depth.avgSeconds) : '—', t('مدة الزيارة (المتوسط)', 'time on the site (average)')],
+              ].map(([n, l]) => (
+                <div key={l} className="p-4" style={INNER}>
+                  <div className="text-xl font-black tracking-tight" style={{ color: '#0369a1' }}>{n}</div>
+                  <div className="text-xs" style={{ color: '#64748b' }}>{l}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-3">
+            <Columns title={t('الزوار يوماً بيوم', 'Visitors, day by day')} values={(data.daily || []).map((d) => d.visitors)}
+              labels={[(data.daily || [])[0]?.day.slice(5) || '', (data.daily || []).slice(-1)[0]?.day.slice(5) || '']}
+              tip={(i, n) => `${(data.daily || [])[i]?.day}: ${n}`} />
+            <Columns title={t('أوقات الذروة (بتوقيت بغداد)', 'Busiest hours (Baghdad time)')} note={t('الساعة التي بدأت فيها الزيارة', 'The hour a visit started')}
+              values={Array.from({ length: 24 }, (_, h) => (data.hours || {})[String(h)] || 0)} labels={['00:00', '23:00']}
+              tip={(h, n) => `${String(h).padStart(2, '0')}:00 — ${n}`} />
+          </div>
+
+          {(data.actions || []).length > 0 && (
+            <div className="p-4" style={INNER}>
+              <div className="text-sm font-bold mb-2" style={{ color: '#1a202c' }}>{t('ماذا يفعلون في الكتب', 'What readers do')}</div>
+              <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1">
+                {(data.actions || []).map((a) => (
+                  <li key={a.action} className="flex justify-between gap-3 text-sm" style={{ color: '#1e293b' }}>
+                    <span>{actionLabel(a.action)}</span>
+                    <span className="text-xs tabular-nums" style={{ color: '#64748b' }}>{a.visitors} {t('زائر', 'visitors')} · {a.times}×</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Bars title={t('الجهاز', 'Device')} rows={entries(data.devices)} total={sum(data.devices)} label={deviceLabel} />

@@ -94,7 +94,7 @@ import { reconcile, manifest } from "./reconcile.tsx";
 import { linkAuthorities, mirrorOutsideLinked, headingsOf, moonAuthorityId, authorityReport } from "./authorityLinking.tsx";
 import { relatedFrom, resolveRelated } from "./entityRelations.tsx";
 import { isBot, visitFrom, visitDay, visitorKey } from "./opacVisits.tsx";
-import { countryFrom, MAX_SEARCHES_PER_VISITOR_DAY, parseEvent } from "./opacInsights.tsx";
+import { baghdadHour, countryFrom, MAX_SEARCHES_PER_VISITOR_DAY, parseEvent } from "./opacInsights.tsx";
 import { buildFolioInstance, folioClient, loadReference, sendInstance, instanceHash, type FolioConfig, type FolioRef, type FolioLink } from "./folio.tsx";
 import { marcProblems, sendMarc } from "./folioMarc.tsx";
 import { applyTemplateSave, type Template } from "./templatePolicy.tsx";
@@ -1945,8 +1945,14 @@ app.post("/make-server-49c0e13c/opac/event", async (c) => {
     if (event.t === 'context') {
       result = await db.rpc('moon_record_context', {
         p_day: day, p_visitor: visitor, p_device: event.device, p_lang: event.lang, p_browser_lang: event.browserLang,
-        p_country: countryFrom(c.req.header('cf-ipcountry')), p_source: event.source, p_entry: event.entry,
+        // The country the page reports (Cloudflare's own check of this site), else the request's, else unknown.
+        p_country: event.country || countryFrom(c.req.header('cf-ipcountry')), p_source: event.source, p_entry: event.entry,
+        p_hour: baghdadHour(),
       });
+    } else if (event.t === 'action') {
+      result = await db.rpc('moon_record_action', { p_day: day, p_visitor: visitor, p_action: event.action });
+    } else if (event.t === 'end') {
+      result = await db.rpc('moon_record_end', { p_day: day, p_visitor: visitor, p_pages: event.pages, p_seconds: event.seconds });
     } else if (event.t === 'search') {
       result = await db.rpc('moon_record_search', {
         p_day: day, p_visitor: visitor, p_query: event.query, p_results: event.results, p_script: event.script,

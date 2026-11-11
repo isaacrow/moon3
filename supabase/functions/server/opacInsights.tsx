@@ -14,6 +14,9 @@ export const DEVICES = ["phone", "tablet", "desktop"] as const;
 export type Device = typeof DEVICES[number];
 export const SCRIPTS = ["arabic", "latin", "mixed", "digits", "other"] as const;
 export type Script = typeof SCRIPTS[number];
+/** What a reader can do that is worth counting. Only a name from this list is kept, never anything the reader typed. */
+export const ACTIONS = ["save", "cite", "copy_link", "marc", "export", "switch_lang", "ask_moon", "sign_in", "filter"] as const;
+export type Action = typeof ACTIONS[number];
 export const ENTRY_KINDS = ["home", "search", "work", "person", "subject", "hub", "place", "authors", "subjects"] as const;
 
 /** Phone, tablet or computer, from the width of the window (not from the browser's name). */
@@ -78,7 +81,9 @@ const COUNTRY = /^[A-Z]{2}$/;
 
 /** What the server accepts, cleaned; null when the report is not one of these. */
 export type InsightEvent =
-  | { t: "context"; device: Device; lang: string; browserLang: string; source: string; entry: string }
+  | { t: "context"; device: Device; lang: string; browserLang: string; source: string; entry: string; country: string }
+  | { t: "action"; action: Action }
+  | { t: "end"; pages: number; seconds: number }
   | { t: "search"; query: string; results: number; script: Script; lang: string; filters: number }
   | { t: "open"; query: string; rank: number };
 
@@ -91,8 +96,14 @@ export function parseEvent(body: unknown): InsightEvent | null {
     if (!DEVICES.includes(device)) return null;
     const entry = String(b.entry ?? "");
     const source = typeof b.source === "string" && /^[a-z0-9.-]{1,80}$/.test(b.source) ? b.source : "direct";
-    return { t: "context", device, lang: lang(b.lang) || "ar", browserLang: lang(b.browserLang) || "", source, entry: (ENTRY_KINDS as readonly string[]).includes(entry) ? entry : "home" };
+    const country = typeof b.country === "string" && COUNTRY.test(b.country) && b.country !== "XX" && b.country !== "T1" ? b.country : "";
+    return { t: "context", device, lang: lang(b.lang) || "ar", browserLang: lang(b.browserLang) || "", source, entry: (ENTRY_KINDS as readonly string[]).includes(entry) ? entry : "home", country };
   }
+  if (b.t === "action") {
+    const action = String(b.action ?? "");
+    return (ACTIONS as readonly string[]).includes(action) ? { t: "action", action: action as Action } : null;
+  }
+  if (b.t === "end") return { t: "end", pages: Math.max(1, count(b.pages, 500)), seconds: count(b.seconds, 14400) };
   if (b.t === "search") {
     const query = cleanQuery(b.query);
     if (!query) return null;
@@ -104,6 +115,11 @@ export function parseEvent(body: unknown): InsightEvent | null {
     return query && rank >= 1 ? { t: "open", query, rank } : null;
   }
   return null;
+}
+
+/** The hour of the day (0-23) in Baghdad, where the library is: when readers come, for the "busiest hours" chart. */
+export function baghdadHour(now: Date = new Date()): number {
+  return Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Baghdad", hour: "2-digit", hourCycle: "h23" }).format(now)) % 24;
 }
 
 /** The country as the request says it: two capital letters, or "ZZ" when unknown (no country is guessed). */
