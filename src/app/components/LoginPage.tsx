@@ -91,7 +91,10 @@ export function LoginPage({ onLanguageChange, currentLanguage }: LoginPageProps)
     institution: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
+  // /moon/?signup=1 (the catalogue's "Sign up" button) opens on the sign-up tab.
+  const [activeTab, setActiveTab] = useState<'login' | 'signup'>(() => {
+    try { return new URLSearchParams(window.location.search).has('signup') ? 'signup' : 'login'; } catch { return 'login'; }
+  });
   const [showPassword, setShowPassword] = useState(false);
 
   // Admin Approval Modal State

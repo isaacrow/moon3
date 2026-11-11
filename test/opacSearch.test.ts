@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { allWordsIn, fold, matchWork, wordsFound, type SearchableWork } from '../src/opac/searchIndex.ts';
 import { isSameRecord } from '../src/opac/sameRecord.ts';
-import { addedOn, addedOrder, recentlyAdded } from '../src/opac/recent.ts';
+import { addedOn, addedOrder, recentlyAdded, recentShelf, shuffled } from '../src/opac/recent.ts';
 
 const gilgamesh: SearchableWork = {
   title: 'The epic of Gilgamesh',
@@ -128,4 +128,27 @@ test('isSameRecord: different editions sharing a title are different books; iden
 test('recently added: a sample book is recognised by its id too', () => {
   const list = [{ id: 'sample-9781', createdAt: '2026-11-10T00:00:00Z' }, { id: 'record-1', createdAt: '2026-11-07T00:00:00Z' }];
   assert.deepEqual(recentlyAdded(list, 2).map(b => b.id), ['record-1', 'sample-9781']);
+});
+
+test('the shelf: books with covers first, a new random order each time, drawn from the latest added', () => {
+  const book = (id: string, day: number, cover: boolean) => ({ id, createdAt: '2026-11-0' + day + 'T00:00:00Z', cover });
+  const works = [book('a', 9, false), book('b', 8, true), book('c', 7, true), book('d', 6, false), book('e', 5, true), book('old', 1, true)];
+  const has = (w: { cover: boolean }) => w.cover;
+  const shelf = recentShelf(works, has, 4, 5, () => 0.3);
+  assert.equal(shelf.length, 4);
+  assert.ok(shelf.slice(0, 3).every(has), 'the covered books come first');
+  assert.ok(!shelf.some(w => w.id === 'old'), 'drawn only from the latest 5 added');
+  assert.equal(shelf[3].cover, false, 'then the ones without a cover');
+  const orders = new Set<string>();
+  for (let i = 0; i < 40; i++) orders.add(recentShelf(works, has, 5, 5).map(w => w.id).join());
+  assert.ok(orders.size > 1, 'a different order on different visits');
+  assert.deepEqual(recentShelf([], has), []);
+});
+
+test('shuffled keeps every item and never changes the input', () => {
+  const input = [1, 2, 3, 4, 5, 6];
+  const out = shuffled(input);
+  assert.deepEqual([...out].sort(), input);
+  assert.deepEqual(input, [1, 2, 3, 4, 5, 6]);
+  assert.equal(shuffled([1, 2, 3], () => 0).length, 3);
 });

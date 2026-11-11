@@ -108,7 +108,7 @@ export function OpacInsightsCard({ isAr }: { isAr: boolean }) {
   const actionLabel = (k: string) => ({
     save: t('حفظ في القائمة', 'Saved to a list'), cite: t('استشهاد', 'Opened Cite'), copy_link: t('نسخ رابط', 'Copied a link'),
     marc: t('تنزيل MARC', 'Downloaded MARC'), export: t('تصدير BibTeX/RIS', 'Exported BibTeX/RIS'), switch_lang: t('تبديل اللغة', 'Switched language'),
-    ask_moon: t('اسأل مون', 'Opened Ask Moon'), sign_in: t('ضغط دخول المفهرسين', 'Clicked cataloguer sign-in'), filter: t('استخدم فلتراً', 'Used a filter'),
+    ask_moon: t('اسأل مون', 'Opened Ask Moon'), sign_in: t('ضغط دخول', 'Clicked sign in'), sign_up: t('ضغط إنشاء حساب', 'Clicked sign up'), filter: t('استخدم فلتراً', 'Used a filter'),
   } as Record<string, string>)[k] || k;
   const minutes = (s: number) => (s < 90 ? `${s} ${t('ثانية', 'sec')}` : `${Math.round(s / 60)} ${t('دقيقة', 'min')}`);
   const entries = (o: Record<string, number>): Array<[string, number]> => Object.entries(o).sort((a, b) => b[1] - a[1]);
