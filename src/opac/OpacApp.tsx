@@ -38,6 +38,7 @@ import { whatItIs, formatChips, editionLines, exactMatch, alphaIndex, letterOf, 
 import { usePreferredForms } from '../app/utils/preferredNames';
 import { bookScript } from '../services/nameForms';
 import { MARK_KINDS, ITEM_ACTIONS, maqamOf } from '../services/specialVocab';
+import { addedOn, recentlyAdded } from './recent';
 import { countPage, reportAction, reportContext, reportOpen, reportSearch } from './insights';
 import { canonical as canonicalOutside, sourceOf as outsideSource, pickLabel, type Label as OutsideLabel } from '../../supabase/functions/server/labelCache.tsx';
 import { whoOf, aboutPerson, teachersAndStudents, personPlaces, shelfNeighbours, subjectsAlongside, type Link as KnowledgeLink } from './knowledge';
@@ -439,7 +440,7 @@ function vtName(kind: string, id: string): string {
 
 const stagger = (i = 0) => ({ '--i': Math.min(i, 12) } as React.CSSProperties);
 
-function BookCard({ work, ctx, i }: { work: OpacWorkEntity; ctx: Ctx; i?: number }) {
+function BookCard({ work, ctx, i, showAdded }: { work: OpacWorkEntity; ctx: Ctx; i?: number; showAdded?: boolean }) {
   return (
     <button className="book glass rise" style={stagger(i)} onClick={() => ctx.go({ mode: 'work', id: work.id })}>
       <Cover work={work} />
@@ -447,6 +448,7 @@ function BookCard({ work, ctx, i }: { work: OpacWorkEntity; ctx: Ctx; i?: number
         {coverUrlOf(work) && <div className="t" dir="auto">{work.title}</div>}
         <div className="a" dir="auto">{personName(work.primaryCreator)}</div>
         {workYear(work) && <div className="y">{workYear(work)}</div>}
+        {showAdded && addedOn(work.createdAt, opacLang()) && <div className="y">{t('أُضيف', 'Added')} {addedOn(work.createdAt, opacLang())}</div>}
       </div>
     </button>
   );
@@ -611,7 +613,7 @@ function Crumbs({ ctx, items }: { ctx: Ctx; items: { label: string; view?: View 
 // ---------------------------------------------------------------------------
 // Home
 
-function Shelf({ title, works, ctx, more }: { title: string; works: OpacWorkEntity[]; ctx: Ctx; more?: { label: string; view: View } }) {
+function Shelf({ title, works, ctx, more, showAdded }: { title: string; works: OpacWorkEntity[]; ctx: Ctx; more?: { label: string; view: View }; showAdded?: boolean }) {
   if (!works.length) return null;
   return (
     <section className="section">
@@ -619,7 +621,7 @@ function Shelf({ title, works, ctx, more }: { title: string; works: OpacWorkEnti
         <h2>{title}</h2>
         {more && <button className="link-btn" onClick={() => ctx.go(more.view)}>{more.label}</button>}
       </div>
-      <div className="shelf">{works.map((w, i) => <BookCard key={w.id} work={w} ctx={ctx} i={i} />)}</div>
+      <div className="shelf">{works.map((w, i) => <BookCard key={w.id} work={w} ctx={ctx} i={i} showAdded={showAdded} />)}</div>
     </section>
   );
 }
@@ -694,7 +696,7 @@ function AskMoon({ ctx }: { ctx: Ctx }) {
 
 function Home({ ctx }: { ctx: Ctx }) {
   const works = useMemo(() => wolfMoonOpacService.getAllWorks(), [ctx.rev]);
-  const recent = useMemo(() => [...works].sort((a, b) => (b.modifiedAt || '').localeCompare(a.modifiedAt || '')).slice(0, 12), [works]);
+  const recent = useMemo(() => recentlyAdded(works, 12), [works]);
   const authors = useMemo(() => wolfMoonOpacService.getAllPersons().filter(p => p.worksCount > 0).slice(0, 8), [ctx.rev]);
   const subjects = useMemo(() => wolfMoonOpacService.getAllSubjects().filter(s => s.worksCount > 0 && isReadableLabel(s.label)).slice(0, 14), [ctx.rev]);
   // Libris's home: categories to start from, then shelves.
@@ -727,7 +729,7 @@ function Home({ ctx }: { ctx: Ctx }) {
       </section>
 
       <div className="wrap">
-        <Shelf title={t('أُضيف حديثاً', 'Recently added')} works={recent} ctx={ctx} more={{ label: t('كل الكتب', 'All books'), view: { mode: 'search', query: '', params: 'sort=date-desc' } }} />
+        <Shelf title={t('أُضيف حديثاً', 'Recently added')} works={recent} ctx={ctx} showAdded more={{ label: t('كل الكتب', 'All books'), view: { mode: 'search', query: '', params: 'sort=date-desc' } }} />
         {featured && featured.works.length > 1 && (
           <Shelf title={t(`من أعمال ${personName(featured.person)}`, `By ${personName(featured.person)}`)} works={featured.works} ctx={ctx} more={{ label: t('صفحة المؤلف', 'Author page'), view: { mode: 'person', key: featured.person.id } }} />
         )}
@@ -945,6 +947,7 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
   const initial = useMemo(() => readState(new URLSearchParams(window.location.search)), [query]);
   const [sel, setSel] = useState<Selection>(initial.sel);
   const [sort, setSort] = useState<SortKey>(initial.sort);
+  const partial = useMemo(() => (query.trim() ? wolfMoonOpacService.partialMatches(query, 6) : []), [query, ctx.rev]);
   const [page, setPage] = useState(initial.page);
   const [needle, setNeedle] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -1060,6 +1063,12 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
             <div className="empty glass">
               <h3>{t('لم نجد كتباً تطابق بحثك', 'No books match your search')}</h3>
               <p>{t('تأكد من الإملاء، أو ابحث باسم المؤلف وحده، أو أزل بعض الفلاتر.', 'Check the spelling, search by the author’s name alone, or remove some filters.')}</p>
+              {!activeCount && partial.length > 0 && (
+                <div className="partial">
+                  <h4>{t('كتب فيها بعض كلماتك', 'Books that contain some of your words')}</h4>
+                  <div className="shelf">{partial.map((w, i) => <BookCard key={w.id} work={w} ctx={ctx} i={i} />)}</div>
+                </div>
+              )}
               {activeCount ? <button className="btn-black" onClick={clear}>{t('إزالة الفلاتر', 'Remove filters')}</button> : <button className="btn-black" onClick={() => ctx.go({ mode: 'search', query: '' })}>{t('تصفّح كل الكتب', 'Browse all books')}</button>}
             </div>
           ) : (
