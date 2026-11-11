@@ -413,7 +413,9 @@ details.panel[open] > summary svg { transform: rotate(180deg); }
   .nav.open button { text-align: start; padding: 12px 14px; font-size: 16px; }
   .results-layout { grid-template-columns: minmax(0, 1fr); }
   .menu-toggle { display: grid; }
-  .top-actions .btn-black { display: none; }
+  /* The phone header has room for one button: Sign up (Sign in is the other tab on that page). */
+  .top-actions .sign-in { display: none; }
+  .top-actions .btn-black { height: 40px; padding: 0 14px; font-size: 14px; }
   .hero { padding-block: 64px 32px; }
   .hero-sub { font-size: 16px; }
   .search-field { height: 58px; padding-inline-start: 16px; }

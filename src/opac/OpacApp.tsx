@@ -38,7 +38,7 @@ import { whatItIs, formatChips, editionLines, exactMatch, alphaIndex, letterOf, 
 import { usePreferredForms } from '../app/utils/preferredNames';
 import { bookScript } from '../services/nameForms';
 import { MARK_KINDS, ITEM_ACTIONS, maqamOf } from '../services/specialVocab';
-import { addedOn, recentlyAdded } from './recent';
+import { addedOn, recentShelf } from './recent';
 import { countPage, reportAction, reportContext, reportOpen, reportSearch } from './insights';
 import { canonical as canonicalOutside, sourceOf as outsideSource, pickLabel, type Label as OutsideLabel } from '../../supabase/functions/server/labelCache.tsx';
 import { whoOf, aboutPerson, teachersAndStudents, personPlaces, shelfNeighbours, subjectsAlongside, type Link as KnowledgeLink } from './knowledge';
@@ -359,7 +359,8 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
             </button>
             <button className="btn-ghost lang-switch" onClick={switchLang} lang={lang === 'ar' ? 'en' : 'ar'}
               aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}>{lang === 'ar' ? 'English' : 'العربية'}</button>
-            <button className="btn-black" onClick={() => { reportAction('sign_in'); onOpenEditor?.(); }}>{t('دخول المفهرسين', 'Cataloguer sign-in')}</button>
+            <button className="btn-ghost sign-in" onClick={() => { reportAction('sign_in'); onOpenEditor?.(); }}>{t('دخول', 'Sign in')}</button>
+            <button className="btn-black" onClick={() => { reportAction('sign_up'); window.location.href = '/moon/?signup=1'; }}>{t('إنشاء حساب', 'Sign up')}</button>
             <button className="icon-btn menu-toggle" onClick={() => setNavOpen(o => !o)} aria-expanded={navOpen} aria-label={t('القائمة', 'Menu')}>
               {navOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -696,7 +697,7 @@ function AskMoon({ ctx }: { ctx: Ctx }) {
 
 function Home({ ctx }: { ctx: Ctx }) {
   const works = useMemo(() => wolfMoonOpacService.getAllWorks(), [ctx.rev]);
-  const recent = useMemo(() => recentlyAdded(works, 12), [works]);
+  const recent = useMemo(() => recentShelf(works, w => !!coverUrlOf(w), 12), [works]);
   const authors = useMemo(() => wolfMoonOpacService.getAllPersons().filter(p => p.worksCount > 0).slice(0, 8), [ctx.rev]);
   const subjects = useMemo(() => wolfMoonOpacService.getAllSubjects().filter(s => s.worksCount > 0 && isReadableLabel(s.label)).slice(0, 14), [ctx.rev]);
   // Libris's home: categories to start from, then shelves.

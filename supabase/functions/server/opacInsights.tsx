@@ -15,7 +15,7 @@ export type Device = typeof DEVICES[number];
 export const SCRIPTS = ["arabic", "latin", "mixed", "digits", "other"] as const;
 export type Script = typeof SCRIPTS[number];
 /** What a reader can do that is worth counting. Only a name from this list is kept, never anything the reader typed. */
-export const ACTIONS = ["save", "cite", "copy_link", "marc", "export", "switch_lang", "ask_moon", "sign_in", "filter"] as const;
+export const ACTIONS = ["save", "cite", "copy_link", "marc", "export", "switch_lang", "ask_moon", "sign_in", "sign_up", "filter"] as const;
 export type Action = typeof ACTIONS[number];
 export const ENTRY_KINDS = ["home", "search", "work", "person", "subject", "hub", "place", "authors", "subjects"] as const;
 

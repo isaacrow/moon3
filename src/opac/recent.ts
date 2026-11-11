@@ -23,3 +23,23 @@ export function addedOn(createdAt: string | undefined, lang: 'ar' | 'en'): strin
   if (!ms) return '';
   return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-IQ' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Baghdad' }).format(ms);
 }
+
+/** A random order (Fisher-Yates); `random` is a parameter so a test can fix it. */
+export function shuffled<T>(items: T[], random: () => number = Math.random): T[] {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * The "Recently added" shelf on the home page: drawn from the latest `pool` books added, books with a cover first, each
+ * group in a new random order every time the page is shown, so the shelf looks different on each visit and a book
+ * with a picture is never hidden behind one without.
+ */
+export function recentShelf<T extends AddedFields>(works: T[], hasCover: (w: T) => boolean, count = 12, pool = 48, random: () => number = Math.random): T[] {
+  const latest = recentlyAdded(works, pool);
+  return [...shuffled(latest.filter(hasCover), random), ...shuffled(latest.filter(w => !hasCover(w)), random)].slice(0, count);
+}
