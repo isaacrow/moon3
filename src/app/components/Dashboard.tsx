@@ -11,6 +11,7 @@ import { importSampleRecords, SAMPLE_MAX } from '../utils/sampleRecords';
 import { ActivityLog } from './ActivityLog';
 import { StorageUsageCard } from './StorageUsageCard';
 import { OpacVisitsCard } from './OpacVisitsCard';
+import { OpacInsightsCard } from './OpacInsightsCard';
 import { LinkedDataHealthCard } from './LinkedDataHealthCard';
 import { WebhooksCard } from './WebhooksCard';
 import { UserAvatar } from './UserAvatar';
@@ -464,6 +465,7 @@ Each is a real edition from Open Library; its author is linked to Wikidata, LC a
         {isSuperAdmin && <WebhooksCard isAr={isAr} />}
 
         <OpacVisitsCard isAr={isAr} />
+        <OpacInsightsCard isAr={isAr} />
 
         {/* Stats Grid - Glass Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

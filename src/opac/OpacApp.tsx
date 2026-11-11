@@ -38,6 +38,7 @@ import { whatItIs, formatChips, editionLines, exactMatch, alphaIndex, letterOf, 
 import { usePreferredForms } from '../app/utils/preferredNames';
 import { bookScript } from '../services/nameForms';
 import { MARK_KINDS, ITEM_ACTIONS, maqamOf } from '../services/specialVocab';
+import { reportContext, reportOpen, reportSearch } from './insights';
 import { canonical as canonicalOutside, sourceOf as outsideSource, pickLabel, type Label as OutsideLabel } from '../../supabase/functions/server/labelCache.tsx';
 import { whoOf, aboutPerson, teachersAndStudents, personPlaces, shelfNeighbours, subjectsAlongside, type Link as KnowledgeLink } from './knowledge';
 import './opac.css';
@@ -280,8 +281,20 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
     return () => { alive = false; off(); window.removeEventListener('popstate', onPop); };
   }, []);
 
-  // One visit per page opened (a link, Back or Forward, or the first load).
-  useEffect(() => { reportVisit(view); }, [view]);
+  // One visit per page opened (a link, Back or Forward, or the first load). The first one also says what kind of
+  // device, language and source the reader has; a result opened from a search says which place it was in the list.
+  const previousView = useRef<View | null>(null);
+  useEffect(() => {
+    reportVisit(view);
+    reportContext(view.mode, lang);
+    const before = previousView.current;
+    if (before && before.mode === 'search' && view.mode === 'work') {
+      // Its place among the results the reader saw (editions folded under one result count as that one place).
+      const place = readDisplayedOrder().findIndex(group => group.includes(view.id));
+      if (place >= 0) reportOpen(before.query, place + 1);
+    }
+    previousView.current = view;
+  }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const go = useCallback((v: View) => {
     window.history.pushState({}, '', urlFor(v));
@@ -786,6 +799,13 @@ function Home({ ctx }: { ctx: Ctx }) {
 const PAGE_SIZE = 20;
 const RESULTS_KEY = 'moon-opac:last-results';
 
+// The first 100 results as the reader saw them, each as the ids of the records inside it, so a result
+// that is opened can be reported with its place in the list (see insights.ts).
+const ORDER_KEY = 'moon-opac:displayed-order';
+function readDisplayedOrder(): string[][] {
+  try { const v = JSON.parse(sessionStorage.getItem(ORDER_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+}
+
 /** The result list a record page was opened from, so it can offer "previous / next result". */
 export function lastResults(): { ids: string[]; url: string; query: string } | null {
   try { return JSON.parse(sessionStorage.getItem(RESULTS_KEY) || 'null'); } catch { return null; }
@@ -953,6 +973,20 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
     if (url !== `${window.location.pathname}${window.location.search}`) history.replaceState(history.state, '', url);
     try { sessionStorage.setItem(RESULTS_KEY, JSON.stringify({ ids: filtered.map(w => w.id), url, query })); } catch { /* private mode */ }
   }, [sel, sort, page, filtered, query, grouped, exact]);
+
+  // Remember the order the reader sees (for "which result did they open"), kept in this tab only.
+  useEffect(() => {
+    try { sessionStorage.setItem(ORDER_KEY, JSON.stringify(clusters.slice(0, 100).map(c => c.members.map(m => m.id)))); } catch { /* private mode */ }
+  }, [clusters]);
+
+  // Tell Moon (anonymously) what was searched and how many results it found, once the list has settled.
+  const resultCount = clusters.length;
+  const filterCount = Object.values(sel).reduce((a, v) => a + v.length, 0);
+  useEffect(() => {
+    if (!query.trim()) return;
+    const timer = window.setTimeout(() => reportSearch(query, resultCount, document.documentElement.lang || 'ar', filterCount), 900);
+    return () => window.clearTimeout(timer);
+  }, [query, resultCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onToggle = (k: FacetKey, v: string) => { setSel(s => toggle(s, k, v)); setPage(1); };
   const clear = () => { setSel({}); setPage(1); };

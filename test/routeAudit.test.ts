@@ -46,6 +46,7 @@ const OPEN_WRITES: Record<string, string> = {
   'POST /resource/reconcile': 'public reconciliation API',
   'POST /resource/oai': 'public OAI-PMH',
   'POST /opac/visit': 'anonymous visit counter: no names, bots skipped, one count per visitor per day',
+  'POST /opac/event': 'anonymous reader insights (device, language, country, source, searches): same daily hashed key as the visit counter, bots and staff skipped, a cap per visitor per day',
   'POST /moon/authorities/:id/duplicates': 'reads the authority file',
   'POST /moon/discover': 'searches outside sources for the discovery page',
   'POST /scriptshifter/trans': 'transliteration through the ScriptShifter service (fixed address)',

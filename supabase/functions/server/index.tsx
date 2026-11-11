@@ -94,6 +94,7 @@ import { reconcile, manifest } from "./reconcile.tsx";
 import { linkAuthorities, mirrorOutsideLinked, headingsOf, moonAuthorityId, authorityReport } from "./authorityLinking.tsx";
 import { relatedFrom, resolveRelated } from "./entityRelations.tsx";
 import { isBot, visitFrom, visitDay, visitorKey } from "./opacVisits.tsx";
+import { countryFrom, MAX_SEARCHES_PER_VISITOR_DAY, parseEvent } from "./opacInsights.tsx";
 import { buildFolioInstance, folioClient, loadReference, sendInstance, instanceHash, type FolioConfig, type FolioRef, type FolioLink } from "./folio.tsx";
 import { marcProblems, sendMarc } from "./folioMarc.tsx";
 import { applyTemplateSave, type Template } from "./templatePolicy.tsx";
@@ -1923,6 +1924,57 @@ app.post("/make-server-49c0e13c/opac/visit", async (c) => {
   } catch (error) {
     console.error('OPAC visit error:', error);
     return c.json({ counted: false }, 500);
+  }
+});
+
+// 📊 OPAC insights, anonymous (see opacInsights.tsx): once a day the OPAC says what kind of device, language,
+// country and source a visitor has; for each search, what was searched and how many results it found; and which
+// result a reader opened. Same daily hashed visitor key as /opac/visit, so nobody can be followed between days.
+// Robots and signed-in staff are not counted. The country is the request's own (never looked up from an address).
+app.post("/make-server-49c0e13c/opac/event", async (c) => {
+  try {
+    const ua = c.req.header('user-agent') || '';
+    if (isBot(ua) || c.req.header('X-Moon-Session')) return c.json({ counted: false });
+    const event = parseEvent(await c.req.json().catch(() => null));
+    if (!event) return c.json({ error: 'event: context, search or open (see opacInsights.tsx)' }, 400);
+    const ip = (c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '').split(',')[0].trim();
+    const day = visitDay();
+    const visitor = await visitorKey(ip, ua, day, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || 'moon');
+    const db = supabase as any;
+    let result;
+    if (event.t === 'context') {
+      result = await db.rpc('moon_record_context', {
+        p_day: day, p_visitor: visitor, p_device: event.device, p_lang: event.lang, p_browser_lang: event.browserLang,
+        p_country: countryFrom(c.req.header('cf-ipcountry')), p_source: event.source, p_entry: event.entry,
+      });
+    } else if (event.t === 'search') {
+      result = await db.rpc('moon_record_search', {
+        p_day: day, p_visitor: visitor, p_query: event.query, p_results: event.results, p_script: event.script,
+        p_lang: event.lang, p_filters: event.filters, p_max: MAX_SEARCHES_PER_VISITOR_DAY,
+      });
+    } else {
+      result = await db.rpc('moon_record_open', { p_day: day, p_visitor: visitor, p_query: event.query, p_rank: event.rank });
+    }
+    if (result.error) throw new Error(result.error.message);
+    return c.json({ counted: true });
+  } catch (error) {
+    console.error('OPAC event error:', error);
+    return c.json({ counted: false }, 500);
+  }
+});
+
+// The dashboard's "What readers do" card (signed-in staff): searches that found nothing, the most searched,
+// devices, languages, countries and where readers came from, over ?days= (default 30).
+app.get("/make-server-49c0e13c/opac/insights", async (c) => {
+  try {
+    if (!(await getSession(c))) return c.json({ error: 'Sign in to see what readers do' }, 401);
+    const days = Math.min(366, Math.max(1, Number(c.req.query('days')) || 30));
+    const { data, error } = await (supabase as any).rpc('moon_insight_stats', { p_today: visitDay(), p_days: days });
+    if (error) throw new Error(error.message);
+    return c.json(data);
+  } catch (error) {
+    console.error('OPAC insights error:', error);
+    return c.json({ error: 'Could not read what readers do' }, 500);
   }
 });
 
