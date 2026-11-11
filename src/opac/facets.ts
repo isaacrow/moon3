@@ -6,11 +6,12 @@
  * can be shared or bookmarked.
  */
 import { t, opacLang } from './i18n';
+import { addedOrder } from './recent';
 import { readDate, hijriCenturyOf } from '../services/hijri';
 
 export type FacetKey = 'avail' | 'category' | 'format' | 'lang' | 'library' | 'decade' | 'century' | 'author' | 'subject' | 'kind';
 export type Selection = Partial<Record<FacetKey, string[]>>;
-export type SortKey = 'relevance' | 'title-asc' | 'title-desc' | 'date-desc' | 'date-asc' | 'copies';
+export type SortKey = 'relevance' | 'title-asc' | 'title-desc' | 'date-desc' | 'date-asc' | 'copies' | 'added';
 
 export interface FacetValue { value: string; label: string; count: number }
 
@@ -28,6 +29,8 @@ export interface FacetWork {
   instances?: Array<{ publicationYear?: string; carrierType?: string; mediaType?: string; holdingStatus?: string }>;
   holdingItems?: Array<{ synthetic?: boolean; heldBy?: string; accessUrl?: string; status?: string }>;
   expressionOfHub?: { uri: string; label: string };
+  createdAt?: string;
+  catalogingInterface?: string;
 }
 
 export const FACETS: Array<{ key: FacetKey; title: string; en: string }> = [
@@ -47,8 +50,9 @@ export const SORTS: Array<{ v: SortKey; l: string; en: string }> = [
   { v: 'relevance', l: 'الأكثر صلة', en: 'Most relevant' },
   { v: 'title-asc', l: 'العنوان (أ–ي)', en: 'Title (A–Z)' },
   { v: 'title-desc', l: 'العنوان (ي–أ)', en: 'Title (Z–A)' },
-  { v: 'date-desc', l: 'الأحدث نشراً', en: 'Newest first' },
-  { v: 'date-asc', l: 'الأقدم نشراً', en: 'Oldest first' },
+  { v: 'added', l: 'أُضيف حديثاً للفهرس', en: 'Recently added to the catalogue' },
+  { v: 'date-desc', l: 'الأحدث نشراً', en: 'Newest published' },
+  { v: 'date-asc', l: 'الأقدم نشراً', en: 'Oldest published' },
   { v: 'copies', l: 'الأكثر نسخاً', en: 'Most copies' },
 ];
 
@@ -222,6 +226,7 @@ export function sortWorks<T extends FacetWork>(works: T[], sort: SortKey): T[] {
     case 'title-desc': return list.sort((a, b) => title(b).localeCompare(title(a), 'ar'));
     case 'date-desc': return list.sort((a, b) => year(b, -Infinity) - year(a, -Infinity));
     case 'date-asc': return list.sort((a, b) => year(a, Infinity) - year(b, Infinity));
+    case 'added': return list.sort(addedOrder);
     case 'copies': return list.sort((a, b) => realCopies(b).length - realCopies(a).length);
     default: return list;
   }

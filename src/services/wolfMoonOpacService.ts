@@ -67,6 +67,9 @@ export function resolveWorkCover(work: { coverUrl?: string; title?: string; id?:
 /**
  * Normalizes Arabic text for diacritic-insensitive, hamza-insensitive searching
  */
+import { allWordsIn, matchWork, wordsFound } from '../opac/searchIndex';
+import { isSameRecord } from '../opac/sameRecord';
+
 export function normalizeArabic(text: string): string {
   if (!text) return '';
   return text
@@ -431,7 +434,7 @@ class WolfMoonOpacService {
       if (Array.isArray(realRecords) && realRecords.length > 0) {
         for (const r of realRecords) {
           const parsed = this.parseBibframeDocumentToOpacWork(r);
-          if (parsed && !gatheredWorks.some(gw => gw.id === parsed.id || gw.title === parsed.title)) {
+          if (parsed && !gatheredWorks.some(gw => isSameRecord(gw, parsed))) {
             gatheredWorks.push(parsed);
           }
         }
@@ -455,7 +458,7 @@ class WolfMoonOpacService {
                   const status = item?.status || item?.record?.metadata?.status || item?.metadata?.status || 'complete';
                   if (status !== 'complete') continue;
                   const p = this.parseBibframeDocumentToOpacWork(item);
-                  if (p && !gatheredWorks.some(gw => gw.id === p.id || gw.title === p.title)) {
+                  if (p && !gatheredWorks.some(gw => isSameRecord(gw, p))) {
                     gatheredWorks.push(p);
                   }
                 }
@@ -1435,7 +1438,7 @@ class WolfMoonOpacService {
         rawBibframeTriples: rawTriples,
         source: recordObj.source || 'wolf-moon',
         catalogingInterface: recordObj.metadata?.catalogingInterface || 'Wolf Moon Cataloger',
-        createdAt: recordObj.metadata?.created || recordObj.saved || new Date().toISOString(),
+        createdAt: recordObj.metadata?.created || recordObj.metadata?.createdAt || recordObj.createdAt || recordObj.saved || new Date().toISOString(),
         modifiedAt: recordObj.metadata?.modified || recordObj.saved || new Date().toISOString(),
         document: doc
       };
@@ -1694,64 +1697,13 @@ class WolfMoonOpacService {
     }
 
     if (qNorm) {
+      // Every word, in any field and order, ignoring accents and spelling variants (see ../opac/searchIndex.ts).
       filtered = filtered.filter(w => {
-        const titleNorm = normalizeArabic(w.title);
-        const subtitleNorm = normalizeArabic(w.subtitle || '');
-        const creatorNorm = normalizeArabic(w.primaryCreator.nameArabic);
-        const creatorEn = (w.primaryCreator.nameEnglish || '').toLowerCase();
-        const summaryNorm = normalizeArabic(w.summaryArabic || '');
-        const matchedSubject = w.subjects.find(s => normalizeArabic(s.label).includes(qNorm));
-        const matchedInstance = w.instances.find(i => 
-          (i.publisher && normalizeArabic(i.publisher).includes(qNorm)) ||
-          (i.carrierType && normalizeArabic(i.carrierType).includes(qNorm)) ||
-          (i.isbn && i.isbn.includes(rawQ)) ||
-          (i.callNumber && i.callNumber.toLowerCase().includes(rawQ.toLowerCase()))
-        );
-
-        let reason = '';
-        let matchScore = 0;
-
-        if (titleNorm.startsWith(qNorm) || titleNorm === qNorm) {
-          reason = `تطابق تام في العنوان: "${w.title}"`;
-          matchScore = 100;
-        } else if (titleNorm.includes(qNorm)) {
-          reason = `تطابق في العنوان: "${w.title}"`;
-          matchScore = 80;
-        } else if (creatorNorm.includes(qNorm) || creatorEn.includes(rawQ.toLowerCase())) {
-          reason = `تطابق في اسم المؤلف: "${w.primaryCreator.nameArabic}"`;
-          matchScore = 70;
-        } else if (matchedSubject) {
-          reason = `تطابق في رأس الموضوع المقنن: "${matchedSubject.label}"`;
-          matchScore = 60;
-        } else if (subtitleNorm.includes(qNorm)) {
-          reason = `تطابق في العنوان الفرعي: "${w.subtitle}"`;
-          matchScore = 50;
-        } else if (matchedInstance?.isbn && matchedInstance.isbn.includes(rawQ)) {
-          reason = `تطابق في المعرف المعياري (ISBN): ${matchedInstance.isbn}`;
-          matchScore = 90;
-        } else if (matchedInstance?.callNumber && matchedInstance.callNumber.toLowerCase().includes(rawQ.toLowerCase())) {
-          reason = `تطابق في رمز الرف والتصنيف: ${matchedInstance.callNumber}`;
-          matchScore = 75;
-        } else if (matchedInstance?.publisher && normalizeArabic(matchedInstance.publisher).includes(qNorm)) {
-          reason = `تطابق في جهة النشر: "${matchedInstance.publisher}"`;
-          matchScore = 40;
-        } else if (summaryNorm.includes(qNorm)) {
-          reason = `تطابق في الملخص الفكري والمضمون`;
-          matchScore = 30;
-        }
-        // A work inside this volume (a majmūʿ) is found by its own title and author (S12).
-        const inside = matchScore === 0 && (w.containedWorks || []).find(c => normalizeArabic(`${c.title} ${c.creator || ''}`).includes(qNorm));
-        if (inside) {
-          reason = `في هذا المجلد: "${inside.title}"`;
-          matchScore = 65;
-        }
-
-        if (matchScore > 0) {
-          w.matchReason = reason;
-          (w as any)._matchScore = matchScore;
-          return true;
-        }
-        return false;
+        const m = matchWork(w, parsedQuery.freeText || rawQ);
+        if (!m) return false;
+        w.matchReason = m.reason;
+        (w as any)._matchScore = m.score;
+        return true;
       });
     } else if (parsedQuery.clauses.length === 0) {
       // Clear matchReason when no query is typed
@@ -1885,6 +1837,19 @@ class WolfMoonOpacService {
       pageSize: safePageSize, 
       facets 
     };
+  }
+
+  /**
+   * When nothing has every word typed: the works that have some of them, the ones with most words first. Only for two
+   * or more words (one word that matches nothing has no partial match).
+   */
+  public partialMatches(query: string, limit: number = 6): OpacWorkEntity[] {
+    return this.works
+      .map(w => ({ w, ...wordsFound(w, query) }))
+      .filter(x => x.total >= 2 && x.found >= 1 && x.found < x.total)
+      .sort((a, b) => b.found - a.found)
+      .slice(0, limit)
+      .map(x => x.w);
   }
 
   /**
@@ -2039,8 +2004,11 @@ class WolfMoonOpacService {
       };
     }
 
-    // 1. Matching Works
-    const matchingWorks = this.works.filter(w => {
+    // 1. Matching Works. Searching everything uses the same word-based search as the results page.
+    const matchingWorks = (scope === 'all'
+      ? this.works.map(w => ({ w, m: matchWork(w, rawQ) })).filter(x => x.m).sort((a, b) => b.m!.score - a.m!.score).map(x => x.w)
+      : this.works).filter(w => {
+      if (scope === 'all') return true;
       const tNorm = normalizeArabic(w.title);
       const subNorm = normalizeArabic(w.subtitle || '');
       const cNorm = normalizeArabic(w.primaryCreator.nameArabic);
@@ -2069,26 +2037,15 @@ class WolfMoonOpacService {
     });
 
     // 2. Matching Persons
-    const matchingPersons = this.getAllPersons().filter(p => {
-      const pNorm = normalizeArabic(p.nameArabic);
-      const enNorm = (p.nameEnglish || '').toLowerCase();
-      const bioNorm = normalizeArabic(p.bioArabic || '');
-      return pNorm.includes(q) || enNorm.includes(rawQ.toLowerCase()) || bioNorm.includes(q);
-    });
+    const matchingPersons = this.getAllPersons().filter(p =>
+      allWordsIn(rawQ, p.name, p.nameArabic, p.nameEnglish, ...(p.otherNames || []), p.bioArabic, p.bioEnglish));
 
     // 3. Matching Subjects
-    const matchingSubjects = this.getAllSubjects().filter(s => {
-      const sNorm = normalizeArabic(s.label);
-      const enNorm = (s.labelEnglish || '').toLowerCase();
-      return sNorm.includes(q) || enNorm.includes(rawQ.toLowerCase()) || (s.notationDdc && s.notationDdc.includes(rawQ));
-    });
+    const matchingSubjects = this.getAllSubjects().filter(s =>
+      allWordsIn(rawQ, s.label, s.labelEnglish) || !!(s.notationDdc && s.notationDdc.includes(rawQ)));
 
     // 4. Matching Publishers
-    const matchingPublishers = this.getAllPublishers().filter(pub => {
-      const pubNorm = normalizeArabic(pub.name);
-      const cityNorm = normalizeArabic(pub.city || '');
-      return pubNorm.includes(q) || cityNorm.includes(q);
-    });
+    const matchingPublishers = this.getAllPublishers().filter(pub => allWordsIn(rawQ, pub.name, pub.city));
 
     const totalMatches = matchingWorks.length + matchingPersons.length + matchingSubjects.length + matchingPublishers.length;
 
