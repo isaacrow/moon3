@@ -43,6 +43,10 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      # The server (Deno) is checked too: it may have its old errors, but not one more than the baseline.
+      - name: Type check the server
+        run: npm run typecheck:server
+
       - name: Build
         run: |
           set -o pipefail
