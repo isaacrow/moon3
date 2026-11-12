@@ -16,6 +16,8 @@ export interface BookFacts extends AskRecord {
   publisher?: string;
   /** The Work's permanent linked-data address (mooon.site/resource/work/...). */
   workUri?: string;
+  /** The Moon entities the record names (its people, places, subjects), for links to their own plain pages. */
+  entities?: Array<{ kind: string; id: string; label: string }>;
 }
 
 const list = (v: any): any[] => (Array.isArray(v) ? v : v == null ? [] : [v]);
@@ -123,6 +125,7 @@ ${row("ISBN", f.isbn)}
 ${row("Language · اللغة", f.language)}
 ${row("Subjects · الموضوعات", f.subjects?.join(" · "))}
 </dl>
+${f.entities?.length ? `<h2>People, places and subjects · الأشخاص والأماكن والموضوعات</h2><p>${f.entities.filter((x) => x.label).map((x) => `<a href="${esc(`${site}/resource/?entity=${encodeURIComponent(`${x.kind}/${x.id}`)}`)}" dir="auto">${esc(x.label)}</a>`).join(" · ")}</p>` : ""}
 <a class="open" href="${esc(url)}">Open in the catalogue · افتح في الفهرس</a>
 <footer>${alternates ? `<p>Linked data: ${alternates}</p>` : ""}<p><a href="${esc(`${site}/resource/`)}">All published records</a> · <a href="${esc(`${site}/llms.txt`)}">About this catalogue (for AI assistants)</a></p></footer>
 </main>
