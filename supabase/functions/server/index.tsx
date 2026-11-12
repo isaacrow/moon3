@@ -96,6 +96,7 @@ import { linkAuthorities, mirrorOutsideLinked, headingsOf, moonAuthorityId, auth
 import { relatedFrom, resolveRelated } from "./entityRelations.tsx";
 import { isBot, visitFrom, visitDay, visitorKey } from "./opacVisits.tsx";
 import { bookFactsOf, bookPageHtml, booksText } from "./seoPages.tsx";
+import { scorecard } from "./scorecard.tsx";
 import { isRelationTerm, readWorkRelations, withoutRelation, withRelation, workNodeOf } from "./workRelations.tsx";
 import { byRecord, parseCopiesTable, planImport, withCopies } from "./copiesImport.tsx";
 import { applyNote, NOTE_PREFIX, parseNoteAction, queueOf } from "./reconcileQueue.tsx";
@@ -1579,6 +1580,30 @@ app.get("/make-server-49c0e13c/resource/names.json", async (c) => {
     return c.json({ error: 'Could not list the name forms' }, 500);
   }
 });
+// The public scorecard's numbers (https://mooon.site/score.html): how complete the published data is against the
+// plan's targets (scorecard.tsx), and the BIBFRAME 3.0.1 audit (ldAudit.tsx) the Super Admin's page also shows.
+// Everything counted is already public; the lists of unlinked names stay with the Super Admin.
+app.get("/make-server-49c0e13c/resource/score.json", async (c) => {
+  try {
+    const [records, entities, nt, stats] = await Promise.all([
+      recordStore.listPublishedRecords(), recordStore.listAllAuthorities(), loadPublishedNTriples(), recordStore.authorityStats(),
+    ]);
+    const audit = auditNTriples(nt, {
+      bfClasses: BF_TERMS.BF_CLASSES, bfObject: BF_TERMS.BF_OBJECT_PROPERTIES, bfData: BF_TERMS.BF_DATATYPE_PROPERTIES,
+      bflcClasses: BF_TERMS.BFLC_CLASSES, bflcObject: BF_TERMS.BFLC_OBJECT_PROPERTIES, bflcData: BF_TERMS.BFLC_DATATYPE_PROPERTIES,
+    }, stats);
+    return c.json({
+      at: new Date().toISOString(),
+      counts: audit.counts,
+      plan: scorecard(records as any[], entities as any[]),
+      audit: { measures: audit.measures, unknownTerms: audit.unknownTerms, rangeErrors: audit.rangeErrors },
+    }, 200, { 'Cache-Control': 'public, max-age=3600', 'Access-Control-Allow-Origin': '*' });
+  } catch (error) {
+    console.error('Scorecard error:', error);
+    return c.json({ error: 'Could not build the scorecard' }, 500);
+  }
+});
+
 // Every published book, one line each, for AI assistants and tools: https://mooon.site/resource/books.txt
 app.get("/make-server-49c0e13c/resource/books.txt", async (c) => {
   try {
