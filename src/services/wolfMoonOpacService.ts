@@ -1279,6 +1279,12 @@ class WolfMoonOpacService {
         }
       }
 
+      // The work's genres and forms (bf:genreForm: "History", "Poetry", "شعر" …), by their labels. They were not read
+      // before, so the catalogue showed no genre at all; a genre given only as an address with no label is left out.
+      const genreFormList = [...new Set(([] as any[]).concat(workNode['bf:genreForm'] ?? workNode['genreForm'] ?? [])
+        .map((g: any) => nodeOf(g)).map((g: any) => (typeof g === 'string' && !/^https?:/.test(g) ? g.trim() : textOf(g?.['rdfs:label'] ?? g?.['madsrdf:authoritativeLabel'])))
+        .filter((s: string) => !!s && s.length <= 120))].slice(0, 12) as string[];
+
       const seriesNode = deref(workNode['bf:hasSeries'] || workNode['hasSeries'] || instanceNode['bf:hasSeries'] || instanceNode['hasSeries']);
       let seriesStr: string | undefined = undefined;
       if (seriesNode) {
@@ -1294,6 +1300,12 @@ class WolfMoonOpacService {
             details: sNum ? `رقم السلسلة: ${sNum}` : undefined
           });
         }
+      }
+      // A series given only as a statement (bf:seriesStatement, as MARC 490 gives it: "Dirāsāt fī al-adab al-ʻArabī ; 27").
+      if (!seriesStr) {
+        const statement = ([] as any[]).concat(instanceNode['bf:seriesStatement'] ?? instanceNode['seriesStatement'] ?? [], workNode['bf:seriesStatement'] ?? [])
+          .map((v: any) => (typeof v === 'string' ? v.trim() : textOf(v))).find(Boolean);
+        if (statement) seriesStr = statement;
       }
 
       const partOfNode = deref(workNode['bf:partOf'] || workNode['partOf'] || instanceNode['bf:partOf'] || instanceNode['partOf']);
@@ -1450,6 +1462,7 @@ class WolfMoonOpacService {
         classificationLcc: classLccVal,
         tableOfContents: tocStr || undefined,
         series: seriesStr,
+        ...(genreFormList.length ? { genreForm: genreFormList } : {}),
         notes: notesList,
         incipit: incipitStr,
         explicit: explicitStr,
