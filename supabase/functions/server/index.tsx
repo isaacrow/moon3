@@ -95,7 +95,8 @@ import { reconcile, manifest } from "./reconcile.tsx";
 import { linkAuthorities, mirrorOutsideLinked, headingsOf, moonAuthorityId, authorityReport } from "./authorityLinking.tsx";
 import { relatedFrom, resolveRelated } from "./entityRelations.tsx";
 import { isBot, visitFrom, visitDay, visitorKey } from "./opacVisits.tsx";
-import { bookFactsOf, bookPageHtml, booksText } from "./seoPages.tsx";
+import { bookFactsOf, bookPageHtml, booksText, plainPageUrl } from "./seoPages.tsx";
+import { entityPageHtml, entityPlainUrl, moonEntitiesOf, namesEntity, parseEntityParam } from "./entityPages.tsx";
 import { scorecard } from "./scorecard.tsx";
 import { isRelationTerm, readWorkRelations, withoutRelation, withRelation, workNodeOf } from "./workRelations.tsx";
 import { byRecord, parseCopiesTable, planImport, withCopies } from "./copiesImport.tsx";
@@ -916,16 +917,41 @@ async function bookPage(c: any, id: string) {
   try {
     const record = /^[A-Za-z0-9._:-]{1,120}$/.test(id) ? await recordStore.getPublishedRecord(id).catch(() => null) : null;
     if (!record) return c.html('<!doctype html><meta charset="utf-8"><title>Not found</title><p>No published book has this address. <a href="/resource/">All published records</a></p>', 404);
-    return c.html(bookPageHtml(bookFactsOf({ id: record.id, title: record.title, document: record.document })), 200, { 'Cache-Control': 'public, max-age=300', 'Access-Control-Allow-Origin': '*' });
+    const facts = { ...bookFactsOf({ id: record.id, title: record.title, document: record.document }), entities: moonEntitiesOf(record.document) };
+    return c.html(bookPageHtml(facts), 200, { 'Cache-Control': 'public, max-age=300', 'Access-Control-Allow-Origin': '*' });
   } catch (error) {
     console.error('Book page error:', error);
     return c.json({ error: 'Failed to build the book page' }, 500);
   }
 }
 
+// One person, organisation, place or subject as a plain page, like the book pages (entityPages.tsx):
+// https://mooon.site/resource/?entity=agent/<id>. A merged entry leads to the one it was merged into.
+async function entityPage(c: any, param: string) {
+  try {
+    const ref = parseEntityParam(param);
+    const entity: any = ref ? await recordStore.getAuthority(ref.id).catch(() => null) : null;
+    if (!ref || !entity || entity.kind !== ref.kind) {
+      return c.html('<!doctype html><meta charset="utf-8"><title>Not found</title><p>No entity has this address. <a href="/resource/">All published records</a></p>', 404);
+    }
+    if (entity.mergedInto) return c.body(null, 301, { Location: entityPlainUrl(entity.kind, entity.mergedInto) });
+    const books = (await recordStore.listPublishedRecords())
+      .filter((r: any) => namesEntity(r.document, entity.kind, entity.id))
+      .map((r: any) => { const f = bookFactsOf({ id: r.id, title: r.title, document: r.document }); return { id: r.id, title: f.title, creator: f.creator, year: f.year }; })
+      .sort((a: any, b: any) => String(a.title).localeCompare(String(b.title)));
+    return c.html(entityPageHtml({ ...entity, data: withoutOwners(entity.data) }, books, (id) => plainPageUrl(id)), 200,
+      { 'Cache-Control': 'public, max-age=300', 'Access-Control-Allow-Origin': '*' });
+  } catch (error) {
+    console.error('Entity page error:', error);
+    return c.json({ error: 'Failed to build the entity page' }, 500);
+  }
+}
+
 async function resourceIndex(c: any) {
   const bookId = c.req.query('book');
   if (bookId) return await bookPage(c, bookId);
+  const entityParam = c.req.query('entity');
+  if (entityParam) return await entityPage(c, entityParam);
   try {
     const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
     const nodeId = (doc: any, cls: string) => (Array.isArray(doc?.['@graph']) ? doc['@graph'] : [])
