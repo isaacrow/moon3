@@ -5,7 +5,7 @@
  * candidates and the reasons, for the cataloguer to choose. Linking adds every outside address the match's
  * records carry (LC, VIAF, Wikidata, FAST, ISNI …) to the entity.
  */
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Link2, Loader2, Search, CheckCircle2, X } from 'lucide-react';
 import { moonFetch } from '../utils/moonApi';
@@ -13,7 +13,12 @@ import { searchLOCAuthorities, searchWikidata, romanizeQuery } from '../../servi
 import { fetchOutsideEntity, SAME_AS_HOSTS } from '../../services/entityImport';
 import { reconcileEntity, linksAcross, type AcrossLink, type Candidate, type ReconcileEntity } from '../../services/reconcile';
 
-interface Row { entity: ReconcileEntity & { uri?: string; sameAs?: string[] }; state: 'waiting' | 'searching' | 'sure' | 'review' | 'none' | 'linked' | 'complete' | 'error'; candidates: Candidate[]; sure: Candidate | null; across?: AcrossLink[] }
+interface Note { rejected: string[]; noMatch?: { by: string; at: string }; checkedAt?: string }
+interface Row { entity: ReconcileEntity & { uri?: string; sameAs?: string[]; note?: Note }; state: 'waiting' | 'searching' | 'sure' | 'review' | 'none' | 'linked' | 'complete' | 'error' | 'nomatch'; candidates: Candidate[]; sure: Candidate | null; across?: AcrossLink[] }
+
+/** A cataloguer's decision, kept on the server so the next run does not ask again (see reconcileQueue.tsx). */
+const note = (id: string, body: Record<string, unknown>) =>
+  moonFetch<any>(`/authorities/${encodeURIComponent(id)}/reconcile-note`, { method: 'POST', body }).catch(() => null);
 
 const KIND: Record<string, [string, string]> = { agent: ['شخص أو هيئة', 'person or body'], place: ['مكان', 'place'], topic: ['موضوع', 'subject'], genre: ['نوع', 'genre'], hub: ['عمل', 'work'], period: ['فترة', 'period'] };
 const deps = {
@@ -28,20 +33,25 @@ export function ReconcilePanel({ ar, onClose, onLinked }: { ar: boolean; onClose
   const [rows, setRows] = useState<Row[] | null>(null);
   const [running, setRunning] = useState(false);
   const [linking, setLinking] = useState(false);
+  const [total, setTotal] = useState<{ total: number; unlinked: number } | null>(null);
+  const stopRef = useRef(false);
   const set = (id: string, patch: Partial<Row>) => setRows((rs) => rs && rs.map((r) => (r.entity.id === id ? { ...r, ...patch } : r)));
 
   const start = async () => {
     setRunning(true);
-    // Every entity (each kind, up to 100 each): one with outside links gets the links those records list
-    // themselves (LC's record lists VIAF and Wikidata, Wikidata lists ISNI, ORCID …); one with none is searched.
-    const lists = await Promise.all(['agent', 'place', 'topic', 'genre'].map((k) => moonFetch<any>(`/authorities?kind=${k}&limit=100`).catch(() => null)));
-    const entities = lists.flatMap((r) => (r?.ok ? r.data.authorities || [] : []));
-    const initial: Row[] = entities.map((e: any) => ({ entity: e, state: 'waiting', candidates: [], sure: null }));
+    stopRef.current = false;
+    // Every entity, unlinked first, with what cataloguers decided before (rejected candidates, "no match"):
+    // one with outside links gets the links those records list themselves (LC's record lists VIAF and
+    // Wikidata, Wikidata lists ISNI, ORCID …); one with none is searched.
+    const r = await moonFetch<any>('/authorities/reconcile-queue').catch(() => null);
+    if (!r?.ok) { toast.error(t('تعذّر جلب قائمة الكيانات', 'Could not load the entities')); setRunning(false); return; }
+    setTotal({ total: r.data.total, unlinked: r.data.unlinked });
+    const initial: Row[] = (r.data.rows || []).map((e: any) => ({ entity: e, state: 'waiting', candidates: [], sure: null }));
     setRows(initial);
-    // Two at a time, so LC and Wikidata are not flooded.
+    // Two at a time, so LC and Wikidata are not flooded. "Stop" ends the run after the current two.
     let next = 0;
     const work = async () => {
-      while (next < initial.length) {
+      while (next < initial.length && !stopRef.current) {
         const e = initial[next++].entity;
         set(e.id, { state: 'searching' });
         try {
@@ -50,8 +60,13 @@ export function ReconcilePanel({ ar, onClose, onLinked }: { ar: boolean; onClose
             set(e.id, { state: across.length ? 'sure' : 'complete', across });
             continue;
           }
-          const r = await reconcileEntity(e, deps);
-          set(e.id, { state: r.sure ? 'sure' : r.candidates.length ? 'review' : 'none', candidates: r.candidates, sure: r.sure });
+          const found = await reconcileEntity(e, deps);
+          // A candidate a cataloguer already rejected for this entity is never offered again.
+          const rejected = new Set(e.note?.rejected || []);
+          const candidates = found.candidates.filter((c) => !rejected.has(c.uri));
+          const sure = found.sure && !rejected.has(found.sure.uri) ? found.sure : null;
+          set(e.id, { state: sure ? 'sure' : candidates.length ? 'review' : 'none', candidates, sure });
+          void note(e.id, { checked: true });
         } catch {
           set(e.id, { state: 'error' });
         }
@@ -59,6 +74,20 @@ export function ReconcilePanel({ ar, onClose, onLinked }: { ar: boolean; onClose
     };
     await Promise.all([work(), work()]);
     setRunning(false);
+  };
+
+  /** "Not this one": the candidate is dropped here and never offered again for this entity. */
+  const reject = async (row: Row, c: Candidate) => {
+    await note(row.entity.id, { reject: c.uri });
+    const candidates = row.candidates.filter((x) => x.uri !== c.uri);
+    const sure = row.sure?.uri === c.uri ? null : row.sure;
+    set(row.entity.id, { candidates, sure, state: sure ? 'sure' : candidates.length ? 'review' : 'none' });
+  };
+
+  /** "No match": not in LC or Wikidata (a local press, a small publisher); leaves the list for six months. */
+  const noMatch = async (row: Row) => {
+    const r = await note(row.entity.id, { noMatch: true });
+    if (r?.ok) set(row.entity.id, { state: 'nomatch', candidates: [], sure: null });
   };
 
   /** Adds the match's outside addresses to the entity. */
@@ -112,6 +141,11 @@ export function ReconcilePanel({ ar, onClose, onLinked }: { ar: boolean; onClose
             <Search className="h-4 w-4" /> {t('ابحث عن الروابط', 'Find the links')}
           </button>
         )}
+        {running && (
+          <button type="button" onClick={() => { stopRef.current = true; }} className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+            {t('أوقف', 'Stop')}
+          </button>
+        )}
         {rows && count('sure') > 0 && (
           <button type="button" onClick={linkAllSure} disabled={linking || running} className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
             {linking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />} {t(`اربط المؤكد (${count('sure')})`, `Link all sure matches (${count('sure')})`)}
@@ -128,6 +162,8 @@ export function ReconcilePanel({ ar, onClose, onLinked }: { ar: boolean; onClose
           <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">{t(`لم يوجد ${count('none')}`, `Not found ${count('none')}`)}</span>
           <span className="rounded-full bg-sky-100 px-3 py-1 text-sky-800">{t(`رُبط ${count('linked')}`, `Linked ${count('linked')}`)}</span>
           <span className="rounded-full bg-white px-3 py-1 text-slate-600">{t(`مكتمل الروابط ${count('complete')}`, `All links already ${count('complete')}`)}</span>
+          {count('nomatch') > 0 && <span className="rounded-full bg-white px-3 py-1 text-slate-600">{t(`لا مقابل ${count('nomatch')}`, `No match ${count('nomatch')}`)}</span>}
+          {total && <span className="rounded-full bg-white px-3 py-1 text-slate-500">{t(`بلا روابط خارجية: ${total.unlinked} من ${total.total}`, `Without outside links: ${total.unlinked} of ${total.total}`)}</span>}
         </div>
       )}
 
@@ -144,7 +180,14 @@ export function ReconcilePanel({ ar, onClose, onLinked }: { ar: boolean; onClose
                   {r.state === 'none' && <span className="text-slate-500">{t('لم يوجد', 'not found')}</span>}
                   {r.state === 'complete' && <span className="text-slate-500">{t('لديه كل الروابط', 'has every link')}</span>}
                   {r.state === 'error' && <span className="text-rose-600">{t('تعذّر البحث', 'search failed')}</span>}
+                  {r.state === 'nomatch' && <span className="text-slate-500">{t('لا مقابل له (حُفظ)', 'no match (saved)')}</span>}
                 </span>
+                {(r.state === 'none' || r.state === 'review') && (
+                  <button type="button" onClick={() => noMatch(r)} title={t('ليس في مكتبة الكونغرس ولا ويكي بيانات؛ لن يُعرض ستة أشهر', 'Not in LC or Wikidata; hidden for six months')}
+                    className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                    {t('لا مقابل له', 'No match')}
+                  </button>
+                )}
               </div>
               {r.state === 'sure' && !!r.across?.length && (
                 <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs">
@@ -167,6 +210,10 @@ export function ReconcilePanel({ ar, onClose, onLinked }: { ar: boolean; onClose
                       <button type="button" onClick={async () => { if (await link(r, c)) { toast.success(t('رُبط', 'Linked')); onLinked?.(); } }}
                         className="ms-auto inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold text-sky-800 hover:bg-sky-50">
                         <Link2 className="h-3.5 w-3.5" /> {t('اربط', 'Link')}
+                      </button>
+                      <button type="button" onClick={() => reject(r, c)} title={t('ليس هو؛ لن يُقترح مرة أخرى', 'Not this one; it will not be suggested again')}
+                        className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-rose-50 hover:text-rose-700">
+                        <X className="h-3.5 w-3.5" /> {t('ليس هو', 'Not this one')}
                       </button>
                     </div>
                   ))}

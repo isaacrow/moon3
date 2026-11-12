@@ -95,6 +95,7 @@ import { linkAuthorities, mirrorOutsideLinked, headingsOf, moonAuthorityId, auth
 import { relatedFrom, resolveRelated } from "./entityRelations.tsx";
 import { isBot, visitFrom, visitDay, visitorKey } from "./opacVisits.tsx";
 import { bookFactsOf, bookPageHtml, booksText } from "./seoPages.tsx";
+import { applyNote, NOTE_PREFIX, parseNoteAction, queueOf } from "./reconcileQueue.tsx";
 import { baghdadHour, countryFrom, MAX_SEARCHES_PER_VISITOR_DAY, parseEvent } from "./opacInsights.tsx";
 import { buildFolioInstance, folioClient, loadReference, sendInstance, instanceHash, type FolioConfig, type FolioRef, type FolioLink } from "./folio.tsx";
 import { marcProblems, sendMarc } from "./folioMarc.tsx";
@@ -1890,6 +1891,22 @@ app.post("/make-server-49c0e13c/authorities/report", async (c) => {
 });
 
 // 🧩 One entity (Phase 10): the entry, its address, and how many records use it (public, like search).
+// The "Link entities" panel's work list: every entity, unlinked first, with what cataloguers decided before
+// (rejected candidates, "no match"). See reconcileQueue.tsx. Signed-in cataloguers only.
+app.get("/make-server-49c0e13c/authorities/reconcile-queue", async (c) => {
+  if (!(await getSession(c))) return c.json({ error: 'Sign in to link entities' }, 401);
+  try {
+    const entities = await recordStore.listAllAuthorities();
+    const stored = await kv.mget(entities.map((e: any) => NOTE_PREFIX + e.id)).catch(() => []);
+    const notes = new Map<string, unknown>(entities.map((e: any, i: number) => [e.id, (stored as any[])[i]]));
+    const rows = queueOf(entities as any[], notes).map(withUri);
+    return c.json({ total: rows.length, unlinked: rows.filter((r: any) => !r.linked).length, rows });
+  } catch (error) {
+    console.error('Reconcile queue error:', error);
+    return c.json({ error: 'Could not list the entities to link' }, 500);
+  }
+});
+
 app.get("/make-server-49c0e13c/authorities/:id", async (c) => {
   try {
     const entry = await recordStore.getAuthority(c.req.param('id'));
@@ -2100,6 +2117,24 @@ app.post("/make-server-49c0e13c/authorities/:id/same-as", async (c) => {
   } catch (error) {
     console.error('Authority same-as error:', error);
     return c.json({ error: 'Failed to link the authority entry' }, 500);
+  }
+});
+
+// A cataloguer's decision on one entity: { reject: <candidate address> } | { noMatch: true } | { checked: true } | { clear: true }.
+app.post("/make-server-49c0e13c/authorities/:id/reconcile-note", async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ error: 'Sign in to link entities' }, 401);
+  try {
+    const id = c.req.param('id');
+    if (!/^[A-Za-z0-9._:-]{1,120}$/.test(id)) return c.json({ error: 'Not an entity id' }, 400);
+    const action = parseNoteAction(await c.req.json().catch(() => null));
+    if (!action) return c.json({ error: 'Send { reject: <address> }, { noMatch: true }, { checked: true } or { clear: true }' }, 400);
+    const note = applyNote(await kv.get(NOTE_PREFIX + id).catch(() => null), action, session.username);
+    await kv.set(NOTE_PREFIX + id, note);
+    return c.json({ note });
+  } catch (error) {
+    console.error('Reconcile note error:', error);
+    return c.json({ error: 'Could not save the decision' }, 500);
   }
 });
 
