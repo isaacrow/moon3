@@ -94,6 +94,11 @@ import { reconcile, manifest } from "./reconcile.tsx";
 import { linkAuthorities, mirrorOutsideLinked, headingsOf, moonAuthorityId, authorityReport } from "./authorityLinking.tsx";
 import { relatedFrom, resolveRelated } from "./entityRelations.tsx";
 import { isBot, visitFrom, visitDay, visitorKey } from "./opacVisits.tsx";
+import { bookFactsOf, bookPageHtml, booksText } from "./seoPages.tsx";
+import { isRelationTerm, readWorkRelations, withoutRelation, withRelation, workNodeOf } from "./workRelations.tsx";
+import { byRecord, parseCopiesTable, planImport, withCopies } from "./copiesImport.tsx";
+import { applyNote, NOTE_PREFIX, parseNoteAction, queueOf } from "./reconcileQueue.tsx";
+import { baghdadHour, countryFrom, MAX_SEARCHES_PER_VISITOR_DAY, parseEvent } from "./opacInsights.tsx";
 import { buildFolioInstance, folioClient, loadReference, sendInstance, instanceHash, type FolioConfig, type FolioRef, type FolioLink } from "./folio.tsx";
 import { marcProblems, sendMarc } from "./folioMarc.tsx";
 import { applyTemplateSave, type Template } from "./templatePolicy.tsx";
@@ -903,7 +908,22 @@ app.post("/make-server-49c0e13c/records/save", async (c) => {
 // (303 See Other) to the record's page in the OPAC. Only published versions are ever served.
 // 📚 https://mooon.site/resource/ itself: a page listing every published record with its Work and Instance
 // addresses and data formats (JSON with ?format=json or Accept: application/json).
+// One published book as a plain page, for crawlers and AI assistants that do not run JavaScript:
+// https://mooon.site/resource/?book=<id>. Made from the record every time, so it follows every change.
+async function bookPage(c: any, id: string) {
+  try {
+    const record = /^[A-Za-z0-9._:-]{1,120}$/.test(id) ? await recordStore.getPublishedRecord(id).catch(() => null) : null;
+    if (!record) return c.html('<!doctype html><meta charset="utf-8"><title>Not found</title><p>No published book has this address. <a href="/resource/">All published records</a></p>', 404);
+    return c.html(bookPageHtml(bookFactsOf({ id: record.id, title: record.title, document: record.document })), 200, { 'Cache-Control': 'public, max-age=300', 'Access-Control-Allow-Origin': '*' });
+  } catch (error) {
+    console.error('Book page error:', error);
+    return c.json({ error: 'Failed to build the book page' }, 500);
+  }
+}
+
 async function resourceIndex(c: any) {
+  const bookId = c.req.query('book');
+  if (bookId) return await bookPage(c, bookId);
   try {
     const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
     const nodeId = (doc: any, cls: string) => (Array.isArray(doc?.['@graph']) ? doc['@graph'] : [])
@@ -1540,6 +1560,35 @@ app.get("/make-server-49c0e13c/resource/dump.jsonld", (c) => resourceDump(c, 'js
 app.get("/make-server-49c0e13c/resource/dump.nt", (c) => resourceDump(c, 'nt'));
 
 app.get("/make-server-49c0e13c/resource", resourceIndex);
+// Every entity's names, for the catalogue's search (https://mooon.site/resource/names.json): a book is found by any
+// name of its people, subjects and places, in either script ("Ibn Khaldun" finds the book whose author's entity
+// also has "ابن خلدون"). Public, like the entities themselves; only labels and variants, nothing about who added them.
+app.get("/make-server-49c0e13c/resource/names.json", async (c) => {
+  try {
+    const entities = await recordStore.listAllAuthorities();
+    const forms: Record<string, string[]> = {};
+    for (const e of entities as any[]) {
+      if (e.mergedInto || !e.label) continue;
+      const names = [...new Set([e.label, ...(Array.isArray(e.variants) ? e.variants : [])].filter((n: unknown) => typeof n === 'string' && n.trim()))].slice(0, 30);
+      if (names.length > 1) forms[`${linkedData.BASE_URI}/${e.kind}/${e.id}`] = names;
+    }
+    return c.json({ count: Object.keys(forms).length, forms }, 200, { 'Cache-Control': 'public, max-age=1800', 'Access-Control-Allow-Origin': '*' });
+  } catch (error) {
+    console.error('Name forms error:', error);
+    return c.json({ error: 'Could not list the name forms' }, 500);
+  }
+});
+// Every published book, one line each, for AI assistants and tools: https://mooon.site/resource/books.txt
+app.get("/make-server-49c0e13c/resource/books.txt", async (c) => {
+  try {
+    const records = await recordStore.listPublishedRecords();
+    const facts = records.map((r) => bookFactsOf({ id: r.id, title: r.title, document: r.document }));
+    return c.body(booksText(facts), 200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600', 'Access-Control-Allow-Origin': '*' });
+  } catch (error) {
+    console.error('Books list error:', error);
+    return c.json({ error: 'Failed to list the books' }, 500);
+  }
+});
 app.get("/make-server-49c0e13c/resource/", resourceIndex);
 
 app.get("/make-server-49c0e13c/resource/:kind/:id", async (c) => {
@@ -1745,6 +1794,49 @@ async function linkRecordsBatch(offset: number, limit: number, by: string) {
   return { total: records.length, processed: batch.length, changed, linked, mirrored, failed, next };
 }
 
+// Super Admin: the library's shelf list (CSV or TSV, one row per copy) becomes copies on the right records
+// (copiesImport.tsx). { text, dryRun: true } only says what would happen; without dryRun, each record that gets
+// copies is saved as a new version noted "copies import" (a published record stays published), so it can be
+// undone from its history like any edit. A copy already on a record is never added twice.
+app.post("/make-server-49c0e13c/records/copies-import", async (c) => {
+  try {
+    const admin = await isAdminSession(c);
+    if (!admin) return c.json({ error: 'Super Admin session required' }, 403);
+    const body = await c.req.json().catch(() => ({}));
+    if (typeof body?.text !== 'string' || body.text.length > 2_000_000) return c.json({ error: 'Send { text: <the sheet as CSV or TSV> }' }, 400);
+    const { rows, problems } = parseCopiesTable(body.text);
+    if (!rows.length) return c.json({ error: problems[0] || 'No rows', problems }, 400);
+    const records = await recordStore.listRecords();
+    const plan = planImport(records as any[], rows);
+    const count = (st: string) => plan.filter((p) => p.status === st).length;
+    const summary = { rows: rows.length, add: count('add'), alreadyThere: count('already there'), noSuchBook: count('no such book'),
+      severalBooks: count('several books'), repeated: count('repeated in the sheet') };
+    const report = plan.map((p) => ({ line: p.line, status: p.status, recordId: p.recordId, title: p.title, isbn: p.row.isbn, shelfMark: p.row.shelfMark, library: p.row.library }));
+    if (body.dryRun) return c.json({ dryRun: true, summary, problems, plan: report });
+    const byId = new Map((records as any[]).map((r) => [r.id, r]));
+    const salt = Date.now().toString(36);
+    let saved = 0, added = 0;
+    const failed: string[] = [];
+    for (const [recordId, groups] of byRecord(plan)) {
+      const rec = byId.get(recordId);
+      try {
+        let document = rec.document;
+        for (const g of groups) { document = withCopies(document, g.instance, g.rows, salt); added += g.rows.length; }
+        await recordStore.saveRecord({ ...rec, document, saved: new Date().toISOString() }, admin.username, 'copies import',
+          Number.isInteger(rec.version) ? rec.version : undefined);
+        saved++;
+      } catch (error) {
+        console.error(`Copies import failed for ${recordId}:`, error);
+        failed.push(recordId);
+      }
+    }
+    return c.json({ dryRun: false, summary, problems, plan: report, savedRecords: saved, addedCopies: added, failed });
+  } catch (error) {
+    console.error('Copies import error:', error);
+    return c.json({ error: 'The copies could not be imported' }, 500);
+  }
+});
+
 // Super Admin: links the records saved before every save linked them (the button in the account menu and on
 // the linked-data scorecard).
 app.post("/make-server-49c0e13c/authorities/link-records", async (c) => {
@@ -1862,6 +1954,22 @@ app.post("/make-server-49c0e13c/authorities/report", async (c) => {
 });
 
 // 🧩 One entity (Phase 10): the entry, its address, and how many records use it (public, like search).
+// The "Link entities" panel's work list: every entity, unlinked first, with what cataloguers decided before
+// (rejected candidates, "no match"). See reconcileQueue.tsx. Signed-in cataloguers only.
+app.get("/make-server-49c0e13c/authorities/reconcile-queue", async (c) => {
+  if (!(await getSession(c))) return c.json({ error: 'Sign in to link entities' }, 401);
+  try {
+    const entities = await recordStore.listAllAuthorities();
+    const stored = await kv.mget(entities.map((e: any) => NOTE_PREFIX + e.id)).catch(() => []);
+    const notes = new Map<string, unknown>(entities.map((e: any, i: number) => [e.id, (stored as any[])[i]]));
+    const rows = queueOf(entities as any[], notes).map(withUri);
+    return c.json({ total: rows.length, unlinked: rows.filter((r: any) => !r.linked).length, rows });
+  } catch (error) {
+    console.error('Reconcile queue error:', error);
+    return c.json({ error: 'Could not list the entities to link' }, 500);
+  }
+});
+
 app.get("/make-server-49c0e13c/authorities/:id", async (c) => {
   try {
     const entry = await recordStore.getAuthority(c.req.param('id'));
@@ -1923,6 +2031,63 @@ app.post("/make-server-49c0e13c/opac/visit", async (c) => {
   } catch (error) {
     console.error('OPAC visit error:', error);
     return c.json({ counted: false }, 500);
+  }
+});
+
+// 📊 OPAC insights, anonymous (see opacInsights.tsx): once a day the OPAC says what kind of device, language,
+// country and source a visitor has; for each search, what was searched and how many results it found; and which
+// result a reader opened. Same daily hashed visitor key as /opac/visit, so nobody can be followed between days.
+// Robots and signed-in staff are not counted. The country is the request's own (never looked up from an address).
+app.post("/make-server-49c0e13c/opac/event", async (c) => {
+  try {
+    const ua = c.req.header('user-agent') || '';
+    if (isBot(ua) || c.req.header('X-Moon-Session')) return c.json({ counted: false });
+    const event = parseEvent(await c.req.json().catch(() => null));
+    if (!event) return c.json({ error: 'event: context, search or open (see opacInsights.tsx)' }, 400);
+    const ip = (c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '').split(',')[0].trim();
+    const day = visitDay();
+    const visitor = await visitorKey(ip, ua, day, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || 'moon');
+    const db = supabase as any;
+    let result;
+    if (event.t === 'context') {
+      result = await db.rpc('moon_record_context', {
+        p_day: day, p_visitor: visitor, p_device: event.device, p_lang: event.lang, p_browser_lang: event.browserLang,
+        // The country the page reports (Cloudflare's own check of this site), else the request's, else unknown.
+        p_country: event.country || countryFrom(c.req.header('cf-ipcountry')), p_source: event.source, p_entry: event.entry,
+        p_hour: baghdadHour(),
+      });
+    } else if (event.t === 'action') {
+      result = await db.rpc('moon_record_action', { p_day: day, p_visitor: visitor, p_action: event.action });
+    } else if (event.t === 'end') {
+      result = await db.rpc('moon_record_end', { p_day: day, p_visitor: visitor, p_pages: event.pages, p_seconds: event.seconds });
+    } else if (event.t === 'search') {
+      result = await db.rpc('moon_record_search', {
+        p_day: day, p_visitor: visitor, p_query: event.query, p_results: event.results, p_script: event.script,
+        p_lang: event.lang, p_filters: event.filters, p_max: MAX_SEARCHES_PER_VISITOR_DAY,
+      });
+    } else {
+      result = await db.rpc('moon_record_open', { p_day: day, p_visitor: visitor, p_query: event.query, p_rank: event.rank });
+    }
+    if (result.error) throw new Error(result.error.message);
+    return c.json({ counted: true });
+  } catch (error) {
+    console.error('OPAC event error:', error);
+    return c.json({ counted: false }, 500);
+  }
+});
+
+// The dashboard's "What readers do" card (signed-in staff): searches that found nothing, the most searched,
+// devices, languages, countries and where readers came from, over ?days= (default 30).
+app.get("/make-server-49c0e13c/opac/insights", async (c) => {
+  try {
+    if (!(await getSession(c))) return c.json({ error: 'Sign in to see what readers do' }, 401);
+    const days = Math.min(366, Math.max(1, Number(c.req.query('days')) || 30));
+    const { data, error } = await (supabase as any).rpc('moon_insight_stats', { p_today: visitDay(), p_days: days });
+    if (error) throw new Error(error.message);
+    return c.json(data);
+  } catch (error) {
+    console.error('OPAC insights error:', error);
+    return c.json({ error: 'Could not read what readers do' }, 500);
   }
 });
 
@@ -2015,6 +2180,24 @@ app.post("/make-server-49c0e13c/authorities/:id/same-as", async (c) => {
   } catch (error) {
     console.error('Authority same-as error:', error);
     return c.json({ error: 'Failed to link the authority entry' }, 500);
+  }
+});
+
+// A cataloguer's decision on one entity: { reject: <candidate address> } | { noMatch: true } | { checked: true } | { clear: true }.
+app.post("/make-server-49c0e13c/authorities/:id/reconcile-note", async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ error: 'Sign in to link entities' }, 401);
+  try {
+    const id = c.req.param('id');
+    if (!/^[A-Za-z0-9._:-]{1,120}$/.test(id)) return c.json({ error: 'Not an entity id' }, 400);
+    const action = parseNoteAction(await c.req.json().catch(() => null));
+    if (!action) return c.json({ error: 'Send { reject: <address> }, { noMatch: true }, { checked: true } or { clear: true }' }, 400);
+    const note = applyNote(await kv.get(NOTE_PREFIX + id).catch(() => null), action, session.username);
+    await kv.set(NOTE_PREFIX + id, note);
+    return c.json({ note });
+  } catch (error) {
+    console.error('Reconcile note error:', error);
+    return c.json({ error: 'Could not save the decision' }, 500);
   }
 });
 
@@ -2142,6 +2325,40 @@ app.get("/make-server-49c0e13c/records/search", async (c) => {
   } catch (error) {
     console.error('Search records error:', error);
     return c.json({ error: 'Search failed' }, 500);
+  }
+});
+
+// A link between two works (workRelations.tsx): { target: <record id or work address>, relationship: <LC term>,
+// remove?: true }. A reviewer or the Super Admin; the record is saved as a new version noted "work link" (a
+// published record stays published), so it can be undone from its history. The other book's page shows the
+// inverse by itself; nothing is written on it.
+app.post("/make-server-49c0e13c/records/:id/work-links", async (c) => {
+  const session = await getSession(c);
+  if (!canReview(session)) return c.json({ error: 'A reviewer or the Super Admin links works' }, 403);
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    if (!isRelationTerm(body?.relationship)) return c.json({ error: 'relationship: one of the LC terms Moon knows (translationof, commentaryon, partof …)' }, 400);
+    const rec: any = await recordStore.getRecord(c.req.param('id'));
+    if (!rec) return c.json({ error: 'No record with this id' }, 404);
+    const target = typeof body?.target === 'string' ? body.target.trim() : '';
+    let targetUri = /^https?:///.test(target) ? target : '';
+    if (!targetUri && target) {
+      const other: any = await recordStore.getRecord(target);
+      targetUri = other ? workNodeOf(other.document)?.['@id'] || '' : '';
+    }
+    const sourceWork = workNodeOf(rec.document)?.['@id'];
+    if (!targetUri || targetUri.length > 300) return c.json({ error: 'target: the other book's record id or work address' }, 400);
+    if (targetUri === sourceWork) return c.json({ error: 'A work cannot be linked to itself' }, 400);
+    const document = body?.remove === true ? withoutRelation(rec.document, body.relationship, targetUri) : withRelation(rec.document, body.relationship, targetUri);
+    if (JSON.stringify(document) === JSON.stringify(rec.document)) {
+      return c.json({ unchanged: true, relations: readWorkRelations(workNodeOf(document)) });
+    }
+    await recordStore.saveRecord({ ...rec, document, saved: new Date().toISOString() }, session!.username, 'work link',
+      Number.isInteger(rec.version) ? rec.version : undefined);
+    return c.json({ unchanged: false, relations: readWorkRelations(workNodeOf(document)) });
+  } catch (error) {
+    console.error('Work link error:', error);
+    return c.json({ error: 'The link could not be saved' }, 500);
   }
 });
 

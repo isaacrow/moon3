@@ -1576,4 +1576,4 @@ const Topography = ({
 };
 
 export { Topography };
-export default Topography;
+export default Topography as any;

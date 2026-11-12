@@ -519,7 +519,7 @@ const compile = (gl, type, source) => {
   return shader;
 };
 
-export default function MetallicPaint({
+const MetallicPaint = function MetallicPaint({
   imageSrc,
   text,
   fontFamily = 'system-ui, sans-serif',
@@ -953,3 +953,5 @@ export default function MetallicPaint({
     </div>
   );
 }
+
+export default MetallicPaint as any;

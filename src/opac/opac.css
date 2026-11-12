@@ -413,7 +413,9 @@ details.panel[open] > summary svg { transform: rotate(180deg); }
   .nav.open button { text-align: start; padding: 12px 14px; font-size: 16px; }
   .results-layout { grid-template-columns: minmax(0, 1fr); }
   .menu-toggle { display: grid; }
-  .top-actions .btn-black { display: none; }
+  /* The phone header has room for one button: Sign up (Sign in is the other tab on that page). */
+  .top-actions .sign-in { display: none; }
+  .top-actions .btn-black { height: 40px; padding: 0 14px; font-size: 14px; }
   .hero { padding-block: 64px 32px; }
   .hero-sub { font-size: 16px; }
   .search-field { height: 58px; padding-inline-start: 16px; }
@@ -565,3 +567,7 @@ details.panel[open] > :not(summary) { animation: rise 0.35s var(--ease-out) both
 .az button:disabled { opacity: .3; cursor: default; }
 .hc { position: relative; display: inline-block; }
 .hc-card { position: absolute; inset-inline-start: 0; top: calc(100% + 6px); z-index: 40; display: flex; flex-direction: column; gap: 4px; width: max-content; max-width: 280px; padding: 12px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5; text-align: start; box-shadow: 0 10px 30px rgba(0,0,0,.12); background: rgba(255,255,255,.94); }
+
+/* No results: books that contain some of the words typed */
+.partial { margin-top: 28px; text-align: start; }
+.partial h4 { margin: 0 0 12px; font-size: 15px; font-weight: 700; }

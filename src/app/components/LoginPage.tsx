@@ -91,7 +91,10 @@ export function LoginPage({ onLanguageChange, currentLanguage }: LoginPageProps)
     institution: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
+  // /moon/?signup=1 (the catalogue's "Sign up" button) opens on the sign-up tab.
+  const [activeTab, setActiveTab] = useState<'login' | 'signup'>(() => {
+    try { return new URLSearchParams(window.location.search).has('signup') ? 'signup' : 'login'; } catch { return 'login'; }
+  });
   const [showPassword, setShowPassword] = useState(false);
 
   // Admin Approval Modal State
@@ -1145,11 +1148,6 @@ export function LoginPage({ onLanguageChange, currentLanguage }: LoginPageProps)
                               boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
                             }}
                             placeholder={isAr ? "رمز الدعوة أو التجاوز إن كان متوفراً لديك" : "Invite or bypass code if available"}
-                            disabled={loading}
-                            dir={isAr ? "rtl" : "ltr"}
-                          />
-                        </div>
-                      </div>
                             disabled={loading}
                             dir={isAr ? "rtl" : "ltr"}
                           />

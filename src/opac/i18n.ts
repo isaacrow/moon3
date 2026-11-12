@@ -11,7 +11,9 @@ function initialLang(): OpacLang {
   try {
     const fromUrl = new URLSearchParams(window.location.search).get('lang');
     if (fromUrl === 'en' || fromUrl === 'ar') return fromUrl;
-    const saved = localStorage.getItem(KEY) || localStorage.getItem('moon-language');
+    // Only the reader's own choice in the catalogue counts. The Studio keeps its own language setting
+    // ('moon-language'); a cataloguer who works in English there must still find the catalogue in Arabic.
+    const saved = localStorage.getItem(KEY);
     if (saved === 'en' || saved === 'ar') return saved;
   } catch {
     // No window (tests) or storage blocked: Arabic.

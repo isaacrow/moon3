@@ -27,6 +27,8 @@ import {
   workYearOf, realCopies, libraryOf, languageName, languageDisplay, type FacetKey, type FacetValue, type Selection, type SortKey,
 } from './facets';
 import { MOON_API, moonHeaders } from '../app/utils/moonApi';
+import { relationWords } from '../../supabase/functions/server/workRelations.tsx';
+import { setEntityNames } from './searchIndex';
 import { t, opacLang, setOpacLang, type OpacLang } from './i18n';
 import { IiifViewer } from './IiifViewer';
 import { readDate, bothCalendars } from '../services/hijri';
@@ -38,6 +40,8 @@ import { whatItIs, formatChips, editionLines, exactMatch, alphaIndex, letterOf, 
 import { usePreferredForms } from '../app/utils/preferredNames';
 import { bookScript } from '../services/nameForms';
 import { MARK_KINDS, ITEM_ACTIONS, maqamOf } from '../services/specialVocab';
+import { addedOn, recentShelf } from './recent';
+import { countPage, reportAction, reportContext, reportOpen, reportSearch } from './insights';
 import { canonical as canonicalOutside, sourceOf as outsideSource, pickLabel, type Label as OutsideLabel } from '../../supabase/functions/server/labelCache.tsx';
 import { whoOf, aboutPerson, teachersAndStudents, personPlaces, shelfNeighbours, subjectsAlongside, type Link as KnowledgeLink } from './knowledge';
 import './opac.css';
@@ -255,6 +259,7 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
   const [navOpen, setNavOpen] = useState(false);
   const [lang, setLang] = useState<OpacLang>(opacLang);
   const switchLang = useCallback(() => {
+    reportAction('switch_lang');
     const next: OpacLang = lang === 'ar' ? 'en' : 'ar';
     setOpacLang(next);
     // A ?lang= in the address would win on reload; keep it in step with the choice.
@@ -274,14 +279,33 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
     let alive = true;
     wolfMoonOpacService.initDatabase().then(() => { if (alive) { setReady(true); setRev(r => r + 1); } });
     const off = wolfMoonOpacService.subscribe(() => { setReady(true); setRev(r => r + 1); });
+    // Every entity's names, so a search in one script finds books whose people and subjects carry the other
+    // ("Ibn Khaldun" = "ابن خلدون"). The search works without them; when they arrive, results are made again.
+    fetch(`${MOON_API}/resource/names.json`, { headers: moonHeaders() })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (alive && d?.forms) { setEntityNames(d.forms); setRev(r => r + 1); } })
+      .catch(() => {});
     const onPop = () => withTransition(() => setView(viewFromUrl()));
     window.addEventListener('popstate', onPop);
     if (!(document as any).startViewTransition) document.documentElement.classList.add('no-vt');
     return () => { alive = false; off(); window.removeEventListener('popstate', onPop); };
   }, []);
 
-  // One visit per page opened (a link, Back or Forward, or the first load).
-  useEffect(() => { reportVisit(view); }, [view]);
+  // One visit per page opened (a link, Back or Forward, or the first load). The first one also says what kind of
+  // device, language and source the reader has; a result opened from a search says which place it was in the list.
+  const previousView = useRef<View | null>(null);
+  useEffect(() => {
+    reportVisit(view);
+    countPage();
+    reportContext(view.mode, lang);
+    const before = previousView.current;
+    if (before && before.mode === 'search' && view.mode === 'work') {
+      // Its place among the results the reader saw (editions folded under one result count as that one place).
+      const place = readDisplayedOrder().findIndex(group => group.includes(view.id));
+      if (place >= 0) reportOpen(before.query, place + 1);
+    }
+    previousView.current = view;
+  }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const go = useCallback((v: View) => {
     window.history.pushState({}, '', urlFor(v));
@@ -343,7 +367,8 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
             </button>
             <button className="btn-ghost lang-switch" onClick={switchLang} lang={lang === 'ar' ? 'en' : 'ar'}
               aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}>{lang === 'ar' ? 'English' : 'العربية'}</button>
-            <button className="btn-black" onClick={onOpenEditor}>{t('دخول المفهرسين', 'Cataloguer sign-in')}</button>
+            <button className="btn-ghost sign-in" onClick={() => { reportAction('sign_in'); onOpenEditor?.(); }}>{t('دخول', 'Sign in')}</button>
+            <button className="btn-black" onClick={() => { reportAction('sign_up'); window.location.href = '/moon/?signup=1'; }}>{t('إنشاء حساب', 'Sign up')}</button>
             <button className="icon-btn menu-toggle" onClick={() => setNavOpen(o => !o)} aria-expanded={navOpen} aria-label={t('القائمة', 'Menu')}>
               {navOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -424,7 +449,7 @@ function vtName(kind: string, id: string): string {
 
 const stagger = (i = 0) => ({ '--i': Math.min(i, 12) } as React.CSSProperties);
 
-function BookCard({ work, ctx, i }: { work: OpacWorkEntity; ctx: Ctx; i?: number }) {
+function BookCard({ work, ctx, i, showAdded }: { work: OpacWorkEntity; ctx: Ctx; i?: number; showAdded?: boolean }) {
   return (
     <button className="book glass rise" style={stagger(i)} onClick={() => ctx.go({ mode: 'work', id: work.id })}>
       <Cover work={work} />
@@ -432,6 +457,7 @@ function BookCard({ work, ctx, i }: { work: OpacWorkEntity; ctx: Ctx; i?: number
         {coverUrlOf(work) && <div className="t" dir="auto">{work.title}</div>}
         <div className="a" dir="auto">{personName(work.primaryCreator)}</div>
         {workYear(work) && <div className="y">{workYear(work)}</div>}
+        {showAdded && addedOn(work.createdAt, opacLang()) && <div className="y">{t('أُضيف', 'Added')} {addedOn(work.createdAt, opacLang())}</div>}
       </div>
     </button>
   );
@@ -596,7 +622,7 @@ function Crumbs({ ctx, items }: { ctx: Ctx; items: { label: string; view?: View 
 // ---------------------------------------------------------------------------
 // Home
 
-function Shelf({ title, works, ctx, more }: { title: string; works: OpacWorkEntity[]; ctx: Ctx; more?: { label: string; view: View } }) {
+function Shelf({ title, works, ctx, more, showAdded }: { title: string; works: OpacWorkEntity[]; ctx: Ctx; more?: { label: string; view: View }; showAdded?: boolean }) {
   if (!works.length) return null;
   return (
     <section className="section">
@@ -604,7 +630,7 @@ function Shelf({ title, works, ctx, more }: { title: string; works: OpacWorkEnti
         <h2>{title}</h2>
         {more && <button className="link-btn" onClick={() => ctx.go(more.view)}>{more.label}</button>}
       </div>
-      <div className="shelf">{works.map((w, i) => <BookCard key={w.id} work={w} ctx={ctx} i={i} />)}</div>
+      <div className="shelf">{works.map((w, i) => <BookCard key={w.id} work={w} ctx={ctx} i={i} showAdded={showAdded} />)}</div>
     </section>
   );
 }
@@ -647,7 +673,7 @@ function AskMoon({ ctx }: { ctx: Ctx }) {
   if (!open) {
     return (
       <div className="quick">
-        <button className="chip" onClick={() => setOpen(true)}>✦ {t('اسأل مون بكلماتك', 'Ask Moon in your own words')}</button>
+        <button className="chip" onClick={() => { reportAction('ask_moon'); setOpen(true); }}>✦ {t('اسأل مون بكلماتك', 'Ask Moon in your own words')}</button>
       </div>
     );
   }
@@ -679,7 +705,7 @@ function AskMoon({ ctx }: { ctx: Ctx }) {
 
 function Home({ ctx }: { ctx: Ctx }) {
   const works = useMemo(() => wolfMoonOpacService.getAllWorks(), [ctx.rev]);
-  const recent = useMemo(() => [...works].sort((a, b) => (b.modifiedAt || '').localeCompare(a.modifiedAt || '')).slice(0, 12), [works]);
+  const recent = useMemo(() => recentShelf(works, w => !!coverUrlOf(w), 12), [works]);
   const authors = useMemo(() => wolfMoonOpacService.getAllPersons().filter(p => p.worksCount > 0).slice(0, 8), [ctx.rev]);
   const subjects = useMemo(() => wolfMoonOpacService.getAllSubjects().filter(s => s.worksCount > 0 && isReadableLabel(s.label)).slice(0, 14), [ctx.rev]);
   // Libris's home: categories to start from, then shelves.
@@ -712,7 +738,7 @@ function Home({ ctx }: { ctx: Ctx }) {
       </section>
 
       <div className="wrap">
-        <Shelf title={t('أُضيف حديثاً', 'Recently added')} works={recent} ctx={ctx} more={{ label: t('كل الكتب', 'All books'), view: { mode: 'search', query: '', params: 'sort=date-desc' } }} />
+        <Shelf title={t('أُضيف حديثاً', 'Recently added')} works={recent} ctx={ctx} showAdded more={{ label: t('كل الكتب', 'All books'), view: { mode: 'search', query: '', params: 'sort=date-desc' } }} />
         {featured && featured.works.length > 1 && (
           <Shelf title={t(`من أعمال ${personName(featured.person)}`, `By ${personName(featured.person)}`)} works={featured.works} ctx={ctx} more={{ label: t('صفحة المؤلف', 'Author page'), view: { mode: 'person', key: featured.person.id } }} />
         )}
@@ -785,6 +811,13 @@ function Home({ ctx }: { ctx: Ctx }) {
 
 const PAGE_SIZE = 20;
 const RESULTS_KEY = 'moon-opac:last-results';
+
+// The first 100 results as the reader saw them, each as the ids of the records inside it, so a result
+// that is opened can be reported with its place in the list (see insights.ts).
+const ORDER_KEY = 'moon-opac:displayed-order';
+function readDisplayedOrder(): string[][] {
+  try { const v = JSON.parse(sessionStorage.getItem(ORDER_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+}
 
 /** The result list a record page was opened from, so it can offer "previous / next result". */
 export function lastResults(): { ids: string[]; url: string; query: string } | null {
@@ -923,6 +956,7 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
   const initial = useMemo(() => readState(new URLSearchParams(window.location.search)), [query]);
   const [sel, setSel] = useState<Selection>(initial.sel);
   const [sort, setSort] = useState<SortKey>(initial.sort);
+  const partial = useMemo(() => (query.trim() ? wolfMoonOpacService.partialMatches(query, 6) : []), [query, ctx.rev]);
   const [page, setPage] = useState(initial.page);
   const [needle, setNeedle] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -954,7 +988,21 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
     try { sessionStorage.setItem(RESULTS_KEY, JSON.stringify({ ids: filtered.map(w => w.id), url, query })); } catch { /* private mode */ }
   }, [sel, sort, page, filtered, query, grouped, exact]);
 
-  const onToggle = (k: FacetKey, v: string) => { setSel(s => toggle(s, k, v)); setPage(1); };
+  // Remember the order the reader sees (for "which result did they open"), kept in this tab only.
+  useEffect(() => {
+    try { sessionStorage.setItem(ORDER_KEY, JSON.stringify(clusters.slice(0, 100).map(c => c.members.map(m => m.id)))); } catch { /* private mode */ }
+  }, [clusters]);
+
+  // Tell Moon (anonymously) what was searched and how many results it found, once the list has settled.
+  const resultCount = clusters.length;
+  const filterCount = Object.values(sel).reduce((a, v) => a + v.length, 0);
+  useEffect(() => {
+    if (!query.trim()) return;
+    const timer = window.setTimeout(() => reportSearch(query, resultCount, document.documentElement.lang || 'ar', filterCount), 900);
+    return () => window.clearTimeout(timer);
+  }, [query, resultCount]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onToggle = (k: FacetKey, v: string) => { reportAction('filter'); setSel(s => toggle(s, k, v)); setPage(1); };
   const clear = () => { setSel({}); setPage(1); };
   const chips = (Object.entries(sel) as [FacetKey, string[]][]).flatMap(([k, vs]) => vs.map(v => ({ k, v, label: valueLabel(k, v) })));
   const activeCount = chips.length;
@@ -1024,6 +1072,12 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
             <div className="empty glass">
               <h3>{t('لم نجد كتباً تطابق بحثك', 'No books match your search')}</h3>
               <p>{t('تأكد من الإملاء، أو ابحث باسم المؤلف وحده، أو أزل بعض الفلاتر.', 'Check the spelling, search by the author’s name alone, or remove some filters.')}</p>
+              {!activeCount && partial.length > 0 && (
+                <div className="partial">
+                  <h4>{t('كتب فيها بعض كلماتك', 'Books that contain some of your words')}</h4>
+                  <div className="shelf">{partial.map((w, i) => <BookCard key={w.id} work={w} ctx={ctx} i={i} />)}</div>
+                </div>
+              )}
               {activeCount ? <button className="btn-black" onClick={clear}>{t('إزالة الفلاتر', 'Remove filters')}</button> : <button className="btn-black" onClick={() => ctx.go({ mode: 'search', query: '' })}>{t('تصفّح كل الكتب', 'Browse all books')}</button>}
             </div>
           ) : (
@@ -1056,6 +1110,7 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
 // Work page
 
 function download(name: string, text: string, type: string) {
+  if (/.(bib|ris)$/.test(name)) reportAction('export');
   const blob = new Blob([text], { type });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1126,6 +1181,7 @@ function ResultNav({ ctx, id }: { ctx: Ctx; id: string }) {
 
 /** Downloads the record as MARC 21 (ISO 2709), MARCXML or MarcEdit text, made from its stored BIBFRAME. */
 async function downloadMarc(work: OpacWorkEntity, kind: 'mrc' | 'xml' | 'mrk', say: (s: string) => void) {
+  reportAction('marc');
   try {
     const [{ bibframeToMarc }, marc] = await Promise.all([import('../services/marc/bibframeToMarc'), import('../services/marc/marcRecord')]);
     const [{ loadPreferredForms }, { agentUris, withPreferredNames }] = await Promise.all([import('../app/utils/preferredNames'), import('../services/nameForms')]);
@@ -1227,6 +1283,7 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
   const shownDetails = showAll ? details : details.slice(0, 6);
 
   const copyLink = async () => {
+    reportAction('copy_link');
     await navigator.clipboard?.writeText(pageUrl(work.id)).catch(() => {});
     ctx.say(t('نُسخ رابط الكتاب', 'Link copied'));
   };
@@ -1242,12 +1299,12 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
         <aside className="work-aside">
           <div className="frame glass"><Cover work={work} big /></div>
           <div className="actions glass">
-            <button className="btn-black" onClick={() => ctx.toggleSave(work.id)} aria-pressed={isSaved}>
+            <button className="btn-black" onClick={() => { if (!isSaved) reportAction('save'); ctx.toggleSave(work.id); }} aria-pressed={isSaved}>
               <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
                 {isSaved ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}{isSaved ? t('في قائمتك', 'In your list') : t('احفظ في قائمتك', 'Save to your list')}
               </span>
             </button>
-            <button className="btn-ghost" onClick={() => setCiteOpen(true)}><Quote size={16} />{t('استشهد', 'Cite')}</button>
+            <button className="btn-ghost" onClick={() => { reportAction('cite'); setCiteOpen(true); }}><Quote size={16} />{t('استشهد', 'Cite')}</button>
             <button className="btn-ghost" onClick={copyLink}><Link2 size={16} />{t('انسخ الرابط', 'Copy link')}</button>
           </div>
         </aside>
@@ -1903,6 +1960,12 @@ function WikidataCard({ sameAs, kind }: { sameAs: (string | undefined)[]; kind: 
 }
 
 /** BIBFRAME relationships (translation of, related to …) in both directions, linked when Moon holds the Work. */
+/** A relation's words in the reader's language ("Translation of" / "ترجمة لـ"), or its inverse for the other book. */
+function relationLabel(r: { predicate: string; predicateLabel: string }, inverse = false): string {
+  const term = r.predicate.startsWith('rel:') ? r.predicate.slice(4) : '';
+  return (term && relationWords(term, opacLang(), inverse)) || (inverse ? t(`يشير إليه (${r.predicateLabel})`, `Points here (${r.predicateLabel})`) : r.predicateLabel);
+}
+
 function RelatedWorks({ work, ctx }: { work: OpacWorkEntity; ctx: Ctx }) {
   const { outgoing, incoming } = useMemo(() => relationsOf(work, wolfMoonOpacService.getAllWorks()), [work, ctx.rev]);
   if (!outgoing.length && !incoming.length) return null;
@@ -1913,7 +1976,7 @@ function RelatedWorks({ work, ctx }: { work: OpacWorkEntity; ctx: Ctx }) {
       <dl className="dl">
         {outgoing.map((r, i) => (
           <React.Fragment key={`o${i}`}>
-            <dt>{r.predicateLabel}</dt>
+            <dt>{relationLabel(r)}</dt>
             <dd dir="auto">{r.workId
               ? <button className="inline-link" onClick={() => ctx.go({ mode: 'work', id: r.workId! })}>{titleOf(r.workId) || r.targetTitle}</button>
               : r.targetUri && /^https?:\/\//.test(r.targetUri) ? <a href={r.targetUri} target="_blank" rel="noreferrer">{r.targetTitle}</a> : r.targetTitle}
@@ -1922,7 +1985,7 @@ function RelatedWorks({ work, ctx }: { work: OpacWorkEntity; ctx: Ctx }) {
         ))}
         {incoming.map(({ work: w, relation }) => (
           <React.Fragment key={`i${w.id}${relation.predicate}`}>
-            <dt>{t(`يشير إليه (${relation.predicateLabel})`, `Points here (${relation.predicateLabel})`)}</dt>
+            <dt>{relationLabel(relation, true)}</dt>
             <dd dir="auto"><button className="inline-link" onClick={() => ctx.go({ mode: 'work', id: w.id })}>{w.title}</button></dd>
           </React.Fragment>
         ))}

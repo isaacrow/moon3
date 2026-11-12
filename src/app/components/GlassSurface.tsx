@@ -822,4 +822,4 @@ const GlassSurface = ({
   );
 };
 
-export default GlassSurface;
+export default GlassSurface as any;
