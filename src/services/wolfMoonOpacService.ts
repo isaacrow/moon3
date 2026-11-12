@@ -67,7 +67,7 @@ export function resolveWorkCover(work: { coverUrl?: string; title?: string; id?:
 /**
  * Normalizes Arabic text for diacritic-insensitive, hamza-insensitive searching
  */
-import { allWordsIn, matchWork, wordsFound } from '../opac/searchIndex';
+import { allWordsIn, entityNamesOf, matchWork, wordsFound } from '../opac/searchIndex';
 import { isSameRecord } from '../opac/sameRecord';
 
 import { isRelationTerm, LC_RELATIONSHIP, readWorkRelations, relationWords } from '../../supabase/functions/server/workRelations.tsx';
@@ -778,9 +778,16 @@ class WolfMoonOpacService {
         }
       }
 
+      // A reference is either the address as a string or, as JSON-LD usually writes it, { "@id": address } with
+      // nothing else; both lead to the full node. (Only the string form was followed before, so a copy listed as
+      // bf:hasItem { "@id": … } was read as an empty copy and the full Item node was then skipped.)
       const deref = (val: any): any => {
         if (typeof val === 'string' && nodeMap.has(val)) {
           return nodeMap.get(val);
+        }
+        if (val && typeof val === 'object' && !Array.isArray(val) && typeof val['@id'] === 'string'
+          && Object.keys(val).length === 1 && nodeMap.has(val['@id'])) {
+          return nodeMap.get(val['@id']);
         }
         return val;
       };
@@ -2056,11 +2063,11 @@ class WolfMoonOpacService {
 
     // 2. Matching Persons
     const matchingPersons = this.getAllPersons().filter(p =>
-      allWordsIn(rawQ, p.name, p.nameArabic, p.nameEnglish, ...(p.otherNames || []), p.bioArabic, p.bioEnglish));
+      allWordsIn(rawQ, p.name, p.nameArabic, p.nameEnglish, ...(p.otherNames || []), ...entityNamesOf([p.uri, ...(p.authorityLinks || [])]), p.bioArabic, p.bioEnglish));
 
     // 3. Matching Subjects
     const matchingSubjects = this.getAllSubjects().filter(s =>
-      allWordsIn(rawQ, s.label, s.labelEnglish) || !!(s.notationDdc && s.notationDdc.includes(rawQ)));
+      allWordsIn(rawQ, s.label, s.labelEnglish, ...entityNamesOf([(s as any).uri])) || !!(s.notationDdc && s.notationDdc.includes(rawQ)));
 
     // 4. Matching Publishers
     const matchingPublishers = this.getAllPublishers().filter(pub => allWordsIn(rawQ, pub.name, pub.city));

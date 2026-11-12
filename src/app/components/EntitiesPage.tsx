@@ -19,6 +19,7 @@ import { taggedForms } from '../../services/nameForms';
 import { toArabicScript, looksAlaLc } from '../../services/alaLcToArabic';
 import { ReconcilePanel } from './ReconcilePanel';
 import { WorkLinksPanel } from './WorkLinksPanel';
+import { EnrichPanel } from './EnrichPanel';
 import { searchLOCAuthorities, searchWikidata, searchVIAF, type AuthorityResult } from '../../services/authoritySearch';
 import { outsideRef, fetchOutsideEntity, formFromDraft, mergeDraftIntoForm, type OutsideSource } from '../../services/entityImport';
 import {
@@ -102,6 +103,7 @@ export function EntitiesPage({ onBack }: { onBack: () => void }) {
   // Linking every entity to LC, VIAF and Wikidata (Phase 12, step 5).
   const [reconcileOpen, setReconcileOpen] = useState(false);
   const [workLinksOpen, setWorkLinksOpen] = useState(false);
+  const [enrichOpen, setEnrichOpen] = useState(false);
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [copyQuery, setCopyQuery] = useState('');
   const [copyResults, setCopyResults] = useState<AuthorityResult[]>([]);
@@ -362,6 +364,13 @@ export function EntitiesPage({ onBack }: { onBack: () => void }) {
             <Link2 className="h-4 w-4" /> {t('اربط بـ LC وVIAF وويكي بيانات', 'Link to LC, VIAF, Wikidata')}
           </button>
           <button
+            onClick={() => setEnrichOpen((o) => !o)}
+            aria-expanded={enrichOpen}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.57] border border-white shadow-[0_4px_30px_rgba(0,0,0,0.1)] backdrop-blur-[20px] text-sm font-bold text-slate-800 hover:bg-white"
+          >
+            <Languages className="h-4 w-4" /> {t('أكمل الأسماء والتواريخ', 'Fill names and dates')}
+          </button>
+          <button
             onClick={() => setGroupsOpen((o) => !o)}
             aria-expanded={groupsOpen}
             className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.57] border border-white shadow-[0_4px_30px_rgba(0,0,0,0.1)] backdrop-blur-[20px] text-sm font-bold text-slate-800 hover:bg-white"
@@ -388,6 +397,10 @@ export function EntitiesPage({ onBack }: { onBack: () => void }) {
         {groupsOpen && <WorkGroupsReview ar={isAr()} onClose={() => setGroupsOpen(false)} />}
 
         {workLinksOpen && <WorkLinksPanel ar={isAr()} onClose={() => setWorkLinksOpen(false)} />}
+
+        {enrichOpen && (
+          <EnrichPanel ar={isAr()} onClose={() => setEnrichOpen(false)} onSaved={() => setQuery((q) => q + '')} />
+        )}
 
         {reconcileOpen && (
           <ReconcilePanel ar={isAr()} onClose={() => setReconcileOpen(false)} onLinked={() => setQuery((q) => q + '')} />

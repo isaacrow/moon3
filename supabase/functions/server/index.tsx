@@ -96,6 +96,8 @@ import { relatedFrom, resolveRelated } from "./entityRelations.tsx";
 import { isBot, visitFrom, visitDay, visitorKey } from "./opacVisits.tsx";
 import { bookFactsOf, bookPageHtml, booksText } from "./seoPages.tsx";
 import { isRelationTerm, readWorkRelations, withoutRelation, withRelation, workNodeOf } from "./workRelations.tsx";
+import { byRecord, parseCopiesTable, planImport, withCopies } from "./copiesImport.tsx";
+import { applyNote, NOTE_PREFIX, parseNoteAction, queueOf } from "./reconcileQueue.tsx";
 import { baghdadHour, countryFrom, MAX_SEARCHES_PER_VISITOR_DAY, parseEvent } from "./opacInsights.tsx";
 import { buildFolioInstance, folioClient, loadReference, sendInstance, instanceHash, type FolioConfig, type FolioRef, type FolioLink } from "./folio.tsx";
 import { marcProblems, sendMarc } from "./folioMarc.tsx";
@@ -1558,6 +1560,24 @@ app.get("/make-server-49c0e13c/resource/dump.jsonld", (c) => resourceDump(c, 'js
 app.get("/make-server-49c0e13c/resource/dump.nt", (c) => resourceDump(c, 'nt'));
 
 app.get("/make-server-49c0e13c/resource", resourceIndex);
+// Every entity's names, for the catalogue's search (https://mooon.site/resource/names.json): a book is found by any
+// name of its people, subjects and places, in either script ("Ibn Khaldun" finds the book whose author's entity
+// also has "ابن خلدون"). Public, like the entities themselves; only labels and variants, nothing about who added them.
+app.get("/make-server-49c0e13c/resource/names.json", async (c) => {
+  try {
+    const entities = await recordStore.listAllAuthorities();
+    const forms: Record<string, string[]> = {};
+    for (const e of entities as any[]) {
+      if (e.mergedInto || !e.label) continue;
+      const names = [...new Set([e.label, ...(Array.isArray(e.variants) ? e.variants : [])].filter((n: unknown) => typeof n === 'string' && n.trim()))].slice(0, 30);
+      if (names.length > 1) forms[`${linkedData.BASE_URI}/${e.kind}/${e.id}`] = names;
+    }
+    return c.json({ count: Object.keys(forms).length, forms }, 200, { 'Cache-Control': 'public, max-age=1800', 'Access-Control-Allow-Origin': '*' });
+  } catch (error) {
+    console.error('Name forms error:', error);
+    return c.json({ error: 'Could not list the name forms' }, 500);
+  }
+});
 // Every published book, one line each, for AI assistants and tools: https://mooon.site/resource/books.txt
 app.get("/make-server-49c0e13c/resource/books.txt", async (c) => {
   try {
@@ -1774,6 +1794,49 @@ async function linkRecordsBatch(offset: number, limit: number, by: string) {
   return { total: records.length, processed: batch.length, changed, linked, mirrored, failed, next };
 }
 
+// Super Admin: the library's shelf list (CSV or TSV, one row per copy) becomes copies on the right records
+// (copiesImport.tsx). { text, dryRun: true } only says what would happen; without dryRun, each record that gets
+// copies is saved as a new version noted "copies import" (a published record stays published), so it can be
+// undone from its history like any edit. A copy already on a record is never added twice.
+app.post("/make-server-49c0e13c/records/copies-import", async (c) => {
+  try {
+    const admin = await isAdminSession(c);
+    if (!admin) return c.json({ error: 'Super Admin session required' }, 403);
+    const body = await c.req.json().catch(() => ({}));
+    if (typeof body?.text !== 'string' || body.text.length > 2_000_000) return c.json({ error: 'Send { text: <the sheet as CSV or TSV> }' }, 400);
+    const { rows, problems } = parseCopiesTable(body.text);
+    if (!rows.length) return c.json({ error: problems[0] || 'No rows', problems }, 400);
+    const records = await recordStore.listRecords();
+    const plan = planImport(records as any[], rows);
+    const count = (st: string) => plan.filter((p) => p.status === st).length;
+    const summary = { rows: rows.length, add: count('add'), alreadyThere: count('already there'), noSuchBook: count('no such book'),
+      severalBooks: count('several books'), repeated: count('repeated in the sheet') };
+    const report = plan.map((p) => ({ line: p.line, status: p.status, recordId: p.recordId, title: p.title, isbn: p.row.isbn, shelfMark: p.row.shelfMark, library: p.row.library }));
+    if (body.dryRun) return c.json({ dryRun: true, summary, problems, plan: report });
+    const byId = new Map((records as any[]).map((r) => [r.id, r]));
+    const salt = Date.now().toString(36);
+    let saved = 0, added = 0;
+    const failed: string[] = [];
+    for (const [recordId, groups] of byRecord(plan)) {
+      const rec = byId.get(recordId);
+      try {
+        let document = rec.document;
+        for (const g of groups) { document = withCopies(document, g.instance, g.rows, salt); added += g.rows.length; }
+        await recordStore.saveRecord({ ...rec, document, saved: new Date().toISOString() }, admin.username, 'copies import',
+          Number.isInteger(rec.version) ? rec.version : undefined);
+        saved++;
+      } catch (error) {
+        console.error(`Copies import failed for ${recordId}:`, error);
+        failed.push(recordId);
+      }
+    }
+    return c.json({ dryRun: false, summary, problems, plan: report, savedRecords: saved, addedCopies: added, failed });
+  } catch (error) {
+    console.error('Copies import error:', error);
+    return c.json({ error: 'The copies could not be imported' }, 500);
+  }
+});
+
 // Super Admin: links the records saved before every save linked them (the button in the account menu and on
 // the linked-data scorecard).
 app.post("/make-server-49c0e13c/authorities/link-records", async (c) => {
@@ -1891,6 +1954,22 @@ app.post("/make-server-49c0e13c/authorities/report", async (c) => {
 });
 
 // 🧩 One entity (Phase 10): the entry, its address, and how many records use it (public, like search).
+// The "Link entities" panel's work list: every entity, unlinked first, with what cataloguers decided before
+// (rejected candidates, "no match"). See reconcileQueue.tsx. Signed-in cataloguers only.
+app.get("/make-server-49c0e13c/authorities/reconcile-queue", async (c) => {
+  if (!(await getSession(c))) return c.json({ error: 'Sign in to link entities' }, 401);
+  try {
+    const entities = await recordStore.listAllAuthorities();
+    const stored = await kv.mget(entities.map((e: any) => NOTE_PREFIX + e.id)).catch(() => []);
+    const notes = new Map<string, unknown>(entities.map((e: any, i: number) => [e.id, (stored as any[])[i]]));
+    const rows = queueOf(entities as any[], notes).map(withUri);
+    return c.json({ total: rows.length, unlinked: rows.filter((r: any) => !r.linked).length, rows });
+  } catch (error) {
+    console.error('Reconcile queue error:', error);
+    return c.json({ error: 'Could not list the entities to link' }, 500);
+  }
+});
+
 app.get("/make-server-49c0e13c/authorities/:id", async (c) => {
   try {
     const entry = await recordStore.getAuthority(c.req.param('id'));
@@ -2101,6 +2180,24 @@ app.post("/make-server-49c0e13c/authorities/:id/same-as", async (c) => {
   } catch (error) {
     console.error('Authority same-as error:', error);
     return c.json({ error: 'Failed to link the authority entry' }, 500);
+  }
+});
+
+// A cataloguer's decision on one entity: { reject: <candidate address> } | { noMatch: true } | { checked: true } | { clear: true }.
+app.post("/make-server-49c0e13c/authorities/:id/reconcile-note", async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ error: 'Sign in to link entities' }, 401);
+  try {
+    const id = c.req.param('id');
+    if (!/^[A-Za-z0-9._:-]{1,120}$/.test(id)) return c.json({ error: 'Not an entity id' }, 400);
+    const action = parseNoteAction(await c.req.json().catch(() => null));
+    if (!action) return c.json({ error: 'Send { reject: <address> }, { noMatch: true }, { checked: true } or { clear: true }' }, 400);
+    const note = applyNote(await kv.get(NOTE_PREFIX + id).catch(() => null), action, session.username);
+    await kv.set(NOTE_PREFIX + id, note);
+    return c.json({ note });
+  } catch (error) {
+    console.error('Reconcile note error:', error);
+    return c.json({ error: 'Could not save the decision' }, 500);
   }
 });
 
