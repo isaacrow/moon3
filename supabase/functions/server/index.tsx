@@ -95,6 +95,7 @@ import { linkAuthorities, mirrorOutsideLinked, headingsOf, moonAuthorityId, auth
 import { relatedFrom, resolveRelated } from "./entityRelations.tsx";
 import { isBot, visitFrom, visitDay, visitorKey } from "./opacVisits.tsx";
 import { bookFactsOf, bookPageHtml, booksText } from "./seoPages.tsx";
+import { byRecord, parseCopiesTable, planImport, withCopies } from "./copiesImport.tsx";
 import { baghdadHour, countryFrom, MAX_SEARCHES_PER_VISITOR_DAY, parseEvent } from "./opacInsights.tsx";
 import { buildFolioInstance, folioClient, loadReference, sendInstance, instanceHash, type FolioConfig, type FolioRef, type FolioLink } from "./folio.tsx";
 import { marcProblems, sendMarc } from "./folioMarc.tsx";
@@ -1772,6 +1773,49 @@ async function linkRecordsBatch(offset: number, limit: number, by: string) {
   const next = offset + batch.length < records.length ? offset + batch.length : null;
   return { total: records.length, processed: batch.length, changed, linked, mirrored, failed, next };
 }
+
+// Super Admin: the library's shelf list (CSV or TSV, one row per copy) becomes copies on the right records
+// (copiesImport.tsx). { text, dryRun: true } only says what would happen; without dryRun, each record that gets
+// copies is saved as a new version noted "copies import" (a published record stays published), so it can be
+// undone from its history like any edit. A copy already on a record is never added twice.
+app.post("/make-server-49c0e13c/records/copies-import", async (c) => {
+  try {
+    const admin = await isAdminSession(c);
+    if (!admin) return c.json({ error: 'Super Admin session required' }, 403);
+    const body = await c.req.json().catch(() => ({}));
+    if (typeof body?.text !== 'string' || body.text.length > 2_000_000) return c.json({ error: 'Send { text: <the sheet as CSV or TSV> }' }, 400);
+    const { rows, problems } = parseCopiesTable(body.text);
+    if (!rows.length) return c.json({ error: problems[0] || 'No rows', problems }, 400);
+    const records = await recordStore.listRecords();
+    const plan = planImport(records as any[], rows);
+    const count = (st: string) => plan.filter((p) => p.status === st).length;
+    const summary = { rows: rows.length, add: count('add'), alreadyThere: count('already there'), noSuchBook: count('no such book'),
+      severalBooks: count('several books'), repeated: count('repeated in the sheet') };
+    const report = plan.map((p) => ({ line: p.line, status: p.status, recordId: p.recordId, title: p.title, isbn: p.row.isbn, shelfMark: p.row.shelfMark, library: p.row.library }));
+    if (body.dryRun) return c.json({ dryRun: true, summary, problems, plan: report });
+    const byId = new Map((records as any[]).map((r) => [r.id, r]));
+    const salt = Date.now().toString(36);
+    let saved = 0, added = 0;
+    const failed: string[] = [];
+    for (const [recordId, groups] of byRecord(plan)) {
+      const rec = byId.get(recordId);
+      try {
+        let document = rec.document;
+        for (const g of groups) { document = withCopies(document, g.instance, g.rows, salt); added += g.rows.length; }
+        await recordStore.saveRecord({ ...rec, document, saved: new Date().toISOString() }, admin.username, 'copies import',
+          Number.isInteger(rec.version) ? rec.version : undefined);
+        saved++;
+      } catch (error) {
+        console.error(`Copies import failed for ${recordId}:`, error);
+        failed.push(recordId);
+      }
+    }
+    return c.json({ dryRun: false, summary, problems, plan: report, savedRecords: saved, addedCopies: added, failed });
+  } catch (error) {
+    console.error('Copies import error:', error);
+    return c.json({ error: 'The copies could not be imported' }, 500);
+  }
+});
 
 // Super Admin: links the records saved before every save linked them (the button in the account menu and on
 // the linked-data scorecard).
