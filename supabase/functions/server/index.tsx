@@ -1558,6 +1558,24 @@ app.get("/make-server-49c0e13c/resource/dump.jsonld", (c) => resourceDump(c, 'js
 app.get("/make-server-49c0e13c/resource/dump.nt", (c) => resourceDump(c, 'nt'));
 
 app.get("/make-server-49c0e13c/resource", resourceIndex);
+// Every entity's names, for the catalogue's search (https://mooon.site/resource/names.json): a book is found by any
+// name of its people, subjects and places, in either script ("Ibn Khaldun" finds the book whose author's entity
+// also has "ابن خلدون"). Public, like the entities themselves; only labels and variants, nothing about who added them.
+app.get("/make-server-49c0e13c/resource/names.json", async (c) => {
+  try {
+    const entities = await recordStore.listAllAuthorities();
+    const forms: Record<string, string[]> = {};
+    for (const e of entities as any[]) {
+      if (e.mergedInto || !e.label) continue;
+      const names = [...new Set([e.label, ...(Array.isArray(e.variants) ? e.variants : [])].filter((n: unknown) => typeof n === 'string' && n.trim()))].slice(0, 30);
+      if (names.length > 1) forms[`${linkedData.BASE_URI}/${e.kind}/${e.id}`] = names;
+    }
+    return c.json({ count: Object.keys(forms).length, forms }, 200, { 'Cache-Control': 'public, max-age=1800', 'Access-Control-Allow-Origin': '*' });
+  } catch (error) {
+    console.error('Name forms error:', error);
+    return c.json({ error: 'Could not list the name forms' }, 500);
+  }
+});
 // Every published book, one line each, for AI assistants and tools: https://mooon.site/resource/books.txt
 app.get("/make-server-49c0e13c/resource/books.txt", async (c) => {
   try {

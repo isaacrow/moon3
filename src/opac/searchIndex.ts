@@ -31,13 +31,13 @@ export function fold(text: unknown): string {
     .trim();
 }
 
-interface PersonLike { name?: string; nameArabic?: string; nameEnglish?: string; otherNames?: string[] }
+interface PersonLike { name?: string; nameArabic?: string; nameEnglish?: string; otherNames?: string[]; uri?: string; authorityLinks?: string[] }
 export interface SearchableWork {
   title?: string; subtitle?: string; summaryArabic?: string; summaryEnglish?: string; series?: string;
   tableOfContents?: string; notes?: string[]; incipit?: string; explicit?: string; genreForm?: string[];
   classificationDdc?: string; classificationLcc?: string; languageLabel?: string;
   primaryCreator?: PersonLike; contributors?: PersonLike[];
-  subjects?: Array<{ label?: string }>;
+  subjects?: Array<{ label?: string; uri?: string }>;
   publisher?: { name?: string; city?: string };
   expressionOfHub?: { label?: string };
   containedWorks?: Array<{ title?: string; creator?: string }>;
@@ -46,7 +46,25 @@ export interface SearchableWork {
 
 interface Field { weight: number; ar: string; text: string }
 
-const names = (p?: PersonLike) => [p?.name, p?.nameArabic, p?.nameEnglish, ...(p?.otherNames || [])].filter(Boolean).join(' ');
+// Every name of every Moon entity (https://mooon.site/resource/names.json), by its address: a book is found by any
+// name of its people and subjects, in either script, once those entities carry both ("Ibn Khaldun" finds the book
+// whose author's entity also has "ابن خلدون"). Empty until loaded; the search works without it, as before.
+let entityForms = new Map<string, string[]>();
+let cache = new WeakMap<object, Field[]>();
+
+/** Gives the search every entity's names (from names.json); the books' search fields are made again with them. */
+export function setEntityNames(forms: Record<string, string[]> | Map<string, string[]>): void {
+  entityForms = forms instanceof Map ? forms : new Map(Object.entries(forms || {}));
+  cache = new WeakMap();
+}
+
+/** The names of the entities at these addresses (each address once). */
+export function entityNamesOf(uris: Array<string | undefined>): string[] {
+  return [...new Set(uris.filter((u): u is string => !!u))].flatMap(u => entityForms.get(u) || []);
+}
+
+const names = (p?: PersonLike) =>
+  [p?.name, p?.nameArabic, p?.nameEnglish, ...(p?.otherNames || []), ...entityNamesOf([p?.uri, ...(p?.authorityLinks || [])])].filter(Boolean).join(' ');
 
 /** Every searchable piece of a work, with how much a match in it is worth and what to call it in the "why" line. */
 function fieldsOf(w: SearchableWork): Field[] {
@@ -59,7 +77,7 @@ function fieldsOf(w: SearchableWork): Field[] {
   add(50, 'العنوان الفرعي', w.subtitle);
   add(70, 'اسم المؤلف', names(w.primaryCreator));
   add(55, 'المساهمين في العمل', ...(w.contributors || []).map(names));
-  add(60, 'رأس الموضوع المقنن', ...(w.subjects || []).map(s => s.label));
+  add(60, 'رأس الموضوع المقنن', ...(w.subjects || []).map(s => s.label), ...entityNamesOf((w.subjects || []).map(s => s.uri)));
   add(45, 'السلسلة', w.series);
   add(45, 'العمل الأصلي', w.expressionOfHub?.label);
   add(65, 'ما في هذا المجلد', ...(w.containedWorks || []).map(c => `${c.title || ''} ${c.creator || ''}`));
@@ -74,7 +92,6 @@ function fieldsOf(w: SearchableWork): Field[] {
   return f;
 }
 
-const cache = new WeakMap<object, Field[]>();
 const fieldsFor = (w: SearchableWork) => {
   let f = cache.get(w);
   if (!f) { f = fieldsOf(w); cache.set(w, f); }
