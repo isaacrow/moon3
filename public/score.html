@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moon scorecard · بطاقة قياس مون</title>
+<meta name="description" content="How complete Moon's published catalogue data is, measured live against its targets, and its BIBFRAME 3.0.1 audit.">
+<style>
+  :root { --bg: #f8fafc; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --bar: #e2e8f0; --ok: #047857; --mid: #b45309; --low: #b91c1c; --card: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0b1020; --ink: #e5e7eb; --muted: #94a3b8; --line: #1f2937; --bar: #1f2937; --ok: #34d399; --mid: #fbbf24; --low: #f87171; --card: #111827; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, "Segoe UI", Tahoma, sans-serif; }
+  main { max-width: 52rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  h1 { font-size: 1.7rem; margin: 0 0 .25rem; } h2 { font-size: 1.15rem; margin: 2.2rem 0 .6rem; }
+  .lede, .muted { color: var(--muted); } .lede { margin: 0 0 1.2rem; }
+  .counts { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1rem 0; }
+  .counts span { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: .25rem .8rem; font-size: .9rem; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  th, td { text-align: start; padding: .65rem .8rem; border-bottom: 1px solid var(--line); vertical-align: middle; font-size: .95rem; }
+  th { font-size: .8rem; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .bar { height: 8px; border-radius: 999px; background: var(--bar); min-width: 80px; position: relative; }
+  .bar i { position: absolute; inset-block: 0; inset-inline-start: 0; border-radius: 999px; }
+  .ar { display: block; color: var(--muted); font-size: .85rem; }
+  .ok { color: var(--ok); } .mid { color: var(--mid); } .low { color: var(--low); }
+  a { color: inherit; }
+  @media (max-width: 560px) { th.hide, td.hide { display: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Moon scorecard <span class="muted">· بطاقة قياس مون</span></h1>
+  <p class="lede">How complete the published catalogue is, measured live from the records each time this page opens, against the targets of Moon's plan; and the published data checked against BIBFRAME 3.0.1. <span class="ar" dir="rtl">مدى اكتمال بيانات الفهرس المنشورة، تُقاس مباشرة من التسجيلات كلما فُتحت الصفحة، مقابل أهداف خطة مون؛ وفحص البيانات المنشورة مقابل BIBFRAME 3.0.1.</span></p>
+  <div class="counts" id="counts"><span>Loading… · جارٍ التحميل…</span></div>
+
+  <h2>The data, against the plan's targets <span class="ar" dir="rtl">البيانات مقابل أهداف الخطة</span></h2>
+  <table id="plan"><thead><tr><th>Measure</th><th class="num">Now</th><th class="hide">Progress to target</th><th class="num">Target</th></tr></thead><tbody></tbody></table>
+
+  <h2>BIBFRAME 3.0.1 and linked-data checks <span class="ar" dir="rtl">فحوص BIBFRAME 3.0.1 والبيانات المترابطة</span></h2>
+  <table id="audit"><thead><tr><th>Check</th><th class="num">Result</th><th class="hide"></th><th class="num">Should be</th></tr></thead><tbody></tbody></table>
+
+  <p class="muted" id="when"></p>
+  <p class="muted">Same numbers as the data behind them: <a href="/resource/score.json">score.json</a> · <a href="/resource/dump.jsonld">the whole catalogue (JSON-LD)</a> · <a href="/resource/sparql">SPARQL</a> · <a href="/opac.html">the catalogue</a></p>
+</main>
+<script>
+(function () {
+  var pct = function (v, t) { return t ? Math.round(100 * v / t) : 0; };
+  var cls = function (p) { return p >= 0.999 ? 'ok' : p >= 0.5 ? 'mid' : 'low'; };
+  var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); };
+  var bar = function (p, c) { return '<div class="bar"><i style="width:' + Math.max(2, Math.round(100 * Math.min(1, p))) + '%;background:var(--' + c + ')"></i></div>'; };
+  fetch('/resource/score.json').then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
+    var c = d.counts || {};
+    document.getElementById('counts').innerHTML = [
+      [c.works, 'works', 'عملاً'], [c.instances, 'editions', 'طبعة'], [c.items, 'copies', 'نسخة'], [c.entities, 'entities', 'كياناً'], [c.triples, 'triples', 'ثلاثية']
+    ].filter(function (x) { return x[0] !== undefined; }).map(function (x) { return '<span>' + Number(x[0]).toLocaleString('en') + ' ' + x[1] + ' · ' + x[2] + '</span>'; }).join('');
+    document.querySelector('#plan tbody').innerHTML = (d.plan || []).map(function (m) {
+      var share = m.total ? m.value / m.total : 0;
+      var prog = m.goal === null ? (m.value > 0 ? 1 : 0) : Math.min(1, share / m.goal);
+      var k = cls(prog);
+      var now = m.goal === null ? m.value.toLocaleString('en') : m.value.toLocaleString('en') + ' / ' + m.total.toLocaleString('en') + ' (' + pct(m.value, m.total) + '%)';
+      var target = m.goal === null ? 'more' : (m.goal >= 1 ? 'all' : Math.round(m.goal * 100) + '%');
+      return '<tr><td>' + esc(m.en) + '<span class="ar" dir="rtl">' + esc(m.ar) + '</span></td><td class="num ' + k + '">' + now + '</td><td class="hide">' + bar(prog, k) + '</td><td class="num">' + target + '</td></tr>';
+    }).join('');
+    document.querySelector('#audit tbody').innerHTML = ((d.audit && d.audit.measures) || []).map(function (m) {
+      var good = m.target === 'none' ? (m.value === 0 ? 1 : 0) : (m.total ? m.value / m.total : 1);
+      var k = cls(good);
+      var now = m.target === 'none' ? m.value.toLocaleString('en') : m.value.toLocaleString('en') + ' / ' + m.total.toLocaleString('en') + ' (' + pct(m.value, m.total) + '%)';
+      return '<tr><td>' + esc(m.en) + '<span class="ar" dir="rtl">' + esc(m.ar) + '</span></td><td class="num ' + k + '">' + now + '</td><td class="hide">' + bar(good, k) + '</td><td class="num">' + (m.target === 'none' ? '0' : 'all') + '</td></tr>';
+    }).join('');
+    document.getElementById('when').textContent = 'Measured ' + new Date(d.at).toLocaleString('en-GB', { timeZone: 'Asia/Baghdad' }) + ' (Baghdad). Numbers are cached for up to an hour.';
+  }).catch(function () {
+    document.getElementById('counts').innerHTML = '<span>The numbers could not be loaded. · تعذّر تحميل الأرقام.</span>';
+  });
+})();
+</script>
+</body>
+</html>

@@ -8,6 +8,7 @@
 - [Every published book, one line each](https://mooon.site/resource/books.txt): plain text, title, author, year and the address of its page. Updated when a book is added or changed.
 - [Every published record as a list](https://mooon.site/resource/): each record with its permanent address.
 - [Sitemap](https://mooon.site/sitemap.xml)
+- [Scorecard](https://mooon.site/score.html): how complete the published data is, measured live, and its BIBFRAME 3.0.1 audit ([as JSON](https://mooon.site/resource/score.json)).
 
 ## Use the data
 
