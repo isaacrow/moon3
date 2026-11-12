@@ -103,7 +103,7 @@ export function OpacInsightsCard({ isAr }: { isAr: boolean }) {
   }, [isAr]);
   const deviceLabel = (k: string) => ({ phone: t('هاتف', 'Phone'), tablet: t('لوحي', 'Tablet'), desktop: t('حاسوب', 'Computer') } as Record<string, string>)[k] || k;
   const scriptLabel = (k: string) => ({ arabic: t('عربي', 'Arabic'), latin: t('لاتيني', 'Latin letters'), mixed: t('مختلط', 'Mixed'), digits: t('أرقام', 'Numbers'), other: t('غير ذلك', 'Other') } as Record<string, string>)[k] || k;
-  const entryLabel = (k: string) => ({ home: t('الرئيسية', 'Home'), search: t('بحث', 'A search'), work: t('كتاب', 'A book'), person: t('شخص', 'A person'), subject: t('موضوع', 'A subject'), hub: t('عمل', 'A work group'), place: t('مكان', 'A place'), authors: t('المؤلفون', 'Authors'), subjects: t('المواضيع', 'Subjects') } as Record<string, string>)[k] || k;
+  const entryLabel = (k: string) => ({ home: t('الرئيسية', 'Home'), search: t('بحث', 'A search'), work: t('كتاب', 'A book'), person: t('شخص', 'A person'), subject: t('موضوع', 'A subject'), hub: t('عمل', 'A work group'), place: t('مكان', 'A place'), publisher: t('ناشر', 'A publisher'), series: t('سلسلة', 'A series'), genre: t('نوع', 'A genre'), authors: t('المؤلفون', 'Authors'), subjects: t('المواضيع', 'Subjects') } as Record<string, string>)[k] || k;
   const sourceLabel = (k: string) => (k === 'direct' ? t('مباشر (رابط أو كتابة العنوان)', 'Direct (a link or typed address)') : k);
   const actionLabel = (k: string) => ({
     save: t('حفظ في القائمة', 'Saved to a list'), cite: t('استشهاد', 'Opened Cite'), copy_link: t('نسخ رابط', 'Copied a link'),

@@ -34,6 +34,7 @@ import { IiifViewer } from './IiifViewer';
 import { readDate, bothCalendars } from '../services/hijri';
 import { summary as eventSummary, EVENT_KINDS, ROLES, type TransmissionEvent } from '../services/transmission';
 import { findPersonQid, splitHeading, type PersonClues } from './personPhoto';
+import { groupsOf, seriesParts, worksOfGroup } from './groupPages';
 import { placeName, placesOf, worksAtPlace, wikidataQid, wikidataApiUrl, parseInfoCard, relationsOf, clusterWorks, type InfoCard as InfoCardData } from './linkedEntities';
 import type { WorkDecision } from '../services/workClustering';
 import { whatItIs, formatChips, editionLines, exactMatch, alphaIndex, letterOf, filingKey } from './plainWords';
@@ -54,6 +55,9 @@ type View =
   | { mode: 'subject'; key: string }
   | { mode: 'hub'; key: string }
   | { mode: 'place'; key: string }
+  | { mode: 'publisher'; key: string }
+  | { mode: 'series'; key: string }
+  | { mode: 'genre'; key: string }
   | { mode: 'authors' }
   | { mode: 'subjects' };
 
@@ -98,6 +102,9 @@ function viewFromUrl(): View {
   if (p.get('subject')) return { mode: 'subject', key: p.get('subject')! };
   if (p.get('hub')) return { mode: 'hub', key: p.get('hub')! };
   if (p.get('place')) return { mode: 'place', key: p.get('place')! };
+  if (p.get('publisher')) return { mode: 'publisher', key: p.get('publisher')! };
+  if (p.get('series')) return { mode: 'series', key: p.get('series')! };
+  if (p.get('genre')) return { mode: 'genre', key: p.get('genre')! };
   if (p.get('dir') === 'persons') return { mode: 'authors' };
   if (p.get('dir') === 'subjects') return { mode: 'subjects' };
   if (p.has('q')) return { mode: 'search', query: p.get('q') || '' };
@@ -106,13 +113,14 @@ function viewFromUrl(): View {
 
 function urlFor(v: View): string {
   const u = new URL(window.location.href);
-  ['work', 'person', 'subject', 'hub', 'place', 'dir', 'q', 'view', 'sort', 'page'].forEach(k => u.searchParams.delete(k));
+  ['work', 'person', 'subject', 'hub', 'place', 'publisher', 'series', 'genre', 'dir', 'q', 'view', 'sort', 'page'].forEach(k => u.searchParams.delete(k));
   [...u.searchParams.keys()].filter(k => k.startsWith('f_')).forEach(k => u.searchParams.delete(k));
   if (v.mode === 'work') u.searchParams.set('work', v.id);
   if (v.mode === 'person') u.searchParams.set('person', v.key);
   if (v.mode === 'subject') u.searchParams.set('subject', v.key);
   if (v.mode === 'hub') u.searchParams.set('hub', v.key);
   if (v.mode === 'place') u.searchParams.set('place', v.key);
+  if (v.mode === 'publisher' || v.mode === 'series' || v.mode === 'genre') u.searchParams.set(v.mode, v.key);
   if (v.mode === 'authors') u.searchParams.set('dir', 'persons');
   if (v.mode === 'subjects') u.searchParams.set('dir', 'subjects');
   if (v.mode === 'search') {
@@ -331,7 +339,8 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
     const name = t('فهرس مون', 'Moon Catalogue');
     const titles: Record<View['mode'], string> = {
       home: name, search: `${t('نتائج البحث', 'Search results')} — ${name}`, work: name, person: name,
-      subject: name, hub: name, place: view.mode === 'place' ? `${view.key} — ${name}` : name, authors: `${t('المؤلفون', 'Authors')} — ${name}`, subjects: `${t('الموضوعات', 'Subjects')} — ${name}`,
+      subject: name, hub: name, place: view.mode === 'place' ? `${view.key} — ${name}` : name,
+      publisher: 'key' in view ? `${view.key} — ${name}` : name, series: 'key' in view ? `${view.key} — ${name}` : name, genre: 'key' in view ? `${view.key} — ${name}` : name, authors: `${t('المؤلفون', 'Authors')} — ${name}`, subjects: `${t('الموضوعات', 'Subjects')} — ${name}`,
     };
     // A record page sets its own title (the book's), with its schema.org data.
     if (view.mode !== 'work') document.title = titles[view.mode];
@@ -386,6 +395,7 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
             {view.mode === 'subject' && <SubjectPage key={view.key} ctx={ctx} k={view.key} />}
             {view.mode === 'hub' && <HubPage key={view.key} ctx={ctx} k={view.key} />}
             {view.mode === 'place' && <PlacePage key={view.key} ctx={ctx} k={view.key} />}
+            {(view.mode === 'publisher' || view.mode === 'series' || view.mode === 'genre') && <GroupPage key={`${view.mode}:${view.key}`} ctx={ctx} kind={view.mode} k={view.key} />}
             {view.mode === 'authors' && <AuthorsPage ctx={ctx} />}
             {view.mode === 'subjects' && <SubjectsPage ctx={ctx} />}
           </div>
@@ -1269,10 +1279,18 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
       ))}</span>
     ) : null],
     [t('العنوان', 'Title'), [work.title, work.subtitle].filter(Boolean).join(' : ')],
-    [t('النشر', 'Publication'), [[inst?.publicationPlace, publisher].filter(Boolean).join(' : '), inst?.publicationYear || work.originDate].filter(Boolean).join(t('، ', ', '))],
+    [t('النشر', 'Publication'), (inst?.publicationPlace || publisher || inst?.publicationYear || work.originDate) ? (
+      <span>
+        {inst?.publicationPlace && placeName(inst.publicationPlace) && <button className="inline-link" dir="auto" onClick={() => ctx.go({ mode: 'place', key: placeName(inst.publicationPlace) })}>{inst.publicationPlace}</button>}
+        {inst?.publicationPlace && !placeName(inst.publicationPlace) && <span dir="auto">{inst.publicationPlace}</span>}
+        {inst?.publicationPlace && publisher && ' : '}
+        {publisher && <button className="inline-link" dir="auto" onClick={() => ctx.go({ mode: 'publisher', key: publisher })}>{publisher}</button>}
+        {(inst?.publicationYear || work.originDate) && <>{(inst?.publicationPlace || publisher) ? t('، ', ', ') : ''}{inst?.publicationYear || work.originDate}</>}
+      </span>
+    ) : null],
     [t('التاريخ بالتقويمين', 'In both calendars'), bothCalendars(readDate(String(inst?.publicationYear || work.originDate || '')), opacLang() === 'ar')],
     [t('الوصف المادي', 'Physical description'), [inst?.extent || work.extent, inst?.dimensions || work.dimensions].filter(Boolean).join(t(' ؛ ', ' ; '))],
-    [t('السلسلة', 'Series'), work.series],
+    [t('السلسلة', 'Series'), work.series ? <button className="inline-link" dir="auto" onClick={() => ctx.go({ mode: 'series', key: seriesParts(work.series).name })}>{work.series}</button> : null],
     [t('المعرّفات', 'Identifiers'), [...new Set(work.instances.map(i => i.isbn).filter(Boolean))].map(x => `ISBN ${x}`).join(t('، ', ', '))],
     [t('التصنيف', 'Classification'), [work.classificationLcc && `${work.classificationLcc} (LCC)`, work.classificationDdc && `${work.classificationDdc} (${t('ديوي', 'Dewey')})`].filter(Boolean).join(t('، ', ', '))],
     [t('رقم الاستدعاء', 'Call number'), inst?.callNumber],
@@ -1354,7 +1372,7 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
             {(work.genreForm?.length || work.subjects.length) ? (
               <div className="terms">
                 {work.genreForm && work.genreForm.length > 0 && (
-                  <div><span className="lbl">{t('الفئة', 'Category')}</span>{work.genreForm.map(g => <button key={g} className="chip" onClick={() => searchFor(g)}>{g}</button>)}</div>
+                  <div><span className="lbl">{t('الفئة', 'Category')}</span>{work.genreForm.map(g => <button key={g} className="chip" onClick={() => ctx.go({ mode: 'genre', key: g })}>{g}</button>)}</div>
                 )}
                 {work.subjects.filter(s => isReadableLabel(s.label)).length > 0 && (
                   <div><span className="lbl">{t('الموضوع', 'Subject')}</span>{work.subjects.filter(s => isReadableLabel(s.label)).map(s => <HoverCard key={s.id} kind="subject" k={s.id}><button className="chip" onClick={() => ctx.go({ mode: 'subject', key: s.id })}>{s.label}</button></HoverCard>)}</div>
@@ -1909,6 +1927,46 @@ function PlacePage({ ctx, k }: { ctx: Ctx; k: string }) {
             <section className="panel glass rise">
               <h2>{t('أماكن أخرى', 'Other places')}</h2>
               <div className="subjects">{others.map(p => <button key={p.name} className="chip" onClick={() => ctx.go({ mode: 'place', key: p.name })}>{p.name} <span className="count-n">{p.count}</span></button>)}</div>
+            </section>
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A publisher's, a series' or a genre's page: its books (a series in number order) and the others of its kind.
+ * Names are matched folded (see groupPages.ts), so one publisher written two ways is one page.
+ */
+function GroupPage({ ctx, kind, k }: { ctx: Ctx; kind: 'publisher' | 'series' | 'genre'; k: string }) {
+  const all = useMemo(() => wolfMoonOpacService.getAllWorks(), [ctx.rev]);
+  const works = useMemo(() => worksOfGroup(kind, all, k), [all, kind, k]);
+  const others = useMemo(() => groupsOf(kind, all).filter(g => g.name !== k).slice(0, 16), [all, kind, k]);
+  const words = {
+    publisher: { kicker: t('ناشر', 'Publisher'), what: t('الناشر', 'publisher'), list: t('من منشوراته', 'Published by them'), others: t('ناشرون آخرون', 'Other publishers') },
+    series: { kicker: t('سلسلة', 'Series'), what: t('السلسلة', 'series'), list: t('كتب السلسلة', 'In this series'), others: t('سلاسل أخرى', 'Other series') },
+    genre: { kicker: t('نوع', 'Genre'), what: t('النوع', 'genre'), list: t('كتب من هذا النوع', 'Books of this genre'), others: t('أنواع أخرى', 'Other genres') },
+  }[kind];
+  if (!works.length) return <NotFound ctx={ctx} what={words.what} back={{ mode: 'search', query: '' }} backLabel={t('كل الكتب', 'All books')} />;
+  return (
+    <div className="wrap">
+      <div className="page-head">
+        <Crumbs ctx={ctx} items={[{ label: t('الكتب', 'Books'), view: { mode: 'search', query: '' } }, { label: k }]} />
+        <div className="kicker">{words.kicker}</div>
+        <h1 className="page-title" dir="auto">{k}</h1>
+        <p className="lede">{works.length} {works.length === 1 ? t('عمل', 'work') : t('أعمال', 'works')}{yearSpan(works) ? ` · ${yearSpan(works)}` : ''}</p>
+      </div>
+      <div className="entity-layout">
+        <div className="entity-main">
+          <div className="section-head"><h2>{words.list} <span className="count-n">{works.length}</span></h2></div>
+          <WorkRows works={works} ctx={ctx} />
+        </div>
+        <aside className="entity-side">
+          {others.length > 0 && (
+            <section className="panel glass rise">
+              <h2>{words.others}</h2>
+              <div className="subjects">{others.map(g => <button key={g.name} className="chip" dir="auto" onClick={() => ctx.go({ mode: kind, key: g.name })}>{g.name} <span className="count-n">{g.count}</span></button>)}</div>
             </section>
           )}
         </aside>
