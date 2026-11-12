@@ -43,7 +43,8 @@ import { handleMcp } from "./mcp.tsx";
 import { vocabDocument } from "./specialVocab.tsx";
 import { openRecords, cleanLicence, voidDocument, voidTurtle } from "./licence.tsx";
 import { askMoon, askRecordOf, dayKey, underCap, MAX_QUESTION } from "./askMoon.tsx";
-import { askEnabled, planWithClaude, answerWithClaude } from "./askClaude.tsx";
+import { askEnabled, planWithClaude, answerWithClaude, draftSummaryWithClaude } from "./askClaude.tsx";
+import { DRAFT_PREFIX, draftInput, hasSummary, MAX_SUMMARY, parseApproval, withSummary } from "./summaryDrafts.tsx";
 import { buildIndex, suggestSubjects, finderRecordOf } from "./subjectFinder.tsx";
 import { checkLinks } from "./linkChecker.tsx";
 import * as labelCache from "./labelCache.tsx";
@@ -2360,6 +2361,78 @@ app.post("/make-server-49c0e13c/records/:id/work-links", async (c) => {
     console.error('Work link error:', error);
     return c.json({ error: 'The link could not be saved' }, 500);
   }
+});
+
+// Draft summaries (summaryDrafts.tsx). A reviewer or the Super Admin. Claude drafts from the record's own facts;
+// nothing is published until a reviewer approves the (possibly edited) text, which is then written into the record
+// as a new version noted "summary". Drafting needs the ANTHROPIC_API_KEY secret, like Ask Moon.
+const summaryDraftsEnabled = () => askEnabled();
+
+// The published records with no summary, each with its waiting draft (if any) and whether it has enough facts.
+app.get("/make-server-49c0e13c/records/summary-drafts", async (c) => {
+  if (!canReview(await getSession(c))) return c.json({ error: 'A reviewer or the Super Admin reviews summaries' }, 403);
+  try {
+    const records = (await recordStore.listPublishedRecords()).filter((r: any) => !hasSummary(r.document));
+    const drafts = await kv.mget(records.map((r: any) => DRAFT_PREFIX + r.id)).catch(() => []);
+    const rows = records.map((r: any, i: number) => {
+      const input = draftInput(r);
+      return { id: r.id, title: r.title, language: input.language, enoughFacts: input.enoughFacts, draft: (drafts as any[])[i] || null };
+    });
+    return c.json({ enabled: summaryDraftsEnabled(), total: rows.length, rows });
+  } catch (error) {
+    console.error('Summary drafts list error:', error);
+    return c.json({ error: 'Could not list the records without a summary' }, 500);
+  }
+});
+
+// Claude drafts a summary for one record (kept as a draft, never published by this).
+app.post("/make-server-49c0e13c/records/:id/summary-draft", async (c) => {
+  const session = await getSession(c);
+  if (!canReview(session)) return c.json({ error: 'A reviewer or the Super Admin drafts summaries' }, 403);
+  if (!summaryDraftsEnabled()) return c.json({ error: 'Drafting is off until the ANTHROPIC_API_KEY secret is set' }, 503);
+  try {
+    const rec: any = await recordStore.getPublishedRecord(c.req.param('id'));
+    if (!rec) return c.json({ error: 'No published record with this id' }, 404);
+    if (hasSummary(rec.document)) return c.json({ error: 'This record already has a summary' }, 409);
+    const input = draftInput(rec);
+    if (!input.enoughFacts) return c.json({ enoughFacts: false, error: 'The record has too few facts to say what the book is about' }, 422);
+    const out = await draftSummaryWithClaude(input.facts, input.language);
+    if (!out) return c.json({ error: 'Claude could not draft a summary this time' }, 502);
+    if (!out.enoughFacts || !out.summary.trim()) return c.json({ enoughFacts: false, error: 'Claude found too few facts to say what the book is about' }, 422);
+    const draft = { recordId: rec.id, summary: out.summary.trim().slice(0, MAX_SUMMARY), language: input.language, model: 'claude-opus-5-5', at: new Date().toISOString(), facts: input.facts };
+    await kv.set(DRAFT_PREFIX + rec.id, draft);
+    return c.json({ draft });
+  } catch (error) {
+    console.error('Summary draft error:', error);
+    return c.json({ error: 'The draft could not be made' }, 500);
+  }
+});
+
+// A reviewer approves a summary (the draft's text, edited or not): written into the record as a new version.
+app.post("/make-server-49c0e13c/records/:id/summary", async (c) => {
+  const session = await getSession(c);
+  if (!canReview(session)) return c.json({ error: 'A reviewer or the Super Admin approves summaries' }, 403);
+  try {
+    const approval = parseApproval(await c.req.json().catch(() => null));
+    if (!approval) return c.json({ error: `summary: 20 to ${MAX_SUMMARY} characters` }, 400);
+    const rec: any = await recordStore.getRecord(c.req.param('id'));
+    if (!rec) return c.json({ error: 'No record with this id' }, 404);
+    if (hasSummary(rec.document)) return c.json({ error: 'This record already has a summary' }, 409);
+    await recordStore.saveRecord({ ...rec, document: withSummary(rec.document, approval.summary), saved: new Date().toISOString() },
+      session!.username, 'summary', Number.isInteger(rec.version) ? rec.version : undefined);
+    await kv.del(DRAFT_PREFIX + rec.id).catch(() => {});
+    return c.json({ saved: true });
+  } catch (error) {
+    console.error('Summary approval error:', error);
+    return c.json({ error: 'The summary could not be saved' }, 500);
+  }
+});
+
+// A reviewer throws a draft away (the record is unchanged; a new draft can be asked for later).
+app.delete("/make-server-49c0e13c/records/:id/summary-draft", async (c) => {
+  if (!canReview(await getSession(c))) return c.json({ error: 'A reviewer or the Super Admin reviews summaries' }, 403);
+  await kv.del(DRAFT_PREFIX + c.req.param('id')).catch(() => {});
+  return c.json({ deleted: true });
 });
 
 // 📖 Load BIBFRAME Record

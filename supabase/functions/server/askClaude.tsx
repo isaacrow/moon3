@@ -8,6 +8,7 @@ import Anthropic from "npm:@anthropic-ai/sdk@1.3.0";
 import { betaZodOutputFormat } from "npm:@anthropic-ai/sdk@1.3.0/helpers/beta/zod";
 import { z } from "npm:zod@4.1.12";
 import { PLAN_SYSTEM, ANSWER_SYSTEM, digest, type AskPlan, type AskDraft, type AskRecord } from "./askMoon.tsx";
+import { DRAFT_SYSTEM } from "./summaryDrafts.tsx";
 
 const MODEL = "claude-opus-5-5";
 const FALLBACK_BETA = "server-side-fallback-2026-07-01";
@@ -69,6 +70,29 @@ export async function answerWithClaude(question: string, language: "ar" | "en", 
     return res.parsed_output ?? null;
   } catch (error) {
     logFailure("answer", error);
+    return null;
+  }
+}
+
+// ---- Draft summaries (summaryDrafts.tsx): from the record's own facts only; a reviewer approves before anything is published ----
+
+const DraftSchema = z.object({ enoughFacts: z.boolean(), summary: z.string() });
+
+export async function draftSummaryWithClaude(facts: string, language: "ar" | "en"): Promise<{ enoughFacts: boolean; summary: string } | null> {
+  try {
+    const res = await anthropic().beta.messages.parse({
+      model: MODEL,
+      max_tokens: 2000,
+      betas: [FALLBACK_BETA],
+      fallbacks: "default",
+      system: DRAFT_SYSTEM,
+      output_config: { effort: "low", format: betaZodOutputFormat(DraftSchema) },
+      messages: [{ role: "user", content: `Write the summary in ${language === "ar" ? "Arabic" : "English"}.\n\nThe record's facts:\n${facts}` }],
+    });
+    if (res.stop_reason === "refusal") return null;
+    return res.parsed_output ?? null;
+  } catch (error) {
+    logFailure("draft summary", error);
     return null;
   }
 }
