@@ -27,6 +27,7 @@ import {
   workYearOf, realCopies, libraryOf, languageName, languageDisplay, type FacetKey, type FacetValue, type Selection, type SortKey,
 } from './facets';
 import { MOON_API, moonHeaders } from '../app/utils/moonApi';
+import { relationWords } from '../../supabase/functions/server/workRelations.tsx';
 import { setEntityNames } from './searchIndex';
 import { t, opacLang, setOpacLang, type OpacLang } from './i18n';
 import { IiifViewer } from './IiifViewer';
@@ -1959,6 +1960,12 @@ function WikidataCard({ sameAs, kind }: { sameAs: (string | undefined)[]; kind: 
 }
 
 /** BIBFRAME relationships (translation of, related to …) in both directions, linked when Moon holds the Work. */
+/** A relation's words in the reader's language ("Translation of" / "ترجمة لـ"), or its inverse for the other book. */
+function relationLabel(r: { predicate: string; predicateLabel: string }, inverse = false): string {
+  const term = r.predicate.startsWith('rel:') ? r.predicate.slice(4) : '';
+  return (term && relationWords(term, opacLang(), inverse)) || (inverse ? t(`يشير إليه (${r.predicateLabel})`, `Points here (${r.predicateLabel})`) : r.predicateLabel);
+}
+
 function RelatedWorks({ work, ctx }: { work: OpacWorkEntity; ctx: Ctx }) {
   const { outgoing, incoming } = useMemo(() => relationsOf(work, wolfMoonOpacService.getAllWorks()), [work, ctx.rev]);
   if (!outgoing.length && !incoming.length) return null;
@@ -1969,7 +1976,7 @@ function RelatedWorks({ work, ctx }: { work: OpacWorkEntity; ctx: Ctx }) {
       <dl className="dl">
         {outgoing.map((r, i) => (
           <React.Fragment key={`o${i}`}>
-            <dt>{r.predicateLabel}</dt>
+            <dt>{relationLabel(r)}</dt>
             <dd dir="auto">{r.workId
               ? <button className="inline-link" onClick={() => ctx.go({ mode: 'work', id: r.workId! })}>{titleOf(r.workId) || r.targetTitle}</button>
               : r.targetUri && /^https?:\/\//.test(r.targetUri) ? <a href={r.targetUri} target="_blank" rel="noreferrer">{r.targetTitle}</a> : r.targetTitle}
@@ -1978,7 +1985,7 @@ function RelatedWorks({ work, ctx }: { work: OpacWorkEntity; ctx: Ctx }) {
         ))}
         {incoming.map(({ work: w, relation }) => (
           <React.Fragment key={`i${w.id}${relation.predicate}`}>
-            <dt>{t(`يشير إليه (${relation.predicateLabel})`, `Points here (${relation.predicateLabel})`)}</dt>
+            <dt>{relationLabel(relation, true)}</dt>
             <dd dir="auto"><button className="inline-link" onClick={() => ctx.go({ mode: 'work', id: w.id })}>{w.title}</button></dd>
           </React.Fragment>
         ))}

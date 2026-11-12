@@ -18,6 +18,7 @@ import { parseArabicName, nameVariants } from '../../services/arabicNames';
 import { taggedForms } from '../../services/nameForms';
 import { toArabicScript, looksAlaLc } from '../../services/alaLcToArabic';
 import { ReconcilePanel } from './ReconcilePanel';
+import { WorkLinksPanel } from './WorkLinksPanel';
 import { EnrichPanel } from './EnrichPanel';
 import { searchLOCAuthorities, searchWikidata, searchVIAF, type AuthorityResult } from '../../services/authoritySearch';
 import { outsideRef, fetchOutsideEntity, formFromDraft, mergeDraftIntoForm, type OutsideSource } from '../../services/entityImport';
@@ -101,6 +102,7 @@ export function EntitiesPage({ onBack }: { onBack: () => void }) {
   const [copyOpen, setCopyOpen] = useState(false);
   // Linking every entity to LC, VIAF and Wikidata (Phase 12, step 5).
   const [reconcileOpen, setReconcileOpen] = useState(false);
+  const [workLinksOpen, setWorkLinksOpen] = useState(false);
   const [enrichOpen, setEnrichOpen] = useState(false);
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [copyQuery, setCopyQuery] = useState('');
@@ -375,6 +377,13 @@ export function EntitiesPage({ onBack }: { onBack: () => void }) {
           >
             <Layers className="h-4 w-4" /> {t('مجموعات الأعمال', 'Work groups')}
           </button>
+          <button
+            onClick={() => setWorkLinksOpen((o) => !o)}
+            aria-expanded={workLinksOpen}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.57] border border-white shadow-[0_4px_30px_rgba(0,0,0,0.1)] backdrop-blur-[20px] text-sm font-bold text-slate-800 hover:bg-white"
+          >
+            <Link2 className="h-4 w-4" /> {t('اربط الأعمال', 'Link works')}
+          </button>
           <button onClick={startNew} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.57] border border-white shadow-[0_4px_30px_rgba(0,0,0,0.1)] backdrop-blur-[20px] text-slate-900 text-sm font-bold hover:bg-white">
             <Plus className="h-4 w-4" /> {t('كيان جديد', 'New entity')}
           </button>
@@ -386,6 +395,8 @@ export function EntitiesPage({ onBack }: { onBack: () => void }) {
         <EntityRequestsInbox ar={isAr()} refreshKey={requestsKey} onDecided={() => { setQuery((q) => q + ''); if (selected) open(selected); }} />
 
         {groupsOpen && <WorkGroupsReview ar={isAr()} onClose={() => setGroupsOpen(false)} />}
+
+        {workLinksOpen && <WorkLinksPanel ar={isAr()} onClose={() => setWorkLinksOpen(false)} />}
 
         {enrichOpen && (
           <EnrichPanel ar={isAr()} onClose={() => setEnrichOpen(false)} onSaved={() => setQuery((q) => q + '')} />

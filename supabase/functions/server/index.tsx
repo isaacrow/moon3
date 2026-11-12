@@ -95,6 +95,7 @@ import { linkAuthorities, mirrorOutsideLinked, headingsOf, moonAuthorityId, auth
 import { relatedFrom, resolveRelated } from "./entityRelations.tsx";
 import { isBot, visitFrom, visitDay, visitorKey } from "./opacVisits.tsx";
 import { bookFactsOf, bookPageHtml, booksText } from "./seoPages.tsx";
+import { isRelationTerm, readWorkRelations, withoutRelation, withRelation, workNodeOf } from "./workRelations.tsx";
 import { byRecord, parseCopiesTable, planImport, withCopies } from "./copiesImport.tsx";
 import { applyNote, NOTE_PREFIX, parseNoteAction, queueOf } from "./reconcileQueue.tsx";
 import { baghdadHour, countryFrom, MAX_SEARCHES_PER_VISITOR_DAY, parseEvent } from "./opacInsights.tsx";
@@ -2324,6 +2325,40 @@ app.get("/make-server-49c0e13c/records/search", async (c) => {
   } catch (error) {
     console.error('Search records error:', error);
     return c.json({ error: 'Search failed' }, 500);
+  }
+});
+
+// A link between two works (workRelations.tsx): { target: <record id or work address>, relationship: <LC term>,
+// remove?: true }. A reviewer or the Super Admin; the record is saved as a new version noted "work link" (a
+// published record stays published), so it can be undone from its history. The other book's page shows the
+// inverse by itself; nothing is written on it.
+app.post("/make-server-49c0e13c/records/:id/work-links", async (c) => {
+  const session = await getSession(c);
+  if (!canReview(session)) return c.json({ error: 'A reviewer or the Super Admin links works' }, 403);
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    if (!isRelationTerm(body?.relationship)) return c.json({ error: 'relationship: one of the LC terms Moon knows (translationof, commentaryon, partof …)' }, 400);
+    const rec: any = await recordStore.getRecord(c.req.param('id'));
+    if (!rec) return c.json({ error: 'No record with this id' }, 404);
+    const target = typeof body?.target === 'string' ? body.target.trim() : '';
+    let targetUri = /^https?:///.test(target) ? target : '';
+    if (!targetUri && target) {
+      const other: any = await recordStore.getRecord(target);
+      targetUri = other ? workNodeOf(other.document)?.['@id'] || '' : '';
+    }
+    const sourceWork = workNodeOf(rec.document)?.['@id'];
+    if (!targetUri || targetUri.length > 300) return c.json({ error: 'target: the other book's record id or work address' }, 400);
+    if (targetUri === sourceWork) return c.json({ error: 'A work cannot be linked to itself' }, 400);
+    const document = body?.remove === true ? withoutRelation(rec.document, body.relationship, targetUri) : withRelation(rec.document, body.relationship, targetUri);
+    if (JSON.stringify(document) === JSON.stringify(rec.document)) {
+      return c.json({ unchanged: true, relations: readWorkRelations(workNodeOf(document)) });
+    }
+    await recordStore.saveRecord({ ...rec, document, saved: new Date().toISOString() }, session!.username, 'work link',
+      Number.isInteger(rec.version) ? rec.version : undefined);
+    return c.json({ unchanged: false, relations: readWorkRelations(workNodeOf(document)) });
+  } catch (error) {
+    console.error('Work link error:', error);
+    return c.json({ error: 'The link could not be saved' }, 500);
   }
 });
 

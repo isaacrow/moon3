@@ -70,6 +70,8 @@ export function resolveWorkCover(work: { coverUrl?: string; title?: string; id?:
 import { allWordsIn, entityNamesOf, matchWork, wordsFound } from '../opac/searchIndex';
 import { isSameRecord } from '../opac/sameRecord';
 
+import { isRelationTerm, LC_RELATIONSHIP, readWorkRelations, relationWords } from '../../supabase/functions/server/workRelations.tsx';
+
 export function normalizeArabic(text: string): string {
   if (!text) return '';
   return text
@@ -1225,6 +1227,8 @@ class WolfMoonOpacService {
         const kindId = String(kind?.['@id'] || '');
         const kindLabel = textOf(kind?.['rdfs:label']);
         const isSeries = /\/relationship\/series$/.test(kindId) || /^series$/i.test(kindLabel);
+        // A relation Moon knows by its LC term (translation of, commentary on …) is read below, with its words.
+        if (!isSeries && isRelationTerm(kindId.replace(LC_RELATIONSHIP, ''))) continue;
         const num = textOf(relNode?.['bf:seriesEnumeration']);
         if (!rLabel && !target['@id']) continue;
         relatedWorks.push({
@@ -1233,6 +1237,20 @@ class WolfMoonOpacService {
           targetTitle: rLabel + (num ? ` ؛ ${num}` : ''),
           targetUri: typeof target['@id'] === 'string' && !target['@id'].startsWith('_:') ? target['@id'] : undefined,
           targetType: [].concat(target['@type'] || []).map(String).some((t: string) => t.endsWith('Hub')) ? 'bf:Hub' : 'bf:Work',
+        });
+      }
+
+      // Every work-to-work relation (translation of, commentary on, contained in, continuation of, other edition …),
+      // in bf:relation form or as a direct property, every value (see workRelations.tsx). The direct "related to",
+      // "part of" and "has part" with a text label only are read above as before.
+      for (const r of readWorkRelations(workNode, nodeOf)) {
+        if (r.from === 'direct' && ['relatedwork', 'partof', 'part'].includes(r.term)) continue;
+        relatedWorks.push({
+          predicate: `rel:${r.term}`,
+          predicateLabel: relationWords(r.term, 'en') || r.term,
+          targetTitle: r.targetTitle,
+          targetUri: r.targetUri,
+          targetType: 'bf:Work',
         });
       }
 

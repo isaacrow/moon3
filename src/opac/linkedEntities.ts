@@ -7,6 +7,7 @@
  * No React and no network here, so the logic is tested on saved data.
  */
 import { normalizeArabic } from '../services/wolfMoonOpacService';
+import { workUri } from './schemaOrg';
 import type { OpacWorkEntity, OpacBibframeRelation } from '../services/wolfMoonOpacService';
 import { clusterPipeline, type WorkDecision } from '../services/workClustering';
 
@@ -130,7 +131,9 @@ export interface ResolvedRelation extends OpacBibframeRelation { workId?: string
  * (by URI, else by exact title), plus the reverse: other Works that point at this one.
  */
 export function relationsOf(work: OpacWorkEntity, all: OpacWorkEntity[]): { outgoing: ResolvedRelation[]; incoming: { work: OpacWorkEntity; relation: OpacBibframeRelation }[] } {
-  const uris = (w: OpacWorkEntity) => [w.uri, w.canonicalMoonUri].filter(Boolean);
+  // A work's addresses: the catalogue's own, and its BIBFRAME Work address (mooon.site/resource/work/…), which is
+  // what a link from another record names.
+  const uris = (w: OpacWorkEntity) => [w.uri, w.canonicalMoonUri, w.document ? workUri(w) : undefined].filter(Boolean);
   const title = (s: string | undefined) => normalizeArabic(String(s || '')).toLowerCase().trim();
   const find = (r: OpacBibframeRelation) =>
     (r.targetUri && all.find(w => uris(w).includes(r.targetUri!))) || all.find(w => title(w.title) && title(w.title) === title(r.targetTitle));
