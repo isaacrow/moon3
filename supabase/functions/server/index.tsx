@@ -2341,13 +2341,13 @@ app.post("/make-server-49c0e13c/records/:id/work-links", async (c) => {
     const rec: any = await recordStore.getRecord(c.req.param('id'));
     if (!rec) return c.json({ error: 'No record with this id' }, 404);
     const target = typeof body?.target === 'string' ? body.target.trim() : '';
-    let targetUri = /^https?:///.test(target) ? target : '';
+    let targetUri = /^https?:\/\//.test(target) ? target : '';
     if (!targetUri && target) {
       const other: any = await recordStore.getRecord(target);
       targetUri = other ? workNodeOf(other.document)?.['@id'] || '' : '';
     }
     const sourceWork = workNodeOf(rec.document)?.['@id'];
-    if (!targetUri || targetUri.length > 300) return c.json({ error: 'target: the other book's record id or work address' }, 400);
+    if (!targetUri || targetUri.length > 300) return c.json({ error: "target: the other book's record id or work address" }, 400);
     if (targetUri === sourceWork) return c.json({ error: 'A work cannot be linked to itself' }, 400);
     const document = body?.remove === true ? withoutRelation(rec.document, body.relationship, targetUri) : withRelation(rec.document, body.relationship, targetUri);
     if (JSON.stringify(document) === JSON.stringify(rec.document)) {
