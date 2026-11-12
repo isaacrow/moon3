@@ -50,3 +50,12 @@ test('progress: share of the target reached, capped at 1', () => {
   assert.equal(progress({ key: 'a', en: '', ar: '', value: 0, total: 5, goal: null }), 0);
   assert.equal(progress({ key: 'a', en: '', ar: '', value: 3, total: 5, goal: null }), 1);
 });
+
+test('the entity file writes the type in lower case ("person", "organization"): people are still counted', () => {
+  const rows = scorecard([], [
+    { kind: 'agent', label: 'نجيب محفوظ', variants: ['Mahfouz, Naguib'], data: { agentType: 'person', birthDate: '1911' } },
+    { kind: 'agent', label: 'Penguin Books', data: { agentType: 'organization' } },
+  ]);
+  const by = Object.fromEntries(rows.map((r) => [r.key, r]));
+  assert.deepEqual([by.bothScripts.value, by.bothScripts.total, by.dates.value], [1, 1, 1]);
+});
