@@ -776,9 +776,16 @@ class WolfMoonOpacService {
         }
       }
 
+      // A reference is either the address as a string or, as JSON-LD usually writes it, { "@id": address } with
+      // nothing else; both lead to the full node. (Only the string form was followed before, so a copy listed as
+      // bf:hasItem { "@id": … } was read as an empty copy and the full Item node was then skipped.)
       const deref = (val: any): any => {
         if (typeof val === 'string' && nodeMap.has(val)) {
           return nodeMap.get(val);
+        }
+        if (val && typeof val === 'object' && !Array.isArray(val) && typeof val['@id'] === 'string'
+          && Object.keys(val).length === 1 && nodeMap.has(val['@id'])) {
+          return nodeMap.get(val['@id']);
         }
         return val;
       };
