@@ -59,11 +59,12 @@ export function moonEntitiesOf(document: any): Array<{ kind: string; id: string;
 /** Whether a record names this entity (by its address anywhere in the record). */
 export const namesEntity = (document: any, kind: string, id: string) => JSON.stringify(document || {}).includes(`"${entityUri(kind, id)}"`);
 
-const SCHEMA_TYPE: Record<string, string> = { Person: "Person", Organization: "Organization", Family: "Organization", Meeting: "Event" };
+// The entity file writes the type in lower case ("person", "organization"); older data may capitalise it.
+const SCHEMA_TYPE: Record<string, string> = { person: "Person", organization: "Organization", family: "Organization", meeting: "Event", jurisdiction: "Organization" };
 
 /** schema.org markup, as JSON safe inside a <script> tag. */
 export function entityJsonLd(e: EntityLike, site = SITE): string {
-  const agentType = String(e.data?.agentType || "");
+  const agentType = String(e.data?.agentType || "").toLowerCase();
   const type = e.kind === "agent" ? SCHEMA_TYPE[agentType] || "Person" : e.kind === "place" ? "Place" : "DefinedTerm";
   const birth = text(e.data?.birthDate), death = text(e.data?.deathDate);
   const data = {

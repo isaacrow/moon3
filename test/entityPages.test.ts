@@ -69,3 +69,8 @@ test('book pages link to the entities they name', () => {
   assert.match(html, /resource\/\?entity=agent%2Fnaguib-mahfouz-1/);
   assert.match(html, /Egypt -- Fiction/);
 });
+
+test('schema.org type from the entity file\'s lower-case types', () => {
+  assert.equal(JSON.parse(entityJsonLd({ id: 'p', kind: 'agent', label: 'X', data: { agentType: 'person' } }))['@type'], 'Person');
+  assert.equal(JSON.parse(entityJsonLd({ id: 'o', kind: 'agent', label: 'Penguin Books', data: { agentType: 'organization' } }))['@type'], 'Organization');
+});

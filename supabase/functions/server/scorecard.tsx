@@ -53,7 +53,8 @@ export function scorecard(records: ScoreRecord[], entities: ScoreEntity[]): Scor
   }
   const live = entities.filter((e) => !e.mergedInto && ["agent", "place", "topic", "genre"].includes(e.kind));
   const outside = live.filter((e) => (e.sameAs || []).length > 0).length;
-  const people = live.filter((e) => e.kind === "agent" && (e.data?.agentType === "Person" || e.data?.agentType === undefined));
+  // The entity file writes the type in lower case ("person", "organization"); older data may capitalise it.
+  const people = live.filter((e) => e.kind === "agent" && (e.data?.agentType === undefined || String(e.data.agentType).toLowerCase() === "person"));
   const bothScripts = people.filter((e) => { const names = [e.label, ...(e.variants || [])]; return names.some((n) => ARABIC.test(n)) && names.some((n) => LATIN.test(n)); }).length;
   const dated = people.filter((e) => e.data?.birthDate || e.data?.deathDate || /\b\d{3,4}\s*[-–]/.test(e.label)).length;
 
