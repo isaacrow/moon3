@@ -67,7 +67,7 @@ export function resolveWorkCover(work: { coverUrl?: string; title?: string; id?:
 /**
  * Normalizes Arabic text for diacritic-insensitive, hamza-insensitive searching
  */
-import { allWordsIn, matchWork, wordsFound } from '../opac/searchIndex';
+import { allWordsIn, entityNamesOf, matchWork, wordsFound } from '../opac/searchIndex';
 import { isSameRecord } from '../opac/sameRecord';
 
 export function normalizeArabic(text: string): string {
@@ -2045,11 +2045,11 @@ class WolfMoonOpacService {
 
     // 2. Matching Persons
     const matchingPersons = this.getAllPersons().filter(p =>
-      allWordsIn(rawQ, p.name, p.nameArabic, p.nameEnglish, ...(p.otherNames || []), p.bioArabic, p.bioEnglish));
+      allWordsIn(rawQ, p.name, p.nameArabic, p.nameEnglish, ...(p.otherNames || []), ...entityNamesOf([p.uri, ...(p.authorityLinks || [])]), p.bioArabic, p.bioEnglish));
 
     // 3. Matching Subjects
     const matchingSubjects = this.getAllSubjects().filter(s =>
-      allWordsIn(rawQ, s.label, s.labelEnglish) || !!(s.notationDdc && s.notationDdc.includes(rawQ)));
+      allWordsIn(rawQ, s.label, s.labelEnglish, ...entityNamesOf([(s as any).uri])) || !!(s.notationDdc && s.notationDdc.includes(rawQ)));
 
     // 4. Matching Publishers
     const matchingPublishers = this.getAllPublishers().filter(pub => allWordsIn(rawQ, pub.name, pub.city));

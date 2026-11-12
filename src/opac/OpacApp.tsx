@@ -27,6 +27,7 @@ import {
   workYearOf, realCopies, libraryOf, languageName, languageDisplay, type FacetKey, type FacetValue, type Selection, type SortKey,
 } from './facets';
 import { MOON_API, moonHeaders } from '../app/utils/moonApi';
+import { setEntityNames } from './searchIndex';
 import { t, opacLang, setOpacLang, type OpacLang } from './i18n';
 import { IiifViewer } from './IiifViewer';
 import { readDate, bothCalendars } from '../services/hijri';
@@ -277,6 +278,12 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
     let alive = true;
     wolfMoonOpacService.initDatabase().then(() => { if (alive) { setReady(true); setRev(r => r + 1); } });
     const off = wolfMoonOpacService.subscribe(() => { setReady(true); setRev(r => r + 1); });
+    // Every entity's names, so a search in one script finds books whose people and subjects carry the other
+    // ("Ibn Khaldun" = "ابن خلدون"). The search works without them; when they arrive, results are made again.
+    fetch(`${MOON_API}/resource/names.json`, { headers: moonHeaders() })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (alive && d?.forms) { setEntityNames(d.forms); setRev(r => r + 1); } })
+      .catch(() => {});
     const onPop = () => withTransition(() => setView(viewFromUrl()));
     window.addEventListener('popstate', onPop);
     if (!(document as any).startViewTransition) document.documentElement.classList.add('no-vt');
