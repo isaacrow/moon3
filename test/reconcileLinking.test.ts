@@ -85,6 +85,7 @@ test('queueOf: every entity, unlinked and never searched first, merged and other
   assert.ok(!rows.some((r) => r.id === 'c'), `a "no match" from less than ${NO_MATCH_DAYS} days ago is left out`);
   assert.ok(rows.some((r) => r.id === 'd'), 'an old "no match" comes back');
   assert.ok(!rows.some((r) => r.id === 'f' || r.id === 'g'), 'merged entries and hubs are left out');
+  assert.equal((queueOf([{ ...ent('n', 'agent', 'With a note'), note: 'Seen in the 1950 census' } as any], new Map(), now)[0] as any).note, 'Seen in the 1950 census', "the entity's own note is kept");
   assert.equal(queueOf(Array.from({ length: 900 }, (_, i) => ent(`x${i}`, 'topic', `T${i}`)), new Map(), now).length, 900, 'no limit of 100');
 });
 

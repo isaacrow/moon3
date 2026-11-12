@@ -27,7 +27,8 @@ export interface QueueEntity {
   sameAs?: string[]; mergedInto?: string | null;
 }
 
-export interface QueueRow extends QueueEntity { note: ReconcileNote; linked: boolean }
+// "decision", not "note": an entity already has a free-text note of its own, which this must not hide.
+export interface QueueRow extends QueueEntity { decision: ReconcileNote; linked: boolean }
 
 const emptyNote = (): ReconcileNote => ({ rejected: [] });
 
@@ -51,9 +52,9 @@ const daysSince = (iso: string | undefined, now: Date) => (iso ? (now.getTime() 
 export function queueOf(entities: QueueEntity[], notes: Map<string, unknown>, now = new Date()): QueueRow[] {
   const rows = entities
     .filter((e) => !e.mergedInto && (KINDS as readonly string[]).includes(e.kind) && e.label)
-    .map((e) => ({ ...e, note: readNote(notes.get(e.id)), linked: (e.sameAs || []).length > 0 }))
-    .filter((r) => !(r.note.noMatch && daysSince(r.note.noMatch.at, now) < NO_MATCH_DAYS));
-  const rank = (r: QueueRow) => (r.linked ? 2 : r.note.checkedAt ? 1 : 0);
+    .map((e) => ({ ...e, decision: readNote(notes.get(e.id)), linked: (e.sameAs || []).length > 0 }))
+    .filter((r) => !(r.decision.noMatch && daysSince(r.decision.noMatch.at, now) < NO_MATCH_DAYS));
+  const rank = (r: QueueRow) => (r.linked ? 2 : r.decision.checkedAt ? 1 : 0);
   return rows.sort((a, b) => rank(a) - rank(b) || a.kind.localeCompare(b.kind) || a.label.localeCompare(b.label));
 }
 

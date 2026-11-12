@@ -14,7 +14,7 @@ import { fetchOutsideEntity, SAME_AS_HOSTS } from '../../services/entityImport';
 import { reconcileEntity, linksAcross, type AcrossLink, type Candidate, type ReconcileEntity } from '../../services/reconcile';
 
 interface Note { rejected: string[]; noMatch?: { by: string; at: string }; checkedAt?: string }
-interface Row { entity: ReconcileEntity & { uri?: string; sameAs?: string[]; note?: Note }; state: 'waiting' | 'searching' | 'sure' | 'review' | 'none' | 'linked' | 'complete' | 'error' | 'nomatch'; candidates: Candidate[]; sure: Candidate | null; across?: AcrossLink[] }
+interface Row { entity: ReconcileEntity & { uri?: string; sameAs?: string[]; decision?: Note }; state: 'waiting' | 'searching' | 'sure' | 'review' | 'none' | 'linked' | 'complete' | 'error' | 'nomatch'; candidates: Candidate[]; sure: Candidate | null; across?: AcrossLink[] }
 
 /** A cataloguer's decision, kept on the server so the next run does not ask again (see reconcileQueue.tsx). */
 const note = (id: string, body: Record<string, unknown>) =>
@@ -62,7 +62,7 @@ export function ReconcilePanel({ ar, onClose, onLinked }: { ar: boolean; onClose
           }
           const found = await reconcileEntity(e, deps);
           // A candidate a cataloguer already rejected for this entity is never offered again.
-          const rejected = new Set(e.note?.rejected || []);
+          const rejected = new Set(e.decision?.rejected || []);
           const candidates = found.candidates.filter((c) => !rejected.has(c.uri));
           const sure = found.sure && !rejected.has(found.sure.uri) ? found.sure : null;
           set(e.id, { state: sure ? 'sure' : candidates.length ? 'review' : 'none', candidates, sure });
