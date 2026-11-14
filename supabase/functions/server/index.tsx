@@ -2128,11 +2128,11 @@ app.post("/make-server-49c0e13c/opac/event", async (c) => {
   }
 });
 
-// The dashboard's "What readers do" card (signed-in staff): searches that found nothing, the most searched,
+// The dashboard's "What readers do" card (Super Admin only): searches that found nothing, the most searched,
 // devices, languages, countries and where readers came from, over ?days= (default 30).
 app.get("/make-server-49c0e13c/opac/insights", async (c) => {
   try {
-    if (!(await getSession(c))) return c.json({ error: 'Sign in to see what readers do' }, 401);
+    if (!(await isAdminSession(c))) return c.json({ error: 'Super Admin session required' }, 403);
     const days = Math.min(366, Math.max(1, Number(c.req.query('days')) || 30));
     const { data, error } = await (supabase as any).rpc('moon_insight_stats', { p_today: visitDay(), p_days: days });
     if (error) throw new Error(error.message);
@@ -2143,10 +2143,10 @@ app.get("/make-server-49c0e13c/opac/insights", async (c) => {
   }
 });
 
-// The dashboard's OPAC visitors card (signed-in staff): today, the last 7 days, each day of ?days= (default 30).
+// The dashboard's OPAC visitors card (Super Admin only): today, the last 7 days, each day of ?days= (default 30).
 app.get("/make-server-49c0e13c/opac/visits", async (c) => {
   try {
-    if (!(await getSession(c))) return c.json({ error: 'Sign in to see OPAC visitors' }, 401);
+    if (!(await isAdminSession(c))) return c.json({ error: 'Super Admin session required' }, 403);
     const days = Math.min(366, Math.max(1, Number(c.req.query('days')) || 30));
     const { data, error } = await (supabase as any).rpc('moon_visit_stats', { p_today: visitDay(), p_days: days });
     if (error) throw new Error(error.message);

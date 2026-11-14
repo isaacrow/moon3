@@ -1,5 +1,5 @@
 /**
- * The dashboard's "OPAC visitors" card: how many readers opened the public catalogue today, in the last 7 and
+ * The Super Admin dashboard's "OPAC visitors" card: how many readers opened the public catalogue today, in the last 7 and
  * 30 days, a bar for each day, and what they read and searched for most. From the edge function's /opac/visits.
  * A visitor is counted once a day (the server keeps no address); robots and signed-in staff are not counted.
  */
