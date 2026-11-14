@@ -468,8 +468,8 @@ Each is a real edition from Open Library; its author is linked to Wikidata, LC a
         {isSuperAdmin && <CopiesImportCard isAr={isAr} />}
         <SummaryDraftsCard isAr={isAr} />
 
-        <OpacVisitsCard isAr={isAr} />
-        <OpacInsightsCard isAr={isAr} />
+        {isSuperAdmin && <OpacVisitsCard isAr={isAr} />}
+        {isSuperAdmin && <OpacInsightsCard isAr={isAr} />}
 
         {/* Stats Grid - Glass Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
