@@ -12,7 +12,7 @@ import { UserAvatar } from './UserAvatar';
 
 interface Notice {
   id: number;
-  kind: "welcome" | "review" | "approved" | "returned" | "comment" | "assigned" | "suggestion" | "suggestion_accepted" | "suggestion_declined";
+  kind: "welcome" | "signup" | "review" | "approved" | "returned" | "comment" | "assigned" | "suggestion" | "suggestion_accepted" | "suggestion_declined";
   recordId?: string;
   recordTitle?: string;
   actor?: string;
@@ -28,6 +28,10 @@ function message(n: Notice, ar: boolean): { title: string; body?: string } {
       return ar
         ? { title: "مرحبًا بك في محرر MOON", body: "محرر ببفريم (BIBFRAME) للمكتبات العربية. ابدأ تسجيلة جديدة من «تسجيلة جديدة»، وستصلك هنا إشعارات اعتماد تسجيلاتك أو إعادتها." }
         : { title: "Welcome to Moon Editor", body: "A BIBFRAME editor for Arabic libraries. Start a record with New Record; you'll be told here when your records are approved or returned." };
+    case "signup":
+      return ar
+        ? { title: `حساب جديد: ${n.actor || n.recordTitle || ""}`, body: n.reason ? `${n.reason} · فُعّل تلقائيًا، ويمكنك رفضه من قائمة الحسابات` : undefined }
+        : { title: `New account: ${n.actor || n.recordTitle || ""}`, body: n.reason ? `${n.reason} · approved automatically; you can decline it in Accounts` : undefined };
     case "review":
       return ar ? { title: `${n.actor || "مفهرس"} أرسل ${t} للمراجعة` } : { title: `${n.actor || "A cataloger"} sent ${t} for review` };
     case "approved":
