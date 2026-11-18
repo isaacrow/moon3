@@ -367,6 +367,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!res?.success) {
         return { success: false, message: res?.message || 'Registration failed. Please try again.' };
       }
+      if (res.status === 'approved' && res.token && res.user) {
+        // New accounts are approved at once: sign straight in and open the dashboard.
+        applySession(res.user, res.token);
+        return {
+          success: true,
+          status: 'approved',
+          message: `Welcome ${res.user.username} from ${res.user.institution || 'Tester Group'}!`,
+        };
+      }
       if (res.status === 'approved') {
         return {
           success: true,

@@ -288,23 +288,30 @@ accountRoutes.post("/api/accounts/register", async (c) => {
       }
     }
 
-    const isVip = !!invite;
+    // Every new account is approved at once and signed in. The Super Admin is told in the notification
+    // bell and can still decline the account, which ends its access at once (see getSession).
     const now = new Date().toISOString();
     const account: StoredAccount = {
       username,
       email,
       institution,
       role: "tester",
-      status: isVip ? "approved" : "pending",
+      status: "approved",
       registeredAt: now,
-      ...(isVip ? { approvedAt: now, reviewedBy: `invite-code:${invite!.id}` } : {}),
+      approvedAt: now,
+      reviewedBy: invite ? `invite-code:${invite.id}` : "automatic",
       ...(await hashPassword(password)),
     };
     await kv.set(ACCOUNT_PREFIX + username.toLowerCase(), account);
     if (invite) await kv.set(inviteStoreKey, useInvite(invite, username));
 
-    console.log(`[ACCOUNTS] Registered ${username} (${account.status})`);
-    return c.json({ success: true, status: account.status, user: toPublic(account) });
+    const { notify } = await import("./recordStore.tsx");
+    await notify(SUPER_ADMIN_USERNAME, "signup", { title: username }, username, `${email} · ${institution}`).catch(() => {});
+
+    const token = await createSession(account.username, account.role);
+    await touchLastSeen(account.username, true).catch(() => {});
+    console.log(`[ACCOUNTS] Registered ${username} (approved automatically)`);
+    return c.json({ success: true, status: account.status, token, user: toPublic(account) });
   } catch (error) {
     console.error("[ACCOUNTS] Register error:", error);
     return c.json({ success: false, message: "Registration failed on the server. Please try again." }, 500);

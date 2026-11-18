@@ -407,7 +407,7 @@ export async function findPublishedByUri(uri: string): Promise<{ id: string; tit
   return data ?? null;
 }
 
-export type NotificationKind = "welcome" | "review" | "approved" | "returned" | "comment" | "assigned" | "suggestion" | "suggestion_accepted" | "suggestion_declined";
+export type NotificationKind = "welcome" | "signup" | "review" | "approved" | "returned" | "comment" | "assigned" | "suggestion" | "suggestion_accepted" | "suggestion_declined";
 
 /** Assigns a record to a reviewer (or clears it with null); false when the record does not exist. */
 export async function assignRecord(id: string, username: string | null): Promise<boolean> {
