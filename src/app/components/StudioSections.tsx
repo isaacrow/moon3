@@ -20,7 +20,7 @@ export type SectionId = 'acquisitions' | 'technical' | 'circulation' | 'catalogu
 
 /** What a task does when chosen. 'view' opens a Studio screen; 'soon' is not built yet. */
 export type TaskAction =
-  | { kind: 'view'; view: string }
+  | { kind: 'view'; view: string; tab?: string }
   | { kind: 'new-record' }
   | { kind: 'marc-editor' }
   | { kind: 'link'; href: string }
@@ -49,6 +49,10 @@ export interface SectionStats {
   entities?: number;       // entities in the authority file
   entitiesLinked?: number; // of those, linked to LC, VIAF or Wikidata
   copies?: number;         // copies (bf:Item) on published editions
+  loansOut?: number;       // circulation: copies out now (library staff only)
+  overdue?: number;        // of those, overdue
+  patrons?: number;        // borrowers of the library
+  holdsReady?: number;     // copies on the hold shelf
 }
 export type StatKey = keyof SectionStats;
 
@@ -83,7 +87,16 @@ function loadSectionStats() {
     value.entitiesLinked = (r.data?.plan || []).find((p: any) => p.key === 'entitiesLinked')?.value;
     publish();
   }).catch(() => {});
-  Promise.all([work, score]).finally(() => { statsLoading = false; });
+  // Library staff only; anyone else gets 403 and the numbers stay empty.
+  const circ = moonFetch<any>('/circulation/summary').then((r) => {
+    if (!r.ok) return;
+    value.loansOut = r.data?.open;
+    value.overdue = r.data?.overdue;
+    value.patrons = r.data?.patrons;
+    value.holdsReady = r.data?.holdsReady;
+    publish();
+  }).catch(() => {});
+  Promise.all([work, score, circ]).finally(() => { statsLoading = false; });
 }
 
 export function useSectionStats(): SectionStats {
@@ -112,8 +125,16 @@ export function sectionSummary(id: SectionId, st: SectionStats, isAr: boolean): 
       if (st.published === undefined) return '';
       return isAr ? `${n(st.published)} كتابًا منشورًا للقرّاء` : `${n(st.published)} books published for readers`;
     case 'circulation':
+      if (st.loansOut !== undefined) {
+        return [
+          isAr ? `${n(st.loansOut)} معارة` : `${n(st.loansOut)} out`,
+          st.overdue ? (isAr ? `${n(st.overdue)} متأخرة` : `${n(st.overdue)} overdue`) : '',
+          st.holdsReady ? (isAr ? `${n(st.holdsReady)} على رف الحجز` : `${n(st.holdsReady)} on the hold shelf`) : '',
+          st.copies !== undefined ? (isAr ? `${n(st.copies)} نسخة مسجلة` : `${n(st.copies)} copies recorded`) : '',
+        ].filter(Boolean).join(' · ');
+      }
       if (st.copies === undefined) return '';
-      return isAr ? `${n(st.copies)} نسخة مسجلة، جاهزة للإعارة حين تُبنى` : `${n(st.copies)} copies recorded, ready for loans when they are built`;
+      return isAr ? `${n(st.copies)} نسخة مسجلة` : `${n(st.copies)} copies recorded`;
     case 'acquisitions':
       return isAr ? 'لم يُبنَ بعد' : 'Not built yet';
   }
@@ -179,11 +200,12 @@ export const SECTIONS: Section[] = [
     arNote: 'المستفيدون والإعارة والإرجاع',
     enNote: 'Patrons, loans and returns',
     tasks: [
-      { id: 'copies', icon: Library, ar: 'النسخ المسجلة', en: 'Copies on record', arNote: 'النسخ تُضاف في كل طبعة من المحرر، وستُعار من هنا', enNote: 'Copies are added on each edition in the editor; loans will start from them', action: { kind: 'view', view: 'all-records' }, stat: 'copies' },
-      { id: 'patrons', icon: IdCard, ar: 'بيانات المستفيدين', en: 'Patrons', arNote: 'الاسم ورقم البطاقة والنوع وحدود الإعارة', enNote: 'Name, card number, type and loan limits', action: { kind: 'soon' } },
-      { id: 'loans', icon: ArrowLeftRight, ar: 'الإعارة والإرجاع', en: 'Check out and check in', arNote: 'بالباركود، مع تاريخ الإرجاع حسب نوع الإعارة', enNote: 'By barcode, with due dates by loan type', action: { kind: 'soon' } },
-      { id: 'renewals', icon: CalendarClock, ar: 'التجديد والحجز', en: 'Renewals and holds', arNote: 'تجديد الإعارة وحجز النسخ من الفهرس', enNote: 'Renew loans and place holds from the catalogue', action: { kind: 'soon' } },
-      { id: 'fines', icon: Coins, ar: 'الغرامات', en: 'Fines', arNote: 'إن كانت المكتبة تستخدمها، مع إمكان إيقافها', enNote: 'If the library uses them, with a switch to turn them off', action: { kind: 'soon' } },
+      { id: 'loans', icon: ArrowLeftRight, ar: 'الإعارة والإرجاع', en: 'Check out and check in', arNote: 'بالباركود: بطاقة المستفيد ثم باركود النسخة', enNote: 'By barcode: the borrower’s card, then the copy’s barcode', action: { kind: 'view', view: 'desk' }, stat: 'loansOut' },
+      { id: 'patrons', icon: IdCard, ar: 'المستفيدون', en: 'Borrowers', arNote: 'الاسم ورقم البطاقة والنوع، وما معه وما عليه', enNote: 'Name, card number and kind; what they have out and owe', action: { kind: 'view', view: 'desk', tab: 'patrons' }, stat: 'patrons' },
+      { id: 'renewals', icon: CalendarClock, ar: 'الإعارات والتجديد', en: 'Loans and renewals', arNote: 'كل المعار والمتأخر، والتجديد', enNote: 'Everything out and overdue; renewals', action: { kind: 'view', view: 'desk', tab: 'loans' }, stat: 'overdue' },
+      { id: 'holds', icon: ClipboardCheck, ar: 'الحجوزات', en: 'Holds', arNote: 'حجز كتاب لمستفيد، ورف الحجز عند إرجاع نسخة', enNote: 'Hold a book for a borrower; the hold shelf when a copy comes back', action: { kind: 'view', view: 'desk', tab: 'holds' }, stat: 'holdsReady' },
+      { id: 'fines', icon: Coins, ar: 'قواعد الإعارة والغرامات', en: 'Loan rules and fines', arNote: 'مدة الإعارة وحدودها حسب نوع المستفيد؛ الغرامات اختيارية', enNote: 'Loan periods and limits by kind of borrower; fines are optional', action: { kind: 'view', view: 'desk', tab: 'rules' } },
+      { id: 'copies', icon: Library, ar: 'النسخ المسجلة', en: 'Copies on record', arNote: 'النسخ وباركوداتها تُضاف في كل طبعة من المحرر', enNote: 'Copies and their barcodes are added on each edition in the editor', action: { kind: 'view', view: 'all-records' }, stat: 'copies' },
     ],
   },
   {
@@ -205,9 +227,9 @@ export const SECTIONS: Section[] = [
 export const sectionById = (id: SectionId) => SECTIONS.find((s) => s.id === id)!;
 
 /** Runs a task's action; the caller supplies how to open screens. */
-export function runTask(task: Task, open: { view: (view: string) => void; newRecord: () => void; marcEditor?: () => void }) {
+export function runTask(task: Task, open: { view: (view: string, tab?: string) => void; newRecord: () => void; marcEditor?: () => void }) {
   const a = task.action;
-  if (a.kind === 'view') open.view(a.view);
+  if (a.kind === 'view') open.view(a.view, a.tab);
   else if (a.kind === 'new-record') open.newRecord();
   else if (a.kind === 'marc-editor' && open.marcEditor) open.marcEditor();
   else if (a.kind === 'marc-editor') {
@@ -230,7 +252,7 @@ export function SectionMenus({ isAr, isDark, isSuperAdmin, current, onOpenSectio
 }) {
   const stats = useSectionStats();
   return (
-    <nav aria-label={isAr ? 'أقسام المكتبة' : 'Library sections'} className="flex items-center gap-1">
+    <nav aria-label={isAr ? 'أقسام المكتبة' : 'Library sections'} className="hidden md:flex items-center gap-1">
       {SECTIONS.map((s) => {
         const Icon = s.icon;
         const active = current === s.id;
@@ -381,7 +403,9 @@ export function SectionPath({ isAr, sectionId, taskView, onOpenSection }: {
   onOpenSection: (id: SectionId) => void;
 }) {
   const s = sectionById(sectionId);
-  const task = taskView ? s.tasks.find((t) => t.action.kind === 'view' && t.action.view === taskView) : undefined;
+  const tab = typeof window === 'undefined' ? undefined : new URLSearchParams(window.location.search).get('tab') || undefined;
+  const isView = (t: Task) => t.action.kind === 'view' && t.action.view === taskView;
+  const task = taskView ? (s.tasks.find((t) => isView(t) && t.action.kind === 'view' && t.action.tab === tab) || s.tasks.find(isView)) : undefined;
   if (!task) return null;
   return (
     <div className="max-w-7xl mx-auto px-6 mt-3 text-xs font-bold text-slate-600 flex items-center gap-1.5" style={{ direction: isAr ? 'rtl' : 'ltr' }}>
