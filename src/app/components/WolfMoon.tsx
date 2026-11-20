@@ -193,6 +193,9 @@ interface WolfMoonProps {
   onReloadRecord?: (record: BIBFRAMERecord) => void;
   /** Opens a new record derived from this one (a new edition or a translation of the same Work). */
   onDerive?: (derived: { work: any; instance: any }) => void;
+  /** A new record chosen in Technical services > New record: its template, and the choice kept in metadata. */
+  initialTemplate?: string;
+  materialChoice?: { materialType: string; carrierKind: string; rare: boolean } | null;
 }
 
 
@@ -201,7 +204,7 @@ interface WolfMoonProps {
 // (supabase/functions/server/profiles.tsx) are also what the server's publish gate checks.
 type LcDefault = { "@id": string; "rdfs:label": string };
 const LC_TEMPLATE_DEFAULTS = Object.fromEntries(
-  ["monograph-complete", "manuscript", "serial", "music", "map"].map((id) => [id, profileDefaults(PROFILES[id])]),
+  ["monograph-complete", "manuscript", "serial", "music", "map", "still-image"].map((id) => [id, profileDefaults(PROFILES[id])]),
 );
 
 
@@ -231,7 +234,7 @@ const LC_TEMPLATE_DEFAULTS = Object.fromEntries(
 // ============================== MAIN COMPONENT ==============================
 
 export default function WolfMoon({
-  onBack, initialWork, initialInstance, initialRecord, onRecordSaved, onRestoreDraft, onReloadRecord, onDerive
+  onBack, initialWork, initialInstance, initialRecord, onRecordSaved, onRestoreDraft, onReloadRecord, onDerive, initialTemplate, materialChoice
 }: WolfMoonProps) {
   const { t, i18n } = useTranslation();
   const { username, user } = useAuth();
@@ -285,7 +288,7 @@ export default function WolfMoon({
   const [mindmapView, setMindmapView] = useState<"classic" | "solar">("solar");
 
   // ===== TEMPLATE SELECTION =====
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("monograph-complete");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(() => (initialTemplate && getTemplate(initialTemplate) ? initialTemplate : (initialRecord?.metadata as any)?.templateId && getTemplate((initialRecord?.metadata as any).templateId) ? (initialRecord?.metadata as any).templateId : "monograph-complete"));
   const template = useMemo(() => getTemplate(selectedTemplate) || MONOGRAPH_COMPLETE_TEMPLATE, [selectedTemplate]);
 
   // ===== ACTIVE TAB =====
@@ -1317,6 +1320,12 @@ export default function WolfMoon({
           catalogingInterface: "Wolf Moon",
           resourceType: `Wolf Moon (${template.name})`,
           templateId: selectedTemplate, recordId, uriSet, license: licence,
+          // The kind of material chosen when the record was started (kept through later saves).
+          ...(materialChoice || ((initialRecord?.metadata as any)?.materialType ? {
+            materialType: (initialRecord?.metadata as any).materialType,
+            carrierKind: (initialRecord?.metadata as any).carrierKind,
+            rare: (initialRecord?.metadata as any).rare,
+          } : {})),
           ontologyVersion: BF_ONTOLOGY_VERSION,
           createdAt: initialRecord?.metadata?.createdAt || new Date().toISOString(),
           catalogerId: username || "anonymous",

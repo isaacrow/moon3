@@ -15,6 +15,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { BASE_URI } from '../services/uriMintingService';
 import { getRecordById, getAllRecords } from './utils/recordStorageBackend';
 import { usePresenceHeartbeat } from './utils/usePresenceHeartbeat';
+import { materialStart, materialMetadata, type Material, type CarrierKind } from './utils/materialTypes';
 import './i18n/config';
 
 // Every screen loads on demand, so the login page doesn't download the editor.
@@ -26,13 +27,14 @@ const SearchPage = React.lazy(() => import('./components/SearchPage').then(m => 
 const ActivityLog = React.lazy(() => import('./components/ActivityLog').then(m => ({ default: m.ActivityLog })));
 const OpacVisitsCard = React.lazy(() => import('./components/OpacVisitsCard').then(m => ({ default: m.OpacVisitsCard })));
 const OpacInsightsCard = React.lazy(() => import('./components/OpacInsightsCard').then(m => ({ default: m.OpacInsightsCard })));
+const NewRecordChooser = React.lazy(() => import('./components/NewRecordChooser').then(m => ({ default: m.NewRecordChooser })));
 const EntitiesPage = React.lazy(() => import('./components/EntitiesPage').then(m => ({ default: m.EntitiesPage })));
 
 // Moon Studio (Wolf Moon) is the one editor. The tools around it: dashboard, author finder, record
 // list, search and audit log. The public OPAC is served by main.tsx / opac.html.
 type ViewMode = 'dashboard' | 'wolf-moon' | 'author-finder' | 'all-records' | 'search' | 'activity-log' | 'entities'
-  | SectionId;
-const VIEW_MODES: ViewMode[] = ['dashboard', 'wolf-moon', 'author-finder', 'all-records', 'search', 'activity-log', 'entities',
+  | SectionId | 'new-record';
+const VIEW_MODES: ViewMode[] = ['dashboard', 'wolf-moon', 'author-finder', 'all-records', 'search', 'activity-log', 'entities', 'new-record',
   'acquisitions', 'technical', 'circulation', 'catalogue'];
 
 // Each screen has its own address, so a refresh or a shared link opens the same screen:
@@ -50,6 +52,8 @@ const VIEW_PATHS: Record<ViewMode, string> = {
   'technical': 'technical',
   'circulation': 'circulation',
   'catalogue': 'catalogue',
+  // Technical services > New record: choose the kind of material, then print or electronic.
+  'new-record': 'new',
 };
 export const ROUTED_PATHS = Object.values(VIEW_PATHS);
 
@@ -221,12 +225,21 @@ function CatalogApp() {
     openInEditor({ ...(typeof data === 'object' ? data : {}), work: workData, instance: instanceData }, title);
   };
 
-  const handleNewRecord = () => {
+  // A new, empty record; with a material choice, its template and content, media and carrier are filled in.
+  const [newChoice, setNewChoice] = useState<{ template?: string; meta: ReturnType<typeof materialMetadata> } | null>(null);
+  const handleNewRecord = (material?: Material, carrier: CarrierKind = 'print') => {
     const newWorkId = `${BASE_URI}/work/${Date.now()}`;
-    setWork({ '@type': 'bf:Work', '@id': newWorkId });
-    setInstance({ '@type': 'bf:Instance', '@id': `${BASE_URI}/instance/${Date.now()}`, 'bf:instanceOf': { '@id': newWorkId } });
+    const start = material ? materialStart(material, carrier) : { work: {}, instance: {} };
+    setWork({ '@type': 'bf:Work', '@id': newWorkId, ...start.work });
+    setInstance({ '@type': 'bf:Instance', '@id': `${BASE_URI}/instance/${Date.now()}`, 'bf:instanceOf': { '@id': newWorkId }, ...start.instance });
     setCurrentRecord(null);
+    setNewChoice(material ? { template: material.templateId, meta: materialMetadata(material, carrier) } : null);
     navigate('wolf-moon');
+  };
+  // The top bar's New record and the Technical services task open the chooser (?marc=1: then the MARC tab).
+  const chooseNewRecord = (marc = false) => {
+    setViewMode('new-record');
+    window.history.pushState(null, '', `${urlFor('new-record')}${marc ? '?marc=1' : ''}`);
   };
 
   // Practice (S22): /moon/?practice=<id> opens a copy of that published record (=1: one chosen at random);
@@ -270,16 +283,17 @@ function CatalogApp() {
   const toDashboard = () => navigate('dashboard');
   const runSectionTask = (task: Task) => runTask(task, {
     view: (v) => navigate(VIEW_MODES.includes(v as ViewMode) ? (v as ViewMode) : 'dashboard'),
-    newRecord: handleNewRecord,
+    newRecord: () => chooseNewRecord(false),
+    marcEditor: () => chooseNewRecord(true),
   });
   const currentSection = (SECTIONS.find((sec) => sec.id === viewMode)?.id
-    ?? (['wolf-moon', 'all-records', 'search', 'entities', 'author-finder', 'activity-log'].includes(viewMode) ? 'technical' : undefined)) as SectionId | undefined;
+    ?? (['wolf-moon', 'new-record', 'all-records', 'search', 'entities', 'author-finder', 'activity-log'].includes(viewMode) ? 'technical' : undefined)) as SectionId | undefined;
 
   const withNav = (content: React.ReactNode, className = '') => (
     <div className={`${darkMode ? 'dark' : ''} ${className}`}>
       <TopNavBar
         onDashboard={toDashboard}
-        onNewRecord={handleNewRecord}
+        onNewRecord={() => chooseNewRecord(false)}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
         onOpenRecord={openRecordById}
@@ -305,6 +319,8 @@ function CatalogApp() {
             initialWork={work}
             initialInstance={instance}
             initialRecord={currentRecord}
+            initialTemplate={newChoice?.template}
+            materialChoice={currentRecord ? null : newChoice?.meta}
             onRecordSaved={(storageId) => {
               // From now on a refresh reopens this record instead of an empty one.
               if (storageId) window.history.replaceState(null, '', urlFor('wolf-moon', storageId));
@@ -343,7 +359,7 @@ function CatalogApp() {
       screen = withNav(<RecordsGallery onLoadRecord={handleLoadRecordFromGallery} onEditRecord={handleLoadRecordFromGallery} />);
       break;
     case 'search':
-      screen = withNav(<SearchPage onLoadRecord={handleLoadRecord} onNewRecord={handleNewRecord} />);
+      screen = withNav(<SearchPage onLoadRecord={handleLoadRecord} onNewRecord={() => chooseNewRecord(false)} />);
       break;
     case 'activity-log':
       screen = withNav(<ActivityLog onClose={toDashboard} />);
@@ -354,6 +370,21 @@ function CatalogApp() {
           <EntitiesPage onBack={toDashboard} />
         </ErrorBoundary>,
         'liquid-glass-spatial-canvas min-h-screen'
+      );
+      break;
+    case 'new-record':
+      screen = withNav(
+        <NewRecordChooser
+          isAr={isAr}
+          marc={new URLSearchParams(window.location.search).get('marc') === '1'}
+          onStart={(material, carrier) => {
+            if (new URLSearchParams(window.location.search).get('marc') === '1') {
+              try { localStorage.setItem('moon-open-tab', 'marc-editor'); } catch { /* private window */ }
+            }
+            handleNewRecord(material, carrier);
+          }}
+        />,
+        'liquid-glass-spatial-canvas min-h-screen py-2'
       );
       break;
     case 'acquisitions':
@@ -377,7 +408,7 @@ function CatalogApp() {
         <Dashboard
           onNavigate={(view) => {
             // Opening Moon Studio from the dashboard always starts a new record, never the last one opened.
-            if (view === 'wolf-moon') handleNewRecord();
+            if (view === 'wolf-moon') chooseNewRecord(false);
             else navigate(VIEW_MODES.includes(view as ViewMode) ? (view as ViewMode) : 'dashboard');
           }}
           onLoadRecord={handleLoadRecord}

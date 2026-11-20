@@ -161,7 +161,7 @@ export const SECTIONS: Section[] = [
     arNote: 'الفهرسة بـ BIBFRAME ومارك، والملف الاستنادي',
     enNote: 'Cataloguing in BIBFRAME and MARC, and authorities',
     tasks: [
-      { id: 'new-record', icon: FilePlus, ar: 'تسجيلة جديدة', en: 'New record', arNote: 'فهرسة وعاء جديد في محرر BIBFRAME', enNote: 'Catalogue a new item in the BIBFRAME editor', action: { kind: 'new-record' } },
+      { id: 'new-record', icon: FilePlus, ar: 'تسجيلة جديدة', en: 'New record', arNote: 'اختر نوع الوعاء ثم مطبوع أو إلكتروني', enNote: 'Choose the kind of material, then print or electronic', action: { kind: 'new-record' } },
       { id: 'marc-editor', icon: FileCode, ar: 'محرر مارك 21', en: 'MARC 21 editor', arNote: 'تسجيلة جديدة بحقول مارك', enNote: 'A new record in MARC fields', action: { kind: 'marc-editor' } },
       { id: 'records', icon: Library, ar: 'كل التسجيلات', en: 'All records', arNote: 'تعديل التسجيلات الببليوجرافية ومراجعتها', enNote: 'Edit and review bibliographic records', action: { kind: 'view', view: 'all-records' }, stat: 'records' },
       { id: 'review', icon: ClipboardCheck, ar: 'بانتظار المراجعة', en: 'Waiting for review', arNote: 'التسجيلات المرسلة للمراجعة والمعادة للتعديل، في لوحة التحكم', enNote: 'Records sent for review or returned for changes, on the dashboard', action: { kind: 'view', view: 'dashboard' }, stat: 'pendingReview' },
@@ -205,10 +205,11 @@ export const SECTIONS: Section[] = [
 export const sectionById = (id: SectionId) => SECTIONS.find((s) => s.id === id)!;
 
 /** Runs a task's action; the caller supplies how to open screens. */
-export function runTask(task: Task, open: { view: (view: string) => void; newRecord: () => void }) {
+export function runTask(task: Task, open: { view: (view: string) => void; newRecord: () => void; marcEditor?: () => void }) {
   const a = task.action;
   if (a.kind === 'view') open.view(a.view);
   else if (a.kind === 'new-record') open.newRecord();
+  else if (a.kind === 'marc-editor' && open.marcEditor) open.marcEditor();
   else if (a.kind === 'marc-editor') {
     // The editor opens on its MARC 21 tab once (see WolfMoon's activeTab).
     try { localStorage.setItem('moon-open-tab', 'marc-editor'); } catch { /* private window */ }

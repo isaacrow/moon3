@@ -165,6 +165,8 @@ export const MUSIC_PROFILE = coreProfile("Music", "Notated music",
   "Printed scores and other notated music.", { content: ["contentTypes/ntm", "notated music"], media: UNMEDIATED, carrier: VOLUME, issuance: SINGLE_UNIT });
 export const MAP_PROFILE = coreProfile("Map", "Cartographic material",
   "Printed maps and atlases.", { content: ["contentTypes/cri", "cartographic image"], media: UNMEDIATED, carrier: ["carriers/nb", "sheet"], issuance: SINGLE_UNIT });
+export const STILL_IMAGE_PROFILE = coreProfile("StillImage", "Still image",
+  "Pictures, photographs, posters and postage stamps.", { content: ["contentTypes/sti", "still image"], media: UNMEDIATED, carrier: ["carriers/nb", "sheet"], issuance: SINGLE_UNIT });
 
 /** Profiles by their address (/profiles/<key>); the editor's template ids are listed too. */
 export const PROFILES: Record<string, Profile> = {
@@ -173,6 +175,7 @@ export const PROFILES: Record<string, Profile> = {
   serial: SERIAL_PROFILE,
   music: MUSIC_PROFILE,
   map: MAP_PROFILE,
+  "still-image": STILL_IMAGE_PROFILE,
   "monograph-complete": MONOGRAPH_PROFILE,
 };
 
