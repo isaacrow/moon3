@@ -53,6 +53,10 @@ export interface SectionStats {
   overdue?: number;        // of those, overdue
   patrons?: number;        // borrowers of the library
   holdsReady?: number;     // copies on the hold shelf
+  openOrders?: number;     // acquisitions: orders not yet received (library staff only)
+  unpaidInvoices?: number;
+  lateIssues?: number;     // journal issues overdue
+  endingSoon?: number;     // subscriptions ending within two months
 }
 export type StatKey = keyof SectionStats;
 
@@ -96,7 +100,15 @@ function loadSectionStats() {
     value.holdsReady = r.data?.holdsReady;
     publish();
   }).catch(() => {});
-  Promise.all([work, score, circ]).finally(() => { statsLoading = false; });
+  const acq = moonFetch<any>('/acq/summary').then((r) => {
+    if (!r.ok) return;
+    value.openOrders = r.data?.openOrders;
+    value.unpaidInvoices = r.data?.unpaidInvoices;
+    value.lateIssues = r.data?.lateIssues?.length;
+    value.endingSoon = r.data?.endingSoon?.length;
+    publish();
+  }).catch(() => {});
+  Promise.all([work, score, circ, acq]).finally(() => { statsLoading = false; });
 }
 
 export function useSectionStats(): SectionStats {
@@ -136,7 +148,13 @@ export function sectionSummary(id: SectionId, st: SectionStats, isAr: boolean): 
       if (st.copies === undefined) return '';
       return isAr ? `${n(st.copies)} نسخة مسجلة` : `${n(st.copies)} copies recorded`;
     case 'acquisitions':
-      return isAr ? 'لم يُبنَ بعد' : 'Not built yet';
+      if (st.openOrders === undefined) return '';
+      return [
+        isAr ? `${n(st.openOrders)} طلبًا لم يصل` : `${n(st.openOrders)} orders to receive`,
+        st.unpaidInvoices ? (isAr ? `${n(st.unpaidInvoices)} فاتورة لم تُدفع` : `${n(st.unpaidInvoices)} unpaid invoices`) : '',
+        st.lateIssues ? (isAr ? `${n(st.lateIssues)} أعداد متأخرة` : `${n(st.lateIssues)} late issues`) : '',
+        st.endingSoon ? (isAr ? `${n(st.endingSoon)} اشتراكات تنتهي قريبًا` : `${n(st.endingSoon)} subscriptions ending soon`) : '',
+      ].filter(Boolean).join(' · ');
   }
 }
 
@@ -166,12 +184,13 @@ export const SECTIONS: Section[] = [
     arNote: 'الطلبات والموردون والفواتير والاشتراكات',
     enNote: 'Orders, vendors, invoices and subscriptions',
     tasks: [
-      { id: 'vendors', icon: Building2, ar: 'الموردون والناشرون', en: 'Vendors and publishers', arNote: 'من تتعامل معهم المكتبة وبيانات الاتصال بهم', enNote: 'Who the library buys from, and how to reach them', action: { kind: 'soon' } },
-      { id: 'orders', icon: FileText, ar: 'أوامر الشراء', en: 'Purchase orders', arNote: 'طلب الكتب والمواد مع ميزانية لكل صندوق', enNote: 'Ordering books and materials, with a budget per fund', action: { kind: 'soon' } },
-      { id: 'invoices', icon: Receipt, ar: 'الفواتير', en: 'Invoices', arNote: 'الفواتير مربوطة بأوامر الشراء', enNote: 'Invoices linked to their orders', action: { kind: 'soon' } },
-      { id: 'journals', icon: Newspaper, ar: 'اشتراكات الدوريات', en: 'Journal subscriptions', arNote: 'الدوريات المشترك فيها ومدد الاشتراك', enNote: 'Which journals the library takes, and for how long', action: { kind: 'soon' } },
-      { id: 'checkin', icon: PackageCheck, ar: 'استلام أعداد الدوريات', en: 'Journal issue check-in', arNote: 'تسجيل كل عدد عند وصوله، وقائمة الأعداد المتأخرة', enNote: 'Recording each issue as it arrives, and a list of late issues', action: { kind: 'soon' } },
-      { id: 'databases', icon: Database, ar: 'اشتراكات قواعد البيانات', en: 'Database subscriptions', arNote: 'تواريخ البدء والانتهاء والتكلفة ورابط الدخول', enNote: 'Start and end dates, cost and access link', action: { kind: 'soon' } },
+      { id: 'overview', icon: BarChart3, ar: 'نظرة عامة', en: 'Overview', arNote: 'الصناديق وما بقي منها، والأعداد المتأخرة، والاشتراكات التي تنتهي', enNote: 'Funds and what is left, late issues, subscriptions ending', action: { kind: 'view', view: 'acq' } },
+      { id: 'orders', icon: FileText, ar: 'أوامر الشراء', en: 'Purchase orders', arNote: 'طلب الكتب والمواد على صندوق، ثم تسجيل وصولها وفهرستها', enNote: 'Order books and materials on a fund, then receive and catalogue them', action: { kind: 'view', view: 'acq', tab: 'orders' }, stat: 'openOrders' },
+      { id: 'journals', icon: Newspaper, ar: 'اشتراكات الدوريات وقواعد البيانات', en: 'Journal and database subscriptions', arNote: 'مدد الاشتراك والتكلفة ورابط الدخول', enNote: 'Subscription dates, cost and access link', action: { kind: 'view', view: 'acq', tab: 'subscriptions' }, stat: 'endingSoon' },
+      { id: 'checkin', icon: PackageCheck, ar: 'استلام أعداد الدوريات', en: 'Journal issue check-in', arNote: 'تسجيل كل عدد عند وصوله، وقائمة الأعداد المتأخرة', enNote: 'Record each issue as it arrives; a list of late issues', action: { kind: 'view', view: 'acq', tab: 'subscriptions' }, stat: 'lateIssues' },
+      { id: 'invoices', icon: Receipt, ar: 'الفواتير', en: 'Invoices', arNote: 'الفواتير مربوطة بأوامر الشراء', enNote: 'Invoices linked to their orders', action: { kind: 'view', view: 'acq', tab: 'invoices' }, stat: 'unpaidInvoices' },
+      { id: 'vendors', icon: Building2, ar: 'الموردون والناشرون', en: 'Vendors and publishers', arNote: 'من تشتري منهم المكتبة وبيانات الاتصال بهم', enNote: 'Who the library buys from, and how to reach them', action: { kind: 'view', view: 'acq', tab: 'vendors' } },
+      { id: 'funds', icon: Database, ar: 'الصناديق والميزانية', en: 'Funds and budgets', arNote: 'ميزانية كل صندوق في السنة، وما التُزم به وما صُرف', enNote: 'Each fund’s budget for the year; what is committed and spent', action: { kind: 'view', view: 'acq', tab: 'funds' } },
     ],
   },
   {

@@ -11,6 +11,7 @@ import { TopNavBar } from './components/TopNavBar';
 import { SECTIONS, SectionPage, SectionPath, runTask, sectionById, type SectionId, type Task } from './components/StudioSections';
 import { toast } from 'sonner';
 import { CirculationDesk, ExternalLoanSystem } from './components/CirculationDesk';
+import { AcquisitionsDesk } from './components/AcquisitionsDesk';
 import { Toaster } from './components/ui/sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BASE_URI } from '../services/uriMintingService';
@@ -34,9 +35,9 @@ const EntitiesPage = React.lazy(() => import('./components/EntitiesPage').then(m
 // Moon Studio (Wolf Moon) is the one editor. The tools around it: dashboard, author finder, record
 // list, search and audit log. The public OPAC is served by main.tsx / opac.html.
 type ViewMode = 'dashboard' | 'wolf-moon' | 'author-finder' | 'all-records' | 'search' | 'activity-log' | 'entities'
-  | SectionId | 'new-record' | 'desk';
+  | SectionId | 'new-record' | 'desk' | 'acq';
 const VIEW_MODES: ViewMode[] = ['dashboard', 'wolf-moon', 'author-finder', 'all-records', 'search', 'activity-log', 'entities', 'new-record',
-  'acquisitions', 'technical', 'circulation', 'catalogue', 'desk'];
+  'acquisitions', 'technical', 'circulation', 'catalogue', 'desk', 'acq'];
 
 // Each screen has its own address, so a refresh or a shared link opens the same screen:
 // /dashboard/, /moon/ (Moon Studio), /records/, /search/, /authors/, /activity/, /entities/.
@@ -57,6 +58,8 @@ const VIEW_PATHS: Record<ViewMode, string> = {
   'new-record': 'new',
   // Circulation > the loan desk (?tab=patrons|loans|holds|rules).
   'desk': 'desk',
+  // Acquisitions (?tab=orders|subscriptions|invoices|vendors|funds).
+  'acq': 'acq',
 };
 export const ROUTED_PATHS = Object.values(VIEW_PATHS);
 
@@ -292,14 +295,14 @@ function CatalogApp() {
     view: (v, tab) => {
       navigate(VIEW_MODES.includes(v as ViewMode) ? (v as ViewMode) : 'dashboard', undefined, false, tab);
       // The desk reads its tab from the address; tell an open desk it changed.
-      if (v === 'desk') window.dispatchEvent(new PopStateEvent('popstate'));
+      if (v === 'desk' || v === 'acq') window.dispatchEvent(new PopStateEvent('popstate'));
     },
     newRecord: () => chooseNewRecord(false),
     marcEditor: () => chooseNewRecord(true),
   });
   const currentSection = (SECTIONS.find((sec) => sec.id === viewMode)?.id
     ?? (['wolf-moon', 'new-record', 'all-records', 'search', 'entities', 'author-finder', 'activity-log'].includes(viewMode) ? 'technical'
-      : viewMode === 'desk' ? 'circulation' : undefined)) as SectionId | undefined;
+      : viewMode === 'desk' ? 'circulation' : viewMode === 'acq' ? 'acquisitions' : undefined)) as SectionId | undefined;
 
   const withNav = (content: React.ReactNode, className = '') => (
     <div className={`${darkMode ? 'dark' : ''} ${className}`}>
@@ -403,6 +406,14 @@ function CatalogApp() {
       screen = withNav(
         <ErrorBoundary fallbackTitle="Loan desk" onReset={toDashboard}>
           <CirculationDesk isAr={isAr} onOpenRecord={openRecordById} />
+        </ErrorBoundary>,
+        'liquid-glass-spatial-canvas min-h-screen py-2'
+      );
+      break;
+    case 'acq':
+      screen = withNav(
+        <ErrorBoundary fallbackTitle="Acquisitions" onReset={toDashboard}>
+          <AcquisitionsDesk isAr={isAr} onOpenRecord={openRecordById} onNewRecord={() => chooseNewRecord(false)} />
         </ErrorBoundary>,
         'liquid-glass-spatial-canvas min-h-screen py-2'
       );

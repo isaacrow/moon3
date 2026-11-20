@@ -57,14 +57,14 @@ const say = (isAr: boolean, msg: string) => {
   return msg;
 };
 
-const glass: React.CSSProperties = {
+export const glass: React.CSSProperties = {
   background: 'rgba(255,255,255,0.6)', borderRadius: 16, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
   border: '1px solid rgba(255,255,255,0.9)',
 };
-const input = 'w-full rounded-xl px-3 py-2 text-sm bg-white/80 border border-slate-300 text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/30';
-const btn = 'inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold cursor-pointer disabled:opacity-50 disabled:cursor-default';
-const dark = `${btn} bg-slate-900 text-white hover:bg-slate-700`;
-const light = `${btn} bg-white/80 text-slate-900 border border-slate-300 hover:bg-white`;
+export const input = 'w-full rounded-xl px-3 py-2 text-sm bg-white/80 border border-slate-300 text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/30';
+export const btn = 'inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold cursor-pointer disabled:opacity-50 disabled:cursor-default';
+export const dark = `${btn} bg-slate-900 text-white hover:bg-slate-700`;
+export const light = `${btn} bg-white/80 text-slate-900 border border-slate-300 hover:bg-white`;
 
 function useDate(isAr: boolean) {
   return (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(isAr ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
@@ -436,7 +436,7 @@ function Patrons({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
   );
 }
 
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+export const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <label className="flex flex-col gap-1 text-xs font-bold text-slate-700">{label}{children}</label>
 );
 

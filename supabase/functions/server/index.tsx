@@ -29,6 +29,7 @@ import * as observability from "./observability.tsx";
 import * as loadTesting from "./loadTesting.tsx";
 import recordRoutes from "./recordRoutes.tsx";
 import circulationRoutes from "./circulationRoutes.tsx";
+import acquisitionsRoutes from "./acquisitionsRoutes.tsx";
 import accountRoutes, { getSession, isAdminSession, canReview, isReviewer, SUPER_ADMIN_USERNAME, libraryOf } from "./accountRoutes.tsx";
 import { applyOwnership, withOwners, withoutOwners, blockedMessage } from "./protectedValues.tsx";
 import * as recordStore from "./recordStore.tsx";
@@ -4874,6 +4875,7 @@ app.delete("/make-server-49c0e13c/test/cleanup",
 app.route('/make-server-49c0e13c', recordRoutes);
 app.route('/make-server-49c0e13c', accountRoutes);
 app.route('/make-server-49c0e13c', circulationRoutes);
+app.route('/make-server-49c0e13c', acquisitionsRoutes);
 
 // ═══════════════════════════════════════════════════════════
 // 🌐 OPEN LINKED DATA — Content Negotiation & Public Endpoints
