@@ -31,6 +31,8 @@ export function fold(text: unknown): string {
     .trim();
 }
 
+import { crossKeys, crossScriptMatch } from './crossScript';
+
 interface PersonLike { name?: string; nameArabic?: string; nameEnglish?: string; otherNames?: string[]; uri?: string; authorityLinks?: string[] }
 export interface SearchableWork {
   title?: string; subtitle?: string; summaryArabic?: string; summaryEnglish?: string; series?: string;
@@ -51,11 +53,13 @@ interface Field { weight: number; ar: string; text: string }
 // whose author's entity also has "ابن خلدون"). Empty until loaded; the search works without it, as before.
 let entityForms = new Map<string, string[]>();
 let cache = new WeakMap<object, Field[]>();
+let crossCache = new WeakMap<object, { keys: Set<string>; arabic: boolean; latin: boolean }>();
 
 /** Gives the search every entity's names (from names.json); the books' search fields are made again with them. */
 export function setEntityNames(forms: Record<string, string[]> | Map<string, string[]>): void {
   entityForms = forms instanceof Map ? forms : new Map(Object.entries(forms || {}));
   cache = new WeakMap();
+  crossCache = new WeakMap();
 }
 
 /** The names of the entities at these addresses (each address once). */
@@ -101,6 +105,33 @@ const fieldsFor = (w: SearchableWork) => {
 export interface Match { score: number; reason: string }
 
 /**
+ * The title and name words of a work as cross-script keys (crossScript.ts). Subject headings are left out: they
+ * are ordinary words ("القرن", century), where a match by consonants alone is too often wrong.
+ */
+function crossFor(w: SearchableWork) {
+  let c = crossCache.get(w);
+  if (!c) {
+    const texts = [
+      w.title, w.subtitle, w.series, w.expressionOfHub?.label, names(w.primaryCreator), ...(w.contributors || []).map(names),
+      ...(w.containedWorks || []).map(x => `${x.title || ''} ${x.creator || ''}`),
+    ].filter((x): x is string => typeof x === 'string' && !!x);
+    const all = texts.join(' ');
+    c = { keys: crossKeys(all), arabic: /[؀-ۿ]/.test(all), latin: /[A-Za-z]/.test(all) };
+    crossCache.set(w, c);
+  }
+  return c;
+}
+
+/**
+ * The last chance: the name or title typed in the other script ("Ibn Khaldun" for "ابن خلدون", "جلجامش" for
+ * "Gilgamesh"). Ranked below every ordinary match.
+ */
+function crossMatch(w: SearchableWork, rawQuery: string): Match | null {
+  const c = crossFor(w);
+  return crossScriptMatch(rawQuery, c.keys, c.arabic, c.latin) ? { score: 25, reason: 'تطابق بالحروف الأخرى (عربي / لاتيني)' } : null;
+}
+
+/**
  * How well a work answers what was typed: a score (higher is better) and a short "why", or null when it does not.
  * The whole text found as one phrase ranks highest (as before); all the words found, in any order, ranks below it.
  */
@@ -127,13 +158,13 @@ export function matchWork(w: SearchableWork, rawQuery: string): Match | null {
 
   // 2. Every word, in any field and any order.
   const words = phrase.split(' ');
-  if (words.length < 2) return null;
+  if (words.length < 2) return crossMatch(w, rawQuery);
   let total = 0;
   let strongest: Field | null = null;
   for (const word of words) {
     let wordBest: Field | null = null;
     for (const fl of fields) if (fl.text.includes(word) && (!wordBest || fl.weight > wordBest.weight)) wordBest = fl;
-    if (!wordBest) return null;
+    if (!wordBest) return crossMatch(w, rawQuery);
     total += wordBest.weight;
     if (!strongest || wordBest.weight > strongest.weight) strongest = wordBest;
   }
