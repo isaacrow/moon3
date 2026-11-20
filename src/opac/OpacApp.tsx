@@ -1268,6 +1268,22 @@ async function downloadMarc(work: OpacWorkEntity, kind: 'mrc' | 'xml' | 'mrk', s
   }
 }
 
+/**
+ * Which copies of a book are out now, from the library's loan desk (Circulation in Moon Studio); nothing about
+ * who has them. inUse is false until the library lends from Moon, and the copies then keep "ask the library".
+ */
+function useLoanStatus(recordId?: string) {
+  const [state, setState] = useState<{ inUse: boolean; out: Array<{ itemId?: string; barcode?: string; due: string }> } | null>(null);
+  useEffect(() => {
+    if (!recordId) return;
+    let live = true;
+    fetch(`${MOON_API}/circulation/availability/${encodeURIComponent(recordId)}`, { headers: moonHeaders() })
+      .then(r => (r.ok ? r.json() : null)).then(d => { if (live && d) setState(d); }).catch(() => {});
+    return () => { live = false; };
+  }, [recordId]);
+  return state;
+}
+
 function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
   const work = useMemo(() => wolfMoonOpacService.getWorkByIdOrUri(id), [id, ctx.rev]);
   useRecordHead(work);
@@ -1278,6 +1294,7 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
     : []), [work]);
   const [citeOpen, setCiteOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const loanStatus = useLoanStatus(work?.id);
   // The other records of the same Work (S11 clustering): its editions and translations.
   const decisions = useWorkDecisions();
   const editions = useMemo(() => {
@@ -1471,11 +1488,15 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
                       <div className="lib-name">{lib || t('المكتبة', 'The library')} <span className="n">{here.length === 1 ? t('نسخة واحدة', '1 copy') : here.length === 2 ? t('نسختان', '2 copies') : t(`${here.length} نسخ`, `${here.length} copies`)}</span></div>
                       {here.map(c => {
                         const where = String(c.heldBy || '').split(' — ').slice(1).join(' — ');
-                        const s = c.status && c.status !== 'not_connected' ? c.status : 'not_connected';
+                        let s = c.status && c.status !== 'not_connected' ? c.status : 'not_connected';
+                        // The loan desk knows: on loan until a date, or on the shelf.
+                        const out = loanStatus?.out.find(o => (o.itemId && (o.itemId === c.id || o.itemId === c.uri)) || (!!o.barcode && o.barcode === c.barcode));
+                        if (loanStatus?.inUse && (s === 'not_connected' || s === 'available' || s === 'checked_out')) s = out ? 'checked_out' : 'available';
+                        const back = out?.due ? new Date(out.due).toLocaleDateString(t('ar-EG', 'en-GB'), { day: 'numeric', month: 'long' }) : '';
                         return (
                           <div key={c.id} className="copy">
                             <span className="t">{[where, c.shelfMark && t(`الرف ${c.shelfMark}`, `Shelf ${c.shelfMark}`)].filter(Boolean).join(' · ') || t('نسخة', 'Copy')}</span>
-                            <span className="status" data-s={s}>{s === 'not_connected' ? t('اسأل المكتبة عن إتاحتها', 'Ask the library if it is available') : STATUS_LABEL()[s] || s}</span>
+                            <span className="status" data-s={s}>{s === 'not_connected' ? t('اسأل المكتبة عن إتاحتها', 'Ask the library if it is available') : STATUS_LABEL()[s] || s}{s === 'checked_out' && back ? t(` · يعود ${back}`, ` · due back ${back}`) : ''}</span>
                             <span className="m">{[c.copyNumber && t(`نسخة رقم ${c.copyNumber}`, `Copy ${c.copyNumber}`), c.barcode && t(`الباركود ${c.barcode}`, `Barcode ${c.barcode}`), ...(c.notes || [])].filter(Boolean).join(t('، ', ', '))}</span>
                             {c.accessUrl && <a className="link-btn" href={c.accessUrl} target="_blank" rel="noreferrer">{t('افتح النسخة الرقمية', 'Open the digital copy')}</a>}
                             {(c.binding || c.condition || c.marks?.length || c.actions?.length) ? (

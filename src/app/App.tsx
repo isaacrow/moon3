@@ -10,6 +10,7 @@ import { LoginPage } from './components/LoginPage';
 import { TopNavBar } from './components/TopNavBar';
 import { SECTIONS, SectionPage, SectionPath, runTask, sectionById, type SectionId, type Task } from './components/StudioSections';
 import { toast } from 'sonner';
+import { CirculationDesk, ExternalLoanSystem } from './components/CirculationDesk';
 import { Toaster } from './components/ui/sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BASE_URI } from '../services/uriMintingService';
@@ -33,9 +34,9 @@ const EntitiesPage = React.lazy(() => import('./components/EntitiesPage').then(m
 // Moon Studio (Wolf Moon) is the one editor. The tools around it: dashboard, author finder, record
 // list, search and audit log. The public OPAC is served by main.tsx / opac.html.
 type ViewMode = 'dashboard' | 'wolf-moon' | 'author-finder' | 'all-records' | 'search' | 'activity-log' | 'entities'
-  | SectionId | 'new-record';
+  | SectionId | 'new-record' | 'desk';
 const VIEW_MODES: ViewMode[] = ['dashboard', 'wolf-moon', 'author-finder', 'all-records', 'search', 'activity-log', 'entities', 'new-record',
-  'acquisitions', 'technical', 'circulation', 'catalogue'];
+  'acquisitions', 'technical', 'circulation', 'catalogue', 'desk'];
 
 // Each screen has its own address, so a refresh or a shared link opens the same screen:
 // /dashboard/, /moon/ (Moon Studio), /records/, /search/, /authors/, /activity/, /entities/.
@@ -54,6 +55,8 @@ const VIEW_PATHS: Record<ViewMode, string> = {
   'catalogue': 'catalogue',
   // Technical services > New record: choose the kind of material, then print or electronic.
   'new-record': 'new',
+  // Circulation > the loan desk (?tab=patrons|loans|holds|rules).
+  'desk': 'desk',
 };
 export const ROUTED_PATHS = Object.values(VIEW_PATHS);
 
@@ -74,8 +77,12 @@ function viewFromLocation(): ViewMode {
   return match || 'dashboard';
 }
 
-function urlFor(view: ViewMode, recordId?: string): string {
-  return `${siteRoot()}${VIEW_PATHS[view]}/${recordId ? `?record=${encodeURIComponent(recordId)}` : ''}`;
+function urlFor(view: ViewMode, recordId?: string, tab?: string): string {
+  const q = new URLSearchParams();
+  if (recordId) q.set('record', recordId);
+  if (tab) q.set('tab', tab);
+  const qs = q.toString();
+  return `${siteRoot()}${VIEW_PATHS[view]}/${qs ? `?${qs}` : ''}`;
 }
 
 function getMainTitle(node: any): string {
@@ -109,9 +116,9 @@ function CatalogApp() {
   const [viewMode, setViewMode] = useState<ViewMode>(viewFromLocation);
 
   // Shows a screen and puts its address in the browser (Back/Forward and refresh follow it).
-  const navigate = (view: ViewMode, recordId?: string, replace = false) => {
+  const navigate = (view: ViewMode, recordId?: string, replace = false, tab?: string) => {
     setViewMode(view);
-    const url = urlFor(view, recordId);
+    const url = urlFor(view, recordId, tab);
     if (url !== window.location.pathname + window.location.search) {
       window.history[replace ? 'replaceState' : 'pushState'](null, '', url);
     }
@@ -282,12 +289,17 @@ function CatalogApp() {
 
   const toDashboard = () => navigate('dashboard');
   const runSectionTask = (task: Task) => runTask(task, {
-    view: (v) => navigate(VIEW_MODES.includes(v as ViewMode) ? (v as ViewMode) : 'dashboard'),
+    view: (v, tab) => {
+      navigate(VIEW_MODES.includes(v as ViewMode) ? (v as ViewMode) : 'dashboard', undefined, false, tab);
+      // The desk reads its tab from the address; tell an open desk it changed.
+      if (v === 'desk') window.dispatchEvent(new PopStateEvent('popstate'));
+    },
     newRecord: () => chooseNewRecord(false),
     marcEditor: () => chooseNewRecord(true),
   });
   const currentSection = (SECTIONS.find((sec) => sec.id === viewMode)?.id
-    ?? (['wolf-moon', 'new-record', 'all-records', 'search', 'entities', 'author-finder', 'activity-log'].includes(viewMode) ? 'technical' : undefined)) as SectionId | undefined;
+    ?? (['wolf-moon', 'new-record', 'all-records', 'search', 'entities', 'author-finder', 'activity-log'].includes(viewMode) ? 'technical'
+      : viewMode === 'desk' ? 'circulation' : undefined)) as SectionId | undefined;
 
   const withNav = (content: React.ReactNode, className = '') => (
     <div className={`${darkMode ? 'dark' : ''} ${className}`}>
@@ -387,12 +399,21 @@ function CatalogApp() {
         'liquid-glass-spatial-canvas min-h-screen py-2'
       );
       break;
+    case 'desk':
+      screen = withNav(
+        <ErrorBoundary fallbackTitle="Loan desk" onReset={toDashboard}>
+          <CirculationDesk isAr={isAr} onOpenRecord={openRecordById} />
+        </ErrorBoundary>,
+        'liquid-glass-spatial-canvas min-h-screen py-2'
+      );
+      break;
     case 'acquisitions':
     case 'technical':
     case 'circulation':
     case 'catalogue':
       screen = withNav(
         <SectionPage section={sectionById(viewMode)} isAr={isAr} isSuperAdmin={isSuperAdmin} onRun={runSectionTask}>
+          {viewMode === 'circulation' ? <ExternalLoanSystem isAr={isAr} /> : null}
           {viewMode === 'catalogue' && isSuperAdmin ? (
             <>
               <OpacVisitsCard isAr={isAr} />
