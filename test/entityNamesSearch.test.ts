@@ -12,10 +12,11 @@ const palaceWalk: SearchableWork = {
   subjects: [{ label: 'Sufism', uri: TOPIC }],
 };
 
-test('without the entity names, a Latin search does not find an Arabic-only author', () => {
+test('without the entity names, a Latin search finds an Arabic-only author only by its letters, ranked low', () => {
   setEntityNames({});
-  assert.equal(matchWork(palaceWalk, 'Mahfuz'), null);
-  assert.equal(matchWork(palaceWalk, 'التصوف'), null);
+  // Cross-script keys (crossScript.ts): found, but below every ordinary match; the entity names rank it higher.
+  assert.equal(matchWork(palaceWalk, 'Mahfuz')!.score, 25);
+  assert.equal(matchWork(palaceWalk, 'التصوف'), null, 'subjects are not crossed by letters');
 });
 
 test('with them, the book is found by any of its author\'s and subjects\' names, in either script', () => {
@@ -30,9 +31,9 @@ test('with them, the book is found by any of its author\'s and subjects\' names,
 
 test('loading new names makes the search fields again (no stale cache)', () => {
   setEntityNames({});
-  assert.equal(matchWork(palaceWalk, 'Mahfouz'), null);
+  assert.equal(matchWork(palaceWalk, 'Mahfouz')!.score, 25, 'by its letters only');
   setEntityNames(new Map([[AGENT, ['نجيب محفوظ', 'Mahfouz, Naguib']]]));
-  assert.ok(matchWork(palaceWalk, 'Mahfouz'));
+  assert.equal(matchWork(palaceWalk, 'Mahfouz')!.score, 70, 'now by the entity name, as an author');
 });
 
 test('entityNamesOf: each address once, unknown addresses give nothing', () => {
