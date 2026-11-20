@@ -8,7 +8,7 @@ import { useThemeSafe } from './hooks/useThemeSafe';
 import { BIBFRAMEWork, BIBFRAMEInstance, BIBFRAMERecord } from './types/bibframe';
 import { LoginPage } from './components/LoginPage';
 import { TopNavBar } from './components/TopNavBar';
-import { SECTIONS, SectionPage, runTask, sectionById, type SectionId, type Task } from './components/StudioSections';
+import { SECTIONS, SectionPage, SectionPath, runTask, sectionById, type SectionId, type Task } from './components/StudioSections';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -287,6 +287,9 @@ function CatalogApp() {
         onOpenSection={(id) => navigate(id)}
         onRunTask={runSectionTask}
       />
+      {currentSection && currentSection !== viewMode && (
+        <SectionPath isAr={isAr} sectionId={currentSection} taskView={viewMode} onOpenSection={(id) => navigate(id)} />
+      )}
       {content}
     </div>
   );
