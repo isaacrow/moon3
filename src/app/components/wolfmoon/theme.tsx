@@ -5,7 +5,7 @@ import {
   BookOpen, 
   
   Music, Map, 
-  Newspaper, Archive
+  Newspaper, Archive, Image as ImageIcon
   
   
   
@@ -87,6 +87,7 @@ export const TEMPLATE_ICONS: Record<string, React.ReactNode> = {
   manuscript: <Archive className="h-4 w-4" />,
   music: <Music className="h-4 w-4" />,
   map: <Map className="h-4 w-4" />,
+  "still-image": <ImageIcon className="h-4 w-4" />,
 };
 
 export type BMTheme = typeof BM_DARK;

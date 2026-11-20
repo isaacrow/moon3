@@ -599,6 +599,55 @@ export const MAP_TEMPLATE: CatalogingTemplate = {
 };
 
 /**
+ * STILL IMAGE TEMPLATE
+ * Pictures, photographs, posters and postage stamps (Technical services > New record > Picture / Postage stamp)
+ */
+export const STILL_IMAGE_TEMPLATE: CatalogingTemplate = {
+  id: 'still-image',
+  name: 'Picture / Stamp',
+  description: 'Template for pictures, photographs, posters and postage stamps',
+  resourceType: 'http://id.loc.gov/ontologies/bibframe/StillImage',
+  icon: 'Image',
+  enableExpression: false,
+  enableRelationships: true,
+  entities: {
+    work: [
+      { title: 'Title', fields: [{ property: 'bf:title', required: true }], defaultExpanded: true },
+      { title: 'Creators', fields: [{ property: 'bf:contribution', repeatable: true }], defaultExpanded: true },
+      {
+        title: 'Subject and form',
+        fields: [
+          { property: 'bf:subject', repeatable: true },
+          { property: 'bf:genreForm', repeatable: true },
+          { property: 'bf:geographicCoverage', repeatable: true },
+          { property: 'bf:temporalCoverage', repeatable: true }
+        ],
+        defaultExpanded: true
+      }
+    ],
+    instance: [
+      {
+        title: 'Instance',
+        fields: [
+          { property: 'bf:instanceOf', required: true },
+          { property: 'bf:provisionActivity' },
+          { property: 'bf:extent' },
+          { property: 'bf:dimensions' },
+          { property: 'bf:baseMaterial' },
+          { property: 'bf:colorContent' },
+          { property: 'bf:carrier' },
+          { property: 'bf:note', repeatable: true }
+        ],
+        defaultExpanded: true
+      }
+    ],
+    item: [
+      { title: 'Holdings', fields: [{ property: 'bf:itemOf', required: true }, { property: 'bf:heldBy' }, { property: 'bf:shelfMark' }], defaultExpanded: true }
+    ]
+  }
+};
+
+/**
  * Template Registry
  */
 export const TEMPLATE_REGISTRY: Record<string, CatalogingTemplate> = {
@@ -606,7 +655,8 @@ export const TEMPLATE_REGISTRY: Record<string, CatalogingTemplate> = {
   'serial': SERIAL_TEMPLATE,
   'manuscript': MANUSCRIPT_TEMPLATE,
   'music': MUSIC_TEMPLATE,
-  'map': MAP_TEMPLATE
+  'map': MAP_TEMPLATE,
+  'still-image': STILL_IMAGE_TEMPLATE
 };
 
 /**
