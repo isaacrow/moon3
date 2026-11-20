@@ -11,8 +11,10 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import {
-  Search, Bookmark, BookmarkCheck, Quote, Link2, X, Menu, Download, Copy, Check, ArrowUpRight,
+  Search, Bookmark, BookmarkCheck, Quote, Link2, X, Menu, Download, Copy, Check, ArrowUpRight, Mail, Printer, SlidersHorizontal,
 } from 'lucide-react';
+import { FIELDS, FIELD_PARAM_KEYS, ADVANCED_KEYS, readAdvanced, hasAdvanced, applyFieldSearch, advancedParams, type FieldKey, type Advanced } from './fieldSearch';
+import { generateCitations } from './citations';
 import {
   wolfMoonOpacService,
   OpacWorkEntity,
@@ -114,7 +116,7 @@ function viewFromUrl(): View {
 function urlFor(v: View): string {
   const u = new URL(window.location.href);
   ['work', 'person', 'subject', 'hub', 'place', 'publisher', 'series', 'genre', 'dir', 'q', 'view', 'sort', 'page'].forEach(k => u.searchParams.delete(k));
-  [...u.searchParams.keys()].filter(k => k.startsWith('f_')).forEach(k => u.searchParams.delete(k));
+  [...u.searchParams.keys()].filter(k => k.startsWith('f_') || FIELD_PARAM_KEYS.includes(k)).forEach(k => u.searchParams.delete(k));
   if (v.mode === 'work') u.searchParams.set('work', v.id);
   if (v.mode === 'person') u.searchParams.set('person', v.key);
   if (v.mode === 'subject') u.searchParams.set('subject', v.key);
@@ -126,7 +128,7 @@ function urlFor(v: View): string {
   if (v.mode === 'search') {
     u.searchParams.set('q', v.query);
     // Back to a filtered list: its filters, sort and page come along.
-    new URLSearchParams(v.params || '').forEach((val, k) => { if (k.startsWith('f_') || k === 'sort' || k === 'page') u.searchParams.append(k, val); });
+    new URLSearchParams(v.params || '').forEach((val, k) => { if (k.startsWith('f_') || k === 'sort' || k === 'page' || FIELD_PARAM_KEYS.includes(k)) u.searchParams.append(k, val); });
   }
   return u.toString();
 }
@@ -389,7 +391,7 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
         {!ready ? <Loading /> : (
           <div className="view" key={viewKey(view)}>
             {view.mode === 'home' && <Home ctx={ctx} />}
-            {view.mode === 'search' && <Results key={view.query} ctx={ctx} query={view.query} />}
+            {view.mode === 'search' && <Results key={`${view.query}|${view.params || ''}`} ctx={ctx} query={view.query} />}
             {view.mode === 'work' && <WorkPage key={view.id} ctx={ctx} id={view.id} />}
             {view.mode === 'person' && <PersonPage key={view.key} ctx={ctx} k={view.key} />}
             {view.mode === 'subject' && <SubjectPage key={view.key} ctx={ctx} k={view.key} />}
@@ -527,8 +529,10 @@ function PersonCard({ p, ctx, i }: { p: OpacPersonEntity; ctx: Ctx; i?: number }
   );
 }
 
-function SearchBox({ ctx, initial = '', autoFocus, compact }: { ctx: Ctx; initial?: string; autoFocus?: boolean; compact?: boolean }) {
+function SearchBox({ ctx, initial = '', autoFocus, compact, initialField = 'all' }: { ctx: Ctx; initial?: string; autoFocus?: boolean; compact?: boolean; initialField?: FieldKey }) {
   const [q, setQ] = useState(initial);
+  // Which field the words are looked for in (Regina, VuFind and Libris offer the same menu).
+  const [field, setField] = useState<FieldKey>(initialField);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const ref = useRef<HTMLDivElement>(null);
@@ -555,13 +559,17 @@ function SearchBox({ ctx, initial = '', autoFocus, compact }: { ctx: Ctx; initia
     ];
   }, [s]);
 
-  const submit = () => { setOpen(false); ctx.go({ mode: 'search', query: q.trim() }); };
+  const submit = () => { setOpen(false); ctx.go({ mode: 'search', query: q.trim(), params: field !== 'all' ? `in=${field}` : undefined }); };
 
   let lastKind = '';
   return (
     <div className="search" ref={ref} role="search">
       <form className={`search-field glass ${compact ? 'compact' : ''}`} onSubmit={e => { e.preventDefault(); active >= 0 && items[active] ? ctx.go(items[active].view) : submit(); }}>
         <Search size={22} strokeWidth={1.8} aria-hidden="true" />
+        <label className="sr-only" htmlFor="opac-field">{t('ابحث في', 'Search in')}</label>
+        <select id="opac-field" className="field-select" value={field} onChange={e => setField(e.target.value as FieldKey)}>
+          {FIELDS.map(f => <option key={f.key} value={f.key}>{t(f.ar, f.en)}</option>)}
+        </select>
         <label className="sr-only" htmlFor="opac-q">{t('ابحث في الفهرس', 'Search the catalogue')}</label>
         <input
           id="opac-q" ref={inputRef} value={q} autoFocus={autoFocus} autoComplete="off"
@@ -962,8 +970,49 @@ function FacetGroup({ title, k, values, sel, onToggle, needle, startOpen }: {
   );
 }
 
+/** Advanced search: words per field and a year range, all of them together (?ti=&au=&su=&pb=&se=&sn=&cn=&y1=&y2=). */
+function AdvancedSearch({ ctx, query, adv }: { ctx: Ctx; query: string; adv: Advanced }) {
+  const startOpen = hasAdvanced(adv) || new URLSearchParams(window.location.search).get('adv') === '1';
+  const [vals, setVals] = useState<Advanced['fields']>(adv.fields);
+  const [y1, setY1] = useState(adv.yearFrom ? String(adv.yearFrom) : '');
+  const [y2, setY2] = useState(adv.yearTo ? String(adv.yearTo) : '');
+  const run = (e: React.FormEvent) => {
+    e.preventDefault();
+    const p = advancedParams({ fields: vals, yearFrom: Number(y1) || undefined, yearTo: Number(y2) || undefined });
+    ctx.go({ mode: 'search', query, params: p.toString() || 'adv=1' });
+  };
+  const fields = FIELDS.filter(f => f.key !== 'all') as Array<{ key: Exclude<FieldKey, 'all'>; ar: string; en: string }>;
+  return (
+    <details className="advanced glass" open={startOpen}>
+      <summary><SlidersHorizontal size={16} aria-hidden="true" />{t('البحث المتقدم', 'Advanced search')}</summary>
+      <form onSubmit={run} className="advanced-form">
+        {fields.map(f => (
+          <label key={f.key}>
+            <span>{t(f.ar, f.en)}</span>
+            <input name={ADVANCED_KEYS[f.key]} value={vals[f.key] || ''} dir="auto" onChange={e => setVals(v => ({ ...v, [f.key]: e.target.value }))} />
+          </label>
+        ))}
+        <label>
+          <span>{t('سنة النشر من', 'Published from')}</span>
+          <input inputMode="numeric" value={y1} onChange={e => setY1(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))} placeholder="1900" dir="ltr" />
+        </label>
+        <label>
+          <span>{t('إلى', 'to')}</span>
+          <input inputMode="numeric" value={y2} onChange={e => setY2(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))} placeholder="2026" dir="ltr" />
+        </label>
+        <div className="advanced-actions">
+          <button type="submit" className="btn-black">{t('ابحث', 'Search')}</button>
+          {hasAdvanced(adv) && <button type="button" className="btn-ghost" onClick={() => ctx.go({ mode: 'search', query })}>{t('مسح البحث المتقدم', 'Clear advanced search')}</button>}
+        </div>
+      </form>
+    </details>
+  );
+}
+
 function Results({ ctx, query }: { ctx: Ctx; query: string }) {
   const initial = useMemo(() => readState(new URLSearchParams(window.location.search)), [query]);
+  const adv = useMemo(() => readAdvanced(new URLSearchParams(window.location.search)), [query]);
+  const advanced = hasAdvanced(adv);
   const [sel, setSel] = useState<Selection>(initial.sel);
   const [sort, setSort] = useState<SortKey>(initial.sort);
   const partial = useMemo(() => (query.trim() ? wolfMoonOpacService.partialMatches(query, 6) : []), [query, ctx.rev]);
@@ -973,8 +1022,12 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
 
   // Every work matching the words, in order of relevance; the filters and the sort apply on top.
   const base = useMemo(
-    () => wolfMoonOpacService.searchWorks(query, 'all', 'all', 'all', 'all', 'relevance', 1, 100000).works,
-    [query, ctx.rev],
+    () => {
+      const found = wolfMoonOpacService.searchWorks(query, 'all', 'all', 'all', 'all', 'relevance', 1, 100000).works;
+      // A search limited to one field, and the advanced search, keep only the works that answer them.
+      return adv.inField !== 'all' || advanced ? applyFieldSearch(found as any[], query, adv) as typeof found : found;
+    },
+    [query, ctx.rev, adv, advanced],
   );
   // Close matches (a word inside another word) by default; "exact words only" keeps whole words.
   const [exact, setExact] = useState(() => new URLSearchParams(window.location.search).get('exact') === '1');
@@ -1022,9 +1075,10 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
     <div className="wrap">
       <div className="page-head">
         <Crumbs ctx={ctx} items={[{ label: query ? t('نتائج البحث', 'Search results') : t('الكتب', 'Books') }]} />
-        <h1 className="page-title">{query ? t(`نتائج «${query}»`, `Results for “${query}”`) : t('كل الكتب', 'All books')}</h1>
+        <h1 className="page-title">{query ? t(`نتائج «${query}»`, `Results for “${query}”`) : advanced ? t('نتائج البحث المتقدم', 'Advanced search results') : t('كل الكتب', 'All books')}</h1>
       </div>
-      <div style={{ maxWidth: 720 }}><SearchBox ctx={ctx} initial={query} compact /></div>
+      <div style={{ maxWidth: 720 }}><SearchBox ctx={ctx} initial={query} compact initialField={adv.inField} /></div>
+      <AdvancedSearch ctx={ctx} query={query} adv={adv} />
 
       <div className="results-layout">
         <aside className={`filters glass ${showFilters ? 'open' : ''}`} aria-label={t('تضييق النتائج', 'Narrow the results')}>
@@ -1324,6 +1378,10 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
             </button>
             <button className="btn-ghost" onClick={() => { reportAction('cite'); setCiteOpen(true); }}><Quote size={16} />{t('استشهد', 'Cite')}</button>
             <button className="btn-ghost" onClick={copyLink}><Link2 size={16} />{t('انسخ الرابط', 'Copy link')}</button>
+            <a className="btn-ghost" href={`mailto:?subject=${encodeURIComponent(work.title)}&body=${encodeURIComponent(`${citeOf(work).apa}\n\n${pageUrl(work.id)}`)}`} onClick={() => reportAction('export')}>
+              <Mail size={16} />{t('أرسل بالبريد', 'Email')}
+            </a>
+            <button className="btn-ghost" onClick={() => { reportAction('export'); window.print(); }}><Printer size={16} />{t('اطبع', 'Print')}</button>
           </div>
         </aside>
 
@@ -1526,7 +1584,8 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
               <button className="inline-link" onClick={() => downloadMarc(work, 'mrc', ctx.say)}>MARC 21 (ISO 2709)</button>
               <button className="inline-link" onClick={() => downloadMarc(work, 'xml', ctx.say)}>MARCXML</button>
               <button className="inline-link" onClick={() => downloadMarc(work, 'mrk', ctx.say)}>MarcEdit (.mrk)</button>
-              <button className="inline-link" onClick={() => download(`${work.id}.bib`, wolfMoonOpacService.generateCitations(work).bibtex + '\n', 'application/x-bibtex')}>BibTeX (.bib)</button>
+              <button className="inline-link" onClick={() => download(`${work.id}.bib`, citeOf(work).bibtex + '\n', 'application/x-bibtex')}>BibTeX (.bib)</button>
+              <button className="inline-link" onClick={() => download(`${work.id}.ris`, citeOf(work).ris + '\r\n', 'application/x-research-info-systems')}>RIS (EndNote, Zotero)</button>
             </div>
             <div className="dl-links">
               <span className="lbl">{t('الترخيص', 'Licence')}</span>
@@ -1552,11 +1611,16 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
   );
 }
 
+/** Citations with the record's permanent address (never a local or sample address). */
+function citeOf(work: OpacWorkEntity) {
+  return generateCitations({ ...(work as any), uri: workUri(work as any) });
+}
+
 function CiteDialog({ work, ctx, onClose }: { work: OpacWorkEntity; ctx: Ctx; onClose: () => void }) {
-  const c = useMemo(() => wolfMoonOpacService.generateCitations(work), [work]);
+  const c = useMemo(() => citeOf(work), [work]);
   const [copied, setCopied] = useState<string | null>(null);
   useEscape(onClose);
-  const rows: [string, string][] = [['APA', c.apa], ['Chicago', c.chicago], ['MLA', c.mla], ['BibTeX', c.bibtex]];
+  const rows: [string, string][] = [['APA', c.apa], ['Chicago', c.chicago], ['MLA', c.mla], ['BibTeX', c.bibtex], ['RIS', c.ris]];
   return (
     <>
       <div className="scrim" onClick={onClose} />
@@ -1570,10 +1634,16 @@ function CiteDialog({ work, ctx, onClose }: { work: OpacWorkEntity; ctx: Ctx; on
             <div key={k}>
               <div style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 6 }}>{k}</div>
               <div className="cite-row">
-                <div className="cite" style={k === 'BibTeX' ? { direction: 'ltr', textAlign: 'left', fontFamily: 'ui-monospace, Consolas, monospace', fontSize: 13, whiteSpace: 'pre-wrap' } : undefined}>{v}</div>
+                <div className="cite" dir="auto" style={k === 'BibTeX' || k === 'RIS' ? { direction: 'ltr', textAlign: 'left', fontFamily: 'ui-monospace, Consolas, monospace', fontSize: 13, whiteSpace: 'pre-wrap' } : undefined}>{v}</div>
                 <button className="icon-btn" aria-label={t(`انسخ ${k}`, `Copy ${k}`)} onClick={() => { navigator.clipboard?.writeText(v); setCopied(k); ctx.say(t(`نُسخ استشهاد ${k}`, `${k} citation copied`)); }}>
                   {copied === k ? <Check size={18} /> : <Copy size={18} />}
                 </button>
+                {k === 'RIS' && (
+                  <button className="icon-btn" aria-label={t('نزّل ملف ‎.ris', 'Download the .ris file')} title=".ris (EndNote, Zotero, Mendeley)"
+                    onClick={() => { download(`${work.id}.ris`, v + '\r\n', 'application/x-research-info-systems'); ctx.say(t('نُزّل ملف ‎.ris', '.ris file downloaded')); }}>
+                    <Download size={18} />
+                  </button>
+                )}
                 {k === 'BibTeX' && (
                   <button className="icon-btn" aria-label={t('نزّل ملف ‎.bib', 'Download the .bib file')} title=".bib"
                     onClick={() => { download(`${work.id}.bib`, v + '\n', 'application/x-bibtex'); ctx.say(t('نُزّل ملف ‎.bib', '.bib file downloaded')); }}>
