@@ -111,7 +111,9 @@ jobs:
         if: env.SUPABASE_ACCESS_TOKEN != ''
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: "latest" asks GitHub which release is newest, and that call can hit a rate limit (it
+          # stopped the deploy of #173 once). Raise the number on purpose when a newer CLI is needed.
+          version: 3.2.0
 
       - name: Deploy make-server-49c0e13c
         if: env.SUPABASE_ACCESS_TOKEN != ''
