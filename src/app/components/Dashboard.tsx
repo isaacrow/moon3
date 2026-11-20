@@ -11,6 +11,7 @@ import { importSampleRecords, SAMPLE_MAX } from '../utils/sampleRecords';
 import { ActivityLog } from './ActivityLog';
 import { StorageUsageCard } from './StorageUsageCard';
 import { OpacVisitsCard } from './OpacVisitsCard';
+import { SectionCards } from './StudioSections';
 import { OpacInsightsCard } from './OpacInsightsCard';
 import { CopiesImportCard } from './CopiesImportCard';
 import { SummaryDraftsCard } from './SummaryDraftsCard';
@@ -460,6 +461,8 @@ Each is a real edition from Open Library; its author is linked to Wikidata, LC a
             )}
           </div>
         </div>
+
+        <SectionCards isAr={isAr} onOpenSection={(id) => onNavigate?.(id)} />
 
         {isSuperAdmin && <StorageUsageCard isAr={isAr} />}
 

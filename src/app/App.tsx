@@ -8,6 +8,7 @@ import { useThemeSafe } from './hooks/useThemeSafe';
 import { BIBFRAMEWork, BIBFRAMEInstance, BIBFRAMERecord } from './types/bibframe';
 import { LoginPage } from './components/LoginPage';
 import { TopNavBar } from './components/TopNavBar';
+import { SECTIONS, SectionPage, SectionPath, runTask, sectionById, type SectionId, type Task } from './components/StudioSections';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -23,12 +24,16 @@ const AuthorFinder = React.lazy(() => import('./components/AuthorFinder'));
 const RecordsGallery = React.lazy(() => import('./components/RecordsGallery').then(m => ({ default: m.RecordsGallery })));
 const SearchPage = React.lazy(() => import('./components/SearchPage').then(m => ({ default: m.SearchPage })));
 const ActivityLog = React.lazy(() => import('./components/ActivityLog').then(m => ({ default: m.ActivityLog })));
+const OpacVisitsCard = React.lazy(() => import('./components/OpacVisitsCard').then(m => ({ default: m.OpacVisitsCard })));
+const OpacInsightsCard = React.lazy(() => import('./components/OpacInsightsCard').then(m => ({ default: m.OpacInsightsCard })));
 const EntitiesPage = React.lazy(() => import('./components/EntitiesPage').then(m => ({ default: m.EntitiesPage })));
 
 // Moon Studio (Wolf Moon) is the one editor. The tools around it: dashboard, author finder, record
 // list, search and audit log. The public OPAC is served by main.tsx / opac.html.
-type ViewMode = 'dashboard' | 'wolf-moon' | 'author-finder' | 'all-records' | 'search' | 'activity-log' | 'entities';
-const VIEW_MODES: ViewMode[] = ['dashboard', 'wolf-moon', 'author-finder', 'all-records', 'search', 'activity-log', 'entities'];
+type ViewMode = 'dashboard' | 'wolf-moon' | 'author-finder' | 'all-records' | 'search' | 'activity-log' | 'entities'
+  | SectionId;
+const VIEW_MODES: ViewMode[] = ['dashboard', 'wolf-moon', 'author-finder', 'all-records', 'search', 'activity-log', 'entities',
+  'acquisitions', 'technical', 'circulation', 'catalogue'];
 
 // Each screen has its own address, so a refresh or a shared link opens the same screen:
 // /dashboard/, /moon/ (Moon Studio), /records/, /search/, /authors/, /activity/, /entities/.
@@ -40,6 +45,11 @@ const VIEW_PATHS: Record<ViewMode, string> = {
   'author-finder': 'authors',
   'activity-log': 'activity',
   'entities': 'entities',
+  // The four library sections (StudioSections.tsx), each with its own page.
+  'acquisitions': 'acquisitions',
+  'technical': 'technical',
+  'circulation': 'circulation',
+  'catalogue': 'catalogue',
 };
 export const ROUTED_PATHS = Object.values(VIEW_PATHS);
 
@@ -87,7 +97,9 @@ function ScreenLoading() {
 
 function CatalogApp() {
   const { darkMode, setDarkMode } = useTheme();
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
+  const { i18n } = useTranslation();
+  const isAr = i18n.language !== 'en';
   // Lets the Super Admin see who is online and when each user was last here.
   usePresenceHeartbeat(user?.username);
   const [viewMode, setViewMode] = useState<ViewMode>(viewFromLocation);
@@ -256,6 +268,12 @@ function CatalogApp() {
   }, []);
 
   const toDashboard = () => navigate('dashboard');
+  const runSectionTask = (task: Task) => runTask(task, {
+    view: (v) => navigate(VIEW_MODES.includes(v as ViewMode) ? (v as ViewMode) : 'dashboard'),
+    newRecord: handleNewRecord,
+  });
+  const currentSection = (SECTIONS.find((sec) => sec.id === viewMode)?.id
+    ?? (['wolf-moon', 'all-records', 'search', 'entities', 'author-finder', 'activity-log'].includes(viewMode) ? 'technical' : undefined)) as SectionId | undefined;
 
   const withNav = (content: React.ReactNode, className = '') => (
     <div className={`${darkMode ? 'dark' : ''} ${className}`}>
@@ -265,7 +283,13 @@ function CatalogApp() {
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
         onOpenRecord={openRecordById}
+        currentSection={currentSection}
+        onOpenSection={(id) => navigate(id)}
+        onRunTask={runSectionTask}
       />
+      {currentSection && currentSection !== viewMode && (
+        <SectionPath isAr={isAr} sectionId={currentSection} taskView={viewMode} onOpenSection={(id) => navigate(id)} />
+      )}
       {content}
     </div>
   );
@@ -330,6 +354,22 @@ function CatalogApp() {
           <EntitiesPage onBack={toDashboard} />
         </ErrorBoundary>,
         'liquid-glass-spatial-canvas min-h-screen'
+      );
+      break;
+    case 'acquisitions':
+    case 'technical':
+    case 'circulation':
+    case 'catalogue':
+      screen = withNav(
+        <SectionPage section={sectionById(viewMode)} isAr={isAr} isSuperAdmin={isSuperAdmin} onRun={runSectionTask}>
+          {viewMode === 'catalogue' && isSuperAdmin ? (
+            <>
+              <OpacVisitsCard isAr={isAr} />
+              <OpacInsightsCard isAr={isAr} />
+            </>
+          ) : null}
+        </SectionPage>,
+        'liquid-glass-spatial-canvas min-h-screen py-2'
       );
       break;
     default:

@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import moonLogo from '../../assets/white.png';
 import { TesterApprovalCenter } from './TesterApprovalCenter';
 import { NotificationBell } from './NotificationBell';
+import { SectionMenus, type SectionId, type Task } from './StudioSections';
 import '../../styles/moon-space-theme.css';
 
 interface TopNavBarProps {
@@ -32,6 +33,10 @@ interface TopNavBarProps {
   onBack?: () => void;
   /** Opens a saved record in the editor (from a notification). */
   onOpenRecord?: (recordId: string) => void;
+  /** The library section the current screen belongs to (highlighted in the menu). */
+  currentSection?: SectionId;
+  onOpenSection?: (id: SectionId) => void;
+  onRunTask?: (task: Task) => void;
 }
 
 export function TopNavBar({ 
@@ -42,6 +47,9 @@ export function TopNavBar({
   showBack,
   onBack,
   onOpenRecord,
+  currentSection,
+  onOpenSection,
+  onRunTask,
 }: TopNavBarProps) {
   const { t, i18n } = useTranslation();
   const {
@@ -240,6 +248,17 @@ export function TopNavBar({
               <LayoutDashboard className="h-3.5 w-3.5 text-slate-600" />
               <span className="hidden sm:inline">{t('dashboard')}</span>
             </motion.button>
+
+            {onOpenSection && onRunTask && (
+              <SectionMenus
+                isAr={i18n.language !== 'en'}
+                isDark={isDark}
+                isSuperAdmin={isSuperAdmin}
+                current={currentSection}
+                onOpenSection={onOpenSection}
+                onRun={onRunTask}
+              />
+            )}
 
             <motion.button
               onClick={onNewRecord}
