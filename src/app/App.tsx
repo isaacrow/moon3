@@ -31,13 +31,14 @@ const OpacVisitsCard = React.lazy(() => import('./components/OpacVisitsCard').th
 const OpacInsightsCard = React.lazy(() => import('./components/OpacInsightsCard').then(m => ({ default: m.OpacInsightsCard })));
 const NewRecordChooser = React.lazy(() => import('./components/NewRecordChooser').then(m => ({ default: m.NewRecordChooser })));
 const EntitiesPage = React.lazy(() => import('./components/EntitiesPage').then(m => ({ default: m.EntitiesPage })));
+const ManuscriptsPage = React.lazy(() => import('./components/ManuscriptsPage').then(m => ({ default: m.ManuscriptsPage })));
 
 // Moon Studio (Wolf Moon) is the one editor. The tools around it: dashboard, author finder, record
 // list, search and audit log. The public OPAC is served by main.tsx / opac.html.
 type ViewMode = 'dashboard' | 'wolf-moon' | 'author-finder' | 'all-records' | 'search' | 'activity-log' | 'entities'
-  | SectionId | 'new-record' | 'desk' | 'acq';
+  | SectionId | 'new-record' | 'desk' | 'acq' | 'manuscripts';
 const VIEW_MODES: ViewMode[] = ['dashboard', 'wolf-moon', 'author-finder', 'all-records', 'search', 'activity-log', 'entities', 'new-record',
-  'acquisitions', 'technical', 'circulation', 'catalogue', 'desk', 'acq'];
+  'acquisitions', 'technical', 'circulation', 'catalogue', 'desk', 'acq', 'manuscripts'];
 
 // Each screen has its own address, so a refresh or a shared link opens the same screen:
 // /dashboard/, /moon/ (Moon Studio), /records/, /search/, /authors/, /activity/, /entities/.
@@ -60,6 +61,8 @@ const VIEW_PATHS: Record<ViewMode, string> = {
   'desk': 'desk',
   // Acquisitions (?tab=orders|subscriptions|invoices|vendors|funds).
   'acq': 'acq',
+  // The Al-Qamar manuscripts catalogue: the Super Admin and Manuscripts accounts only.
+  'manuscripts': 'manuscripts',
 };
 export const ROUTED_PATHS = Object.values(VIEW_PATHS);
 
@@ -414,6 +417,14 @@ function CatalogApp() {
       screen = withNav(
         <ErrorBoundary fallbackTitle="Acquisitions" onReset={toDashboard}>
           <AcquisitionsDesk isAr={isAr} onOpenRecord={openRecordById} onNewRecord={() => chooseNewRecord(false)} />
+        </ErrorBoundary>,
+        'liquid-glass-spatial-canvas min-h-screen py-2'
+      );
+      break;
+    case 'manuscripts':
+      screen = withNav(
+        <ErrorBoundary fallbackTitle="Manuscripts" onReset={toDashboard}>
+          <ManuscriptsPage isAr={isAr} />
         </ErrorBoundary>,
         'liquid-glass-spatial-canvas min-h-screen py-2'
       );

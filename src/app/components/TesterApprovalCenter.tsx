@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   ShieldCheck, X, CheckCircle2, XCircle, Trash2, RefreshCw, Search, Mail, Building2, CalendarDays, Undo2, Loader2,
 } from 'lucide-react';
-import type { AuthUser } from '../contexts/AuthContext';
+import type { AccountRole, AuthUser } from '../contexts/AuthContext';
 import { UserAvatar } from './UserAvatar';
 import { formatLastSeen, sortByPresence } from '../utils/presence';
 import { InviteCodes } from './InviteCodes';
@@ -28,8 +28,9 @@ interface TesterApprovalCenterProps {
   onApprove: (username: string) => void;
   onReject: (username: string) => void;
   onDelete: (username: string) => void;
-  /** Sets an approved account's role; reviewers may approve, return and comment on others' records. */
-  onSetRole?: (username: string, role: 'tester' | 'cataloger' | 'reviewer') => void;
+  /** Sets an approved account's role; reviewers may approve, return and comment on others' records,
+   *  Manuscripts accounts open the manuscripts catalogue. */
+  onSetRole?: (username: string, role: AccountRole) => void;
   /** Shown instead of the list (e.g. the login screen's admin password form). */
   lockedContent?: React.ReactNode;
 }
@@ -286,7 +287,7 @@ export function TesterApprovalCenter({
                             {onSetRole && u.status === 'approved' && (
                               <select
                                 value={u.role}
-                                onChange={(e) => onSetRole(u.username, e.target.value as 'tester' | 'cataloger' | 'reviewer')}
+                                onChange={(e) => onSetRole(u.username, e.target.value as AccountRole)}
                                 title={ar ? 'الدور' : 'Role'}
                                 className="h-9 px-2 text-xs font-bold text-slate-800 cursor-pointer outline-none"
                                 style={PILL}
@@ -294,6 +295,7 @@ export function TesterApprovalCenter({
                                 <option value="tester" className="text-slate-900">{ar ? 'فاحص' : 'Tester'}</option>
                                 <option value="cataloger" className="text-slate-900">{ar ? 'مفهرس' : 'Cataloger'}</option>
                                 <option value="reviewer" className="text-slate-900">{ar ? 'مراجع' : 'Reviewer'}</option>
+                                <option value="manuscripts" className="text-slate-900">{ar ? 'المخطوطات' : 'Manuscripts'}</option>
                               </select>
                             )}
                             {u.status !== 'approved' && (
