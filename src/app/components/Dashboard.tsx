@@ -339,6 +339,18 @@ Each is a real edition from Open Library; its author is linked to Wikidata, LC a
       gradient: 'from-indigo-600 via-blue-600 to-sky-700',
       iconBg: 'from-indigo-400 to-sky-600'
     },
+    // The Al-Qamar manuscripts catalogue: only the Super Admin and Manuscripts accounts see this card.
+    ...(canSeeManuscripts ? [{
+      id: 'manuscripts',
+      label: isAr ? 'المخطوطات' : 'MANUSCRIPTS',
+      description: isAr
+        ? 'فهرس القمر: 107٬149 مخطوطة عربية وفارسية وعثمانية · MARC 21 / RDA'
+        : 'The Al-Qamar catalogue: 107,149 Arabic, Persian and Ottoman manuscripts · MARC 21 / RDA',
+      icon: ScrollText,
+      action: 'manuscripts',
+      gradient: 'from-amber-600 via-orange-600 to-rose-700',
+      iconBg: 'from-amber-400 to-orange-600'
+    }] : []),
   ];
 
   const formatTimestamp = (date: Date) => {
@@ -570,7 +582,7 @@ Each is a real edition from Open Library; its author is linked to Wikidata, LC a
               <div>
                 <h2 className="text-3xl font-black tracking-tight" style={{ color: '#2d3748' }}>Favorite Tools</h2>
                 <p className="text-base mt-1 font-semibold" style={{ color: '#4a5568' }}>
-                  2 tools ready for quick access
+                  {mainActions.length} tools ready for quick access
                 </p>
               </div>
             </div>
