@@ -39,13 +39,16 @@ const INVITE_PREFIX = "moon:invite:";
 const ADMIN_PASSWORD = (Deno.env.get("MOON_ADMIN_PASSWORD") || "").trim() || "Eshak1996";
 
 type AccountStatus = "pending" | "approved" | "rejected";
+export const ACCOUNT_ROLES = ["tester", "cataloger", "reviewer", "manuscripts"] as const;
+type AccountRole = typeof ACCOUNT_ROLES[number];
 
 interface StoredAccount {
   username: string;
   email: string;
   institution: string;
   // A reviewer can approve, return and comment on others' records, like the Super Admin.
-  role: "tester" | "cataloger" | "reviewer";
+  // "manuscripts" opens the Al-Qamar manuscripts catalogue (manuscriptsRoutes.tsx); only the Super Admin gives it.
+  role: AccountRole;
   status: AccountStatus;
   registeredAt: string;
   approvedAt?: string;
@@ -60,7 +63,7 @@ interface StoredAccount {
 
 interface Session {
   username: string;
-  role: "admin" | "tester" | "cataloger" | "reviewer";
+  role: "admin" | AccountRole;
   expiresAt: string;
 }
 
@@ -474,12 +477,17 @@ async function setStatus(c: any, status: AccountStatus) {
 accountRoutes.post("/api/accounts/approve", (c) => setStatus(c, "approved"));
 accountRoutes.post("/api/accounts/reject", (c) => setStatus(c, "rejected"));
 
-// The Super Admin sets an account's role: tester, cataloger or reviewer.
+/** May open the manuscripts catalogue: the Super Admin and accounts the Super Admin put in "manuscripts". */
+export function canSeeManuscripts(session: Session | null): boolean {
+  return !!session && (session.role === "admin" || session.role === "manuscripts");
+}
+
+// The Super Admin sets an account's role: tester, cataloger, reviewer or manuscripts.
 accountRoutes.post("/api/accounts/role", async (c) => {
   const admin = await isAdminSession(c);
   if (!admin) return c.json({ success: false, message: "Super Admin session required." }, 403);
   const { username, role } = await c.req.json().catch(() => ({}));
-  if (!["tester", "cataloger", "reviewer"].includes(role)) return c.json({ success: false, message: "Unknown role." }, 400);
+  if (!(ACCOUNT_ROLES as readonly string[]).includes(role)) return c.json({ success: false, message: "Unknown role." }, 400);
   const account = await findAccount(String(username || ""));
   if (!account) return c.json({ success: false, message: "Account not found." }, 404);
   account.role = role;

@@ -35,7 +35,7 @@ import {
   Zap,
   Search,
   Library,
-  Moon, Undo2, Download, Users, Code2} from 'lucide-react';
+  Moon, Undo2, Download, Users, Code2, ScrollText} from 'lucide-react';
 import moonLogoWhite from '../../assets/white.png';
 import '../../styles/glassmorphism.css';
 
@@ -101,7 +101,7 @@ interface RecentRecord {
 
 export function Dashboard({ onNavigate, onLoadRecord }: DashboardProps) {
   const { t } = useTranslation();
-  const { isAuthenticated, isSuperAdmin, canReview, user, users: accounts } = useAuth();
+  const { isAuthenticated, isSuperAdmin, canReview, canSeeManuscripts, user, users: accounts } = useAuth();
   // Who a waiting record can be assigned to: the Super Admin and approved reviewers.
   const reviewers = ['isaac', ...accounts.filter((a) => a.role === 'reviewer' && a.status === 'approved').map((a) => a.username)];
   const [showActivityLog, setShowActivityLog] = useState(false);
@@ -444,6 +444,18 @@ Each is a real edition from Open Library; its author is linked to Wikidata, LC a
               <Users className="h-4 w-4" />
               <span>{isAr ? 'الكيانات' : 'Entities'}</span>
             </button>
+            {canSeeManuscripts && (
+              <button
+                type="button"
+                onClick={() => onNavigate?.('manuscripts')}
+                className="hover:scale-105 active:scale-95 transition-all flex items-center gap-2 px-5 py-2.5 text-sm font-bold cursor-pointer"
+                style={{ ...LIQUID_GLASS_PURPLE_REPLACEMENT, color: '#0369a1' }}
+                title={isAr ? 'فهرس القمر: 107٬149 مخطوطة (للمشرف العام وحسابات المخطوطات)' : 'The Al-Qamar catalogue: 107,149 manuscripts (Super Admin and Manuscripts accounts)'}
+              >
+                <ScrollText className="h-4 w-4" />
+                <span>{isAr ? 'المخطوطات' : 'Manuscripts'}</span>
+              </button>
+            )}
             {isSuperAdmin && (
               <button
                 type="button"

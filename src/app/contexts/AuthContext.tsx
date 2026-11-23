@@ -1,11 +1,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { moonFetch } from '../utils/moonApi';
 
+/** The roles the Super Admin can give an account. "manuscripts" opens the manuscripts catalogue (/manuscripts/). */
+export type AccountRole = 'tester' | 'cataloger' | 'reviewer' | 'manuscripts';
+
 export interface AuthUser {
   username: string;
   email: string;
   institution: string;
-  role: 'admin' | 'tester' | 'cataloger' | 'reviewer';
+  role: 'admin' | AccountRole;
   status: 'pending' | 'approved' | 'rejected';
   registeredAt: string;
   approvedAt?: string;
@@ -45,6 +48,8 @@ interface AuthContextType {
   isSuperAdmin: boolean;
   /** May approve, return and comment on others' records: the Super Admin and reviewers. */
   canReview: boolean;
+  /** May open the manuscripts catalogue: the Super Admin and accounts with the Manuscripts role. */
+  canSeeManuscripts: boolean;
   username: string | null;
   user: AuthUser | null;
   accessToken: string | null;
@@ -61,7 +66,7 @@ interface AuthContextType {
   approveUser: (usernameOrEmail: string) => Promise<AdminActionResult>;
   rejectUser: (usernameOrEmail: string) => Promise<AdminActionResult>;
   deleteUser: (usernameOrEmail: string) => Promise<AdminActionResult>;
-  setUserRole: (username: string, role: 'tester' | 'cataloger' | 'reviewer') => Promise<AdminActionResult>;
+  setUserRole: (username: string, role: AccountRole) => Promise<AdminActionResult>;
   /** A server call as the Super Admin (signed in, or unlocked on the login screen); used for invite codes. */
   adminFetch: (path: string, body?: unknown) => Promise<{ ok: boolean; status: number; data: any }>;
   pendingCount: number;
@@ -261,7 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const setUserRole = useCallback(
-    async (target: string, role: 'tester' | 'cataloger' | 'reviewer'): Promise<AdminActionResult> => {
+    async (target: string, role: AccountRole): Promise<AdminActionResult> => {
       const token = adminToken();
       if (!token) return { success: false, message: 'Only the Super Admin can do this.' };
       try {
@@ -408,6 +413,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated,
         isSuperAdmin,
         canReview: isSuperAdmin || user?.role === 'reviewer',
+        canSeeManuscripts: isSuperAdmin || user?.role === 'manuscripts',
         username,
         user,
         accessToken,

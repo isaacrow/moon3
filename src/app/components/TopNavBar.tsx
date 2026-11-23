@@ -5,7 +5,7 @@ import { uploadAvatar, removeAvatar } from '../utils/avatars';
 import { moonFetch } from '../utils/moonApi';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, type AccountRole } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { LayoutDashboard, FilePlus, LogOut, Languages, ChevronLeft, Building2, Mail, ShieldCheck, Camera, ImageOff, Link2 } from 'lucide-react';
 import {
@@ -93,7 +93,7 @@ export function TopNavBar({
   };
 
   const handleApprove = (uName: string) => runAction(approveUser, uName);
-  const handleSetRole = (uName: string, role: 'tester' | 'cataloger' | 'reviewer') =>
+  const handleSetRole = (uName: string, role: AccountRole) =>
     runAction((u: string) => setUserRole(u, role), uName);
   const handleReject = (uName: string) => runAction(rejectUser, uName);
   const handleDelete = (uName: string) => {
