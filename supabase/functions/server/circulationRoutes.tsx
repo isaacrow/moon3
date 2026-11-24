@@ -25,6 +25,8 @@ import { getClient } from "./db.tsx";
 import { getSession, libraryOf } from "./accountRoutes.tsx";
 import { hookUrlProblem } from "./webhooks.tsx";
 import { historyRow } from "./readers.tsx";
+import { makeResetCode, resetExpiry } from "./readerReset.tsx";
+import { sha256Hex } from "./signInSafety.tsx";
 import {
   parseRules, dueDate, fineFor, daysOverdue, cleanCode, readPatron, copiesIn, checkoutProblem, renewProblem,
   renewedDue, holdExpiry, type Rules, type PatronKind, type FoundCopy, type PatronInput,
@@ -195,6 +197,25 @@ circulationRoutes.delete(`${P}/patrons/:id`, async (c) => {
     if (error) throw new Error(error.message);
     return c.json({ deleted: true });
   } catch (e) { return failed(c, "Removing the borrower", e); }
+});
+
+/**
+ * A one-time code for the reader to set a new password in the catalogue (readerReset.tsx), for the reader account
+ * linked to this borrower; staff give it after seeing the reader. Shown once; valid 24 hours.
+ */
+circulationRoutes.post(`${P}/patrons/:id/reader-reset`, async (c) => {
+  const st = await staffOf(c);
+  if (!st) return denied(c);
+  try {
+    const { data: patron } = await sb().from("patrons").select("reader_id").eq("id", c.req.param("id")).eq("library", st.library).maybeSingle();
+    if (!patron) return c.json({ error: "No such borrower" }, 404);
+    if (!patron.reader_id) return c.json({ error: "This borrower has no reader account linked" }, 409);
+    const code = makeResetCode();
+    const expires = resetExpiry(new Date(), "desk");
+    const { error } = await sb().from("reader_resets").insert({ code_hash: await sha256Hex(code), reader_id: patron.reader_id, via: "desk", made_by: st.username, expires_at: expires });
+    if (error) throw new Error(error.message);
+    return c.json({ code, expires });
+  } catch (e) { return failed(c, "The reset code", e); }
 });
 
 circulationRoutes.get(`${P}/patrons/:id`, async (c) => {

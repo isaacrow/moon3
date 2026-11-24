@@ -11,6 +11,9 @@
  *   DELETE /reader/history       clears the reading history
  *   PUT    /reader/saved {ids}   the saved books (the whole list)
  *   POST   /reader/holds {recordId}   DELETE /reader/holds/:id
+ *   GET    /reader/forgot            whether reset by email is set up
+ *   POST   /reader/forgot {email, lang}  emails a reset link (the same answer whether or not the account exists)
+ *   POST   /reader/reset {code, password}   sets the new password, signs out everywhere, signs in here
  */
 import { Hono } from "npm:hono";
 import * as kv from "./kv_store.tsx";
@@ -19,7 +22,8 @@ import {
   hashPassword, verifyPassword, sha256Hex, randomHex, tryKeys, lockedFor, afterWrongTry, LIMITS, clientAddress, lockMessage,
   type TryState, type TryScope,
 } from "./signInSafety.tsx";
-import { readRegistration, cleanEmail, sessionExpiry, inactiveBefore, cleanRecordId, PASSWORD_MAX } from "./readers.tsx";
+import { readRegistration, cleanEmail, sessionExpiry, inactiveBefore, cleanRecordId, PASSWORD_MAX, PASSWORD_MIN } from "./readers.tsx";
+import { makeResetCode, normalizeCode, resetExpiry, resetLink, resetEmail, sendBrevo } from "./readerReset.tsx";
 
 const readerRoutes = new Hono();
 const P = "/reader";
@@ -126,6 +130,65 @@ readerRoutes.post(`${P}/logout`, async (c) => {
   const token = c.req.header("X-Moon-Reader");
   if (token && /^[0-9a-f]{64}$/.test(token)) await sb().from("reader_sessions").delete().eq("token_hash", await sha256Hex(token));
   return c.json({ ok: true });
+});
+
+// ─── Forgotten password ──────────────────────────────────────
+
+const mailEnv = () => ({ apiKey: Deno.env.get("BREVO_API_KEY") || undefined, from: Deno.env.get("MOON_MAIL_FROM") || undefined, fromName: Deno.env.get("MOON_MAIL_NAME") || undefined });
+const siteUrl = () => Deno.env.get("MOON_SITE_URL") || "https://mooon.site";
+
+readerRoutes.get(`${P}/forgot`, (c) => c.json({ email: !!mailEnv().apiKey }));
+
+readerRoutes.post(`${P}/forgot`, async (c) => {
+  if (!mailEnv().apiKey) return c.json({ error: "no-email" }, 503);
+  const email = cleanEmail((await c.req.json().catch(() => ({}))).email);
+  if (!email) return c.json({ error: "email" }, 400);
+  // At most 5 emails for one address or one account in 15 minutes (counted like wrong tries).
+  const keys = await tryKeys(`reader-reset:${email}`, clientAddress(c.req.header("x-forwarded-for")));
+  const wait = await lockedMs(keys);
+  if (wait) return locked(c, wait);
+  await countWrong(keys);
+  try {
+    const { data: r } = await sb().from("readers").select("id, name, email").eq("email", email).maybeSingle();
+    if (r) {
+      const code = makeResetCode();
+      const { error } = await sb().from("reader_resets").insert({ code_hash: await sha256Hex(code), reader_id: r.id, via: "email", expires_at: resetExpiry(new Date(), "email") });
+      if (error) throw error;
+      const sent = await sendBrevo(mailEnv(), { email: r.email, name: r.name }, resetEmail(r.name, code, resetLink(siteUrl(), code)));
+      if (!sent) console.error("[readers] reset email was not sent");
+    }
+    // The same answer either way, so the form does not tell anyone which emails have accounts.
+    return c.json({ sent: true });
+  } catch (e: any) {
+    console.error("[readers] forgot:", e?.message || e);
+    return c.json({ error: "failed" }, 500);
+  }
+});
+
+readerRoutes.post(`${P}/reset`, async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const code = normalizeCode(body.code);
+  const password = typeof body.password === "string" ? body.password : "";
+  if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX) return c.json({ error: "password" }, 400);
+  // Wrong codes count like wrong passwords, per address.
+  const address = clientAddress(c.req.header("x-forwarded-for"));
+  const keys = await tryKeys(`reader-reset-code:${address}`, address);
+  const wait = await lockedMs(keys);
+  if (wait) return locked(c, wait);
+  try {
+    const { data: row } = code ? await sb().from("reader_resets").select("code_hash, reader_id, expires_at, used_at").eq("code_hash", await sha256Hex(code)).maybeSingle() : { data: null };
+    if (!row || row.used_at || new Date(row.expires_at).getTime() < Date.now()) { await countWrong(keys); return c.json({ error: "code" }, 400); }
+    const pw = await hashPassword(password);
+    const { error } = await sb().from("readers").update({ password_hash: pw.passwordHash, salt: pw.salt, kdf: pw.kdf, iterations: pw.iterations }).eq("id", row.reader_id);
+    if (error) throw error;
+    await sb().from("reader_resets").update({ used_at: new Date().toISOString() }).eq("reader_id", row.reader_id).is("used_at", null);
+    // Signed out everywhere (whoever had the old password), then signed in here.
+    await sb().from("reader_sessions").delete().eq("reader_id", row.reader_id);
+    return c.json({ token: await startSession(row.reader_id) });
+  } catch (e: any) {
+    console.error("[readers] reset:", e?.message || e);
+    return c.json({ error: "failed" }, 500);
+  }
 });
 
 // ─── The account ─────────────────────────────────────────────
