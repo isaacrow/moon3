@@ -7,6 +7,7 @@ import './styles/glassmorphism.css';
 import './styles/neon-theme.css';
 import './styles/classic-theme.css';
 import './styles/liquid-glass.css';
+import './styles/motion.css';
 import { installStaleChunkReload } from './app/utils/staleChunkReload';
 
 installStaleChunkReload();

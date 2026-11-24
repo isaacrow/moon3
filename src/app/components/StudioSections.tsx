@@ -350,7 +350,7 @@ export function SectionPage({ section, isAr, isSuperAdmin, onRun, children }: {
           {summary && <p className="text-sm font-bold text-slate-800 mt-1">{summary}</p>}
         </div>
       </header>
-      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <ul className="moon-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {tasks.map((t) => {
           const TIcon = t.icon;
           const soon = t.action.kind === 'soon';
@@ -392,7 +392,7 @@ export function SectionPage({ section, isAr, isSuperAdmin, onRun, children }: {
 export function SectionCards({ isAr, onOpenSection }: { isAr: boolean; onOpenSection: (id: SectionId) => void }) {
   const stats = useSectionStats();
   return (
-    <nav aria-label={isAr ? 'أقسام المكتبة' : 'Library sections'} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <nav aria-label={isAr ? 'أقسام المكتبة' : 'Library sections'} className="moon-stagger grid grid-cols-2 lg:grid-cols-4 gap-4">
       {SECTIONS.map((s) => {
         const Icon = s.icon;
         const line = sectionSummary(s.id, stats, isAr);

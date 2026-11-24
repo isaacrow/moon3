@@ -1,0 +1,86 @@
+/*
+ * Motion across Moon Studio: screens rise in when opened, lists come in one row after another, menus unfold
+ * item by item, buttons press in when clicked, glass pills and cards lift a little under the pointer.
+ * Short and soft (under half a second), and none of it for someone who asked their device for less motion.
+ */
+
+:root {
+  --moon-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --moon-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes moon-rise {
+  from { opacity: 0; transform: translateY(12px) scale(0.995); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes moon-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes moon-slide-in {
+  from { opacity: 0; transform: translateX(var(--moon-slide-from, -8px)); }
+  to { opacity: 1; transform: none; }
+}
+[dir="rtl"] { --moon-slide-from: 8px; }
+
+/* A screen or a panel that has just opened. */
+.moon-enter { animation: moon-rise 0.42s var(--moon-ease) backwards; }
+
+/* Lists and grids: each child comes in a little after the one before (the first 16; the rest with the 16th). */
+.moon-stagger > * { animation: moon-rise 0.4s var(--moon-ease) backwards; }
+.moon-stagger > *:nth-child(2) { animation-delay: 30ms; }
+.moon-stagger > *:nth-child(3) { animation-delay: 60ms; }
+.moon-stagger > *:nth-child(4) { animation-delay: 90ms; }
+.moon-stagger > *:nth-child(5) { animation-delay: 120ms; }
+.moon-stagger > *:nth-child(6) { animation-delay: 150ms; }
+.moon-stagger > *:nth-child(7) { animation-delay: 180ms; }
+.moon-stagger > *:nth-child(8) { animation-delay: 210ms; }
+.moon-stagger > *:nth-child(9) { animation-delay: 240ms; }
+.moon-stagger > *:nth-child(10) { animation-delay: 270ms; }
+.moon-stagger > *:nth-child(11) { animation-delay: 300ms; }
+.moon-stagger > *:nth-child(12) { animation-delay: 330ms; }
+.moon-stagger > *:nth-child(13) { animation-delay: 360ms; }
+.moon-stagger > *:nth-child(14) { animation-delay: 390ms; }
+.moon-stagger > *:nth-child(15) { animation-delay: 420ms; }
+.moon-stagger > *:nth-child(n + 16) { animation-delay: 450ms; }
+
+/* Menu items unfold one after another (the delay is set on each item). */
+.moon-menu-item { animation: moon-slide-in 0.28s var(--moon-ease) backwards; }
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"] { animation: moon-slide-in 0.26s var(--moon-ease) backwards; }
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"]:nth-of-type(2) { animation-delay: 25ms; }
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"]:nth-of-type(3) { animation-delay: 50ms; }
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"]:nth-of-type(4) { animation-delay: 75ms; }
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"]:nth-of-type(5) { animation-delay: 100ms; }
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"]:nth-of-type(6) { animation-delay: 125ms; }
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"]:nth-of-type(n + 7) { animation-delay: 150ms; }
+
+/* Every button answers the pointer: colours ease, and it presses in when clicked. */
+button, [role="button"], a.btn, .glass-bubble-pill {
+  transition-property: transform, box-shadow, background-color, border-color, color, opacity, filter;
+  transition-duration: 0.18s;
+  transition-timing-function: var(--moon-ease);
+}
+button:not(:disabled):active, [role="button"]:not([aria-disabled="true"]):active {
+  transform: scale(0.97);
+}
+
+/* Glass pills and cards lift a little under the pointer. */
+.glass-bubble-pill:hover { box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28); }
+.moon-lift { transition: transform 0.22s var(--moon-ease), box-shadow 0.22s var(--moon-ease); }
+.moon-lift:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14); }
+
+/* Fields: the focus ring grows in instead of snapping. */
+input, textarea, select { transition: box-shadow 0.18s var(--moon-ease), border-color 0.18s var(--moon-ease), background-color 0.18s; }
+
+/* Toasts, dialogs and menus already animate (sonner, Radix). The animations above use "backwards" fill, so once
+   they end they leave the element's own transform alone (a centred dialog stays centred). */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

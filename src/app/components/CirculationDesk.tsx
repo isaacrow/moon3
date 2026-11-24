@@ -155,11 +155,13 @@ export function CirculationDesk({ isAr, onOpenRecord }: { isAr: boolean; onOpenR
           })}
         </nav>
       </header>
-      {tab === 'desk' && <Desk isAr={isAr} onChange={loadSummary} />}
-      {tab === 'patrons' && <Patrons isAr={isAr} onChange={loadSummary} />}
-      {tab === 'loans' && <Loans isAr={isAr} onChange={loadSummary} onOpenRecord={onOpenRecord} />}
-      {tab === 'holds' && <Holds isAr={isAr} onChange={loadSummary} />}
-      {tab === 'rules' && <RulesForm isAr={isAr} canEdit={user?.role !== 'cataloger'} />}
+      <div key={tab} className="moon-enter">
+        {tab === 'desk' && <Desk isAr={isAr} onChange={loadSummary} />}
+        {tab === 'patrons' && <Patrons isAr={isAr} onChange={loadSummary} />}
+        {tab === 'loans' && <Loans isAr={isAr} onChange={loadSummary} onOpenRecord={onOpenRecord} />}
+        {tab === 'holds' && <Holds isAr={isAr} onChange={loadSummary} />}
+        {tab === 'rules' && <RulesForm isAr={isAr} canEdit={user?.role !== 'cataloger'} />}
+      </div>
       <p className="text-xs text-slate-500 mt-6 max-w-3xl">
         {isAr
           ? 'الخصوصية: تحتفظ الإعارة باسم المستفيد ما دامت النسخة عنده فقط. عند الإرجاع يُحذف الاسم من الإعارة، فلا يبقى سجل لما قرأه أحد (إلا إن بقيت عليه غرامة حتى تُسدّد).'
@@ -370,7 +372,7 @@ function Patrons({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
         {list === null ? <p className="text-sm text-slate-500">…</p> : list.length === 0 ? (
           <p className="text-sm text-slate-500">{q ? (isAr ? 'لا أحد بهذا الاسم أو الرقم.' : 'Nobody by that name or number.') : (isAr ? 'لا مستفيدين بعد. أضف أول مستفيد.' : 'No borrowers yet. Add the first one.')}</p>
         ) : (
-          <ul className="divide-y divide-slate-200">
+          <ul className="moon-stagger divide-y divide-slate-200">
             {list.map((p) => (
               <li key={p.id}>
                 <button onClick={() => { setForm(null); openPatron(p.id); }} className={`w-full text-start py-2 px-2 rounded-lg hover:bg-white/70 ${open?.patron?.id === p.id ? 'bg-white/80' : ''}`}>
@@ -486,7 +488,7 @@ function LoanList({ isAr, loans, currency, onRenew, onSettle, showBorrower, onOp
   const date = useDate(isAr);
   if (!loans.length) return <p className="text-sm text-slate-500">{isAr ? 'لا إعارات.' : 'No loans.'}</p>;
   return (
-    <ul className="divide-y divide-slate-200">
+    <ul className="moon-stagger divide-y divide-slate-200">
       {loans.map((l) => (
         <li key={l.id} className="py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <span className="flex-1 min-w-[12rem]">
@@ -581,7 +583,7 @@ function Holds({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
       </form>
       <section className="p-5" style={glass}>
         {holds === null ? <p className="text-sm text-slate-500">…</p> : holds.length === 0 ? <p className="text-sm text-slate-500">{isAr ? 'لا حجوزات.' : 'No holds.'}</p> : (
-          <ul className="divide-y divide-slate-200">
+          <ul className="moon-stagger divide-y divide-slate-200">
             {holds.map((h) => (
               <li key={h.id} className="py-2 flex flex-wrap items-center gap-3 text-sm">
                 <span className="flex-1 min-w-[12rem]">
