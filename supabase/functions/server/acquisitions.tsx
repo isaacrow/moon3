@@ -196,3 +196,44 @@ export function endingSoon<T extends { active?: boolean; end_date: string }>(sub
   return subs.filter((s) => s.active !== false && Date.parse(s.end_date) + DAY >= t && Date.parse(s.end_date) - t <= days * DAY)
     .sort((a, b) => a.end_date.localeCompare(b.end_date));
 }
+
+// ─── Received orders become copies ───────────────────────────
+
+export interface ReceiptInput { barcodes: string[]; location: string; shelfMark: string; referenceOnly: boolean; count: number }
+
+/**
+ * What staff send to add a received order's copies to its record: how many (at most the copies ordered and not
+ * yet added), their barcodes (optional, one per copy, each once), where they go on the shelves. Or why not.
+ */
+export function readReceipt(raw: any, order: { quantity: number; copies_added?: number | null }): { input: ReceiptInput } | { error: string } {
+  const left = Math.max(0, (Number(order.quantity) || 0) - (Number(order.copies_added) || 0));
+  if (!left) return { error: "Every copy of this order is already in the record" };
+  const barcodes = (Array.isArray(raw?.barcodes) ? raw.barcodes : String(raw?.barcodes || "").split(/[\s,;]+/))
+    .map((b: unknown) => (typeof b === "string" ? b.trim() : typeof b === "number" ? String(b) : ""))
+    .filter(Boolean);
+  const bad = barcodes.find((b: string) => !/^[A-Za-z0-9._-]{1,40}$/.test(b));
+  if (bad) return { error: `Not a barcode: ${bad.slice(0, 40)}` };
+  if (new Set(barcodes).size !== barcodes.length) return { error: "The same barcode is typed twice" };
+  const asked = raw?.count === undefined || raw?.count === null || raw?.count === "" ? Math.max(left, barcodes.length) : Number(raw.count);
+  if (!Number.isInteger(asked) || asked < 1) return { error: "How many copies: at least 1" };
+  if (asked > left) return { error: `Only ${left} ${left === 1 ? "copy is" : "copies are"} left to add from this order` };
+  if (barcodes.length > asked) return { error: `${barcodes.length} barcodes for ${asked} ${asked === 1 ? "copy" : "copies"}` };
+  const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
+  return { input: { barcodes, location: text(raw?.location, 120), shelfMark: text(raw?.shelfMark, 80), referenceOnly: raw?.referenceOnly === true, count: asked } };
+}
+
+/** The first Instance of a record's document (the edition the copies belong to), or null. */
+export function firstInstanceId(document: any): string | null {
+  const graph: any[] = Array.isArray(document?.["@graph"]) ? document["@graph"] : [];
+  const inst = graph.find((n) => [].concat(n?.["@type"] || []).some((t: any) => typeof t === "string" && /(^|[:/])Instance$/.test(t)));
+  return inst?.["@id"] ? String(inst["@id"]) : null;
+}
+
+/** The copies as rows for copiesImport.withCopies: the library, the order's number in the note, numbered on. */
+export function receiptRows(input: ReceiptInput, order: { number: string }, library: string, firstCopyNumber: number) {
+  return Array.from({ length: input.count }, (_, i) => ({
+    line: i + 1, record: "", isbn: "", library, location: input.location, shelfMark: input.shelfMark,
+    barcode: input.barcodes[i] || "", copyNumber: String(firstCopyNumber + i), referenceOnly: input.referenceOnly,
+    note: `Order ${order.number}`,
+  }));
+}

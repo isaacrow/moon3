@@ -95,6 +95,12 @@ const AR_ERRORS: Array<[RegExp, string]> = [
   [/^end date: after the start date/, 'تاريخ الانتهاء بعد تاريخ البدء'],
   [/^The vendor is not one/, 'المورد ليس من موردي هذه المكتبة'],
   [/^The fund is not one/, 'الصندوق ليس من صناديق هذه المكتبة'],
+  [/^Every copy of this order is already/, 'كل نسخ هذا الطلب في التسجيلة'],
+  [/^No record has this number/, 'لا تسجيلة بهذا الرقم'],
+  [/^Which record\?/, 'أي تسجيلة؟ فهرس الكتاب أولًا ثم اكتب رقم تسجيلته'],
+  [/^The barcode .* is already on a copy/, 'هذا الباركود موجود على نسخة أخرى'],
+  [/^Someone saved this record just now/, 'حُفظت التسجيلة للتو من شخص آخر؛ حاول مرة أخرى'],
+  [/^This record has no edition/, 'لا طبعة في هذه التسجيلة لتُضاف إليها النسخ'],
 ];
 const say = (isAr: boolean, msg: string) => {
   if (!isAr) return msg;
@@ -375,9 +381,12 @@ function Entries({ kind, isAr, refs, onChange, canEdit, canBudget, onOpenRecord,
                         <button className={`${dark} py-1 px-3 text-xs`} onClick={() => act(`/acq/orders/${it.id}/receive`, {}, isAr ? 'سُجّل الوصول' : 'Marked received')}><PackageCheck className="h-3.5 w-3.5" /> {isAr ? 'وصل' : 'Received'}</button>
                         <button className={`${light} py-1 px-3 text-xs`} onClick={() => window.confirm(isAr ? 'إلغاء الطلب؟' : 'Cancel this order?') && act(`/acq/orders/${it.id}/cancel`)}><Ban className="h-3.5 w-3.5" /> {isAr ? 'إلغاء الطلب' : 'Cancel order'}</button>
                       </>}
-                      {kind === 'orders' && it.status === 'received' && (it.record_id ? (
+                      {kind === 'orders' && it.record_id && (
                         <button className={`${light} py-1 px-3 text-xs`} onClick={() => onOpenRecord?.(it.record_id)}><BookOpen className="h-3.5 w-3.5" /> {isAr ? `التسجيلة ${it.record_id}` : `Record ${it.record_id}`}</button>
-                      ) : <LinkRecord isAr={isAr} onNewRecord={onNewRecord} onLink={(id) => act(`/acq/orders/${it.id}/receive`, { recordId: id }, isAr ? 'رُبطت التسجيلة' : 'Record linked')} />)}
+                      )}
+                      {kind === 'orders' && it.status !== 'cancelled' && (
+                        <AddCopies isAr={isAr} order={it} onNewRecord={onNewRecord} onDone={() => { load(); onChange(); }} />
+                      )}
                       {kind === 'invoices' && it.status === 'unpaid' && canBudget && (
                         <button className={`${dark} py-1 px-3 text-xs`} onClick={() => act(`/acq/invoices/${it.id}/pay`, {}, isAr ? 'سُجّل الدفع' : 'Marked paid')}><CheckCircle2 className="h-3.5 w-3.5" /> {isAr ? 'دُفعت' : 'Mark paid'}</button>
                       )}
@@ -418,7 +427,7 @@ function Entries({ kind, isAr, refs, onChange, canEdit, canBudget, onOpenRecord,
           </form>
         ) : (
           <p className="text-sm text-slate-500">
-            {kind === 'orders' && (isAr ? 'اختر طلبًا لتسجيل وصوله أو إلغائه. عند الوصول: «فهرسه» يفتح تسجيلة جديدة، ثم اربط رقمها بالطلب.' : 'Choose an order to mark it received or cancel it. Once it arrives, “Catalogue it” opens a new record; then link its number to the order.')}
+            {kind === 'orders' && (isAr ? 'اختر طلبًا لتسجيل وصوله أو إلغائه. عند الوصول: «فهرسه» يفتح تسجيلة جديدة إن لم تكن موجودة، ثم «أضف النسخ إلى التسجيلة» يضيف نسخ الطلب بباركوداتها إلى طبعتها، فتظهر في الفهرس وتُعار.' : 'Choose an order to mark it received or cancel it. When it arrives, “Catalogue it” opens a new record if there is none, then “Add the copies to the record” adds the order’s copies, with their barcodes, to its edition, ready for readers and loans.')}
             {kind === 'subscriptions' && (isAr ? 'اختر دورية لتسجيل وصول عدد. الدورية متأخرة إذا لم يصل عدد في موعده المعتاد وأسبوعين بعده.' : 'Choose a journal to check in an issue. A journal is late when no issue has come within its usual gap plus two weeks.')}
             {kind === 'invoices' && (isAr ? 'اربط الفاتورة بأرقام أوامر الشراء التي تدفعها.' : 'Link each invoice to the purchase orders it pays for.')}
             {kind === 'vendors' && (isAr ? 'المورد الذي له طلبات لا يُحذف؛ اجعله غير نشط.' : 'A vendor with orders is kept; make it inactive instead.')}
@@ -465,15 +474,63 @@ function FieldInput({ f, isAr, value, onChange, vendors, funds }: {
   }
 }
 
-/** A received order not yet catalogued: open a new record, or link one that exists. */
-function LinkRecord({ isAr, onNewRecord, onLink }: { isAr: boolean; onNewRecord?: () => void; onLink: (id: string) => void }) {
-  const [id, setId] = useState('');
+/**
+ * The order's copies go into the catalogue: as bf:Items of the record's edition, with barcodes (optional, one per
+ * copy) and the shelf place; the record is saved as a new version. Shows how many are already in.
+ */
+function AddCopies({ isAr, order, onNewRecord, onDone }: { isAr: boolean; order: any; onNewRecord?: () => void; onDone: () => void }) {
+  const left = Math.max(0, (order.quantity || 0) - (order.copies_added || 0));
+  const [open, setOpen] = useState(false);
+  const [recordId, setRecordId] = useState(order.record_id || '');
+  const [barcodes, setBarcodes] = useState('');
+  const [location, setLocation] = useState('');
+  const [shelfMark, setShelfMark] = useState('');
+  const [referenceOnly, setReferenceOnly] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const done = isAr ? `${order.copies_added || 0} من ${order.quantity} نسخ في التسجيلة` : `${order.copies_added || 0} of ${order.quantity} copies in the record`;
+  if (!left) return <span className="text-xs font-bold text-emerald-700 w-full">{done}</span>;
+  if (!open) {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-2">
+        <button className={`${dark} py-1 px-3 text-xs`} onClick={() => setOpen(true)}><PackageCheck className="h-3.5 w-3.5" /> {isAr ? 'أضف النسخ إلى التسجيلة' : 'Add the copies to the record'}</button>
+        {(order.copies_added || 0) > 0 && <span className="text-xs text-slate-600">{done}</span>}
+      </span>
+    );
+  }
+  const typed = barcodes.split(/[\s,;]+/).filter(Boolean);
+  const count = Math.max(typed.length, left);
   return (
-    <span className="inline-flex flex-wrap items-center gap-2">
-      {onNewRecord && <button className={`${dark} py-1 px-3 text-xs`} onClick={onNewRecord}><FilePlus className="h-3.5 w-3.5" /> {isAr ? 'فهرسه' : 'Catalogue it'}</button>}
-      <input className={`${input} w-36 py-1 text-xs`} dir="ltr" value={id} onChange={(e) => setId(e.target.value)} placeholder={isAr ? 'رقم التسجيلة' : 'Record number'} aria-label={isAr ? 'رقم التسجيلة' : 'Record number'} />
-      <button className={`${light} py-1 px-3 text-xs`} disabled={!id.trim()} onClick={() => onLink(id.trim())}>{isAr ? 'اربط' : 'Link'}</button>
-    </span>
+    <form className="w-full rounded-xl bg-white/70 border border-slate-200 p-3 grid sm:grid-cols-2 gap-2" onSubmit={async (e) => {
+      e.preventDefault();
+      setBusy(true);
+      const r = await moonFetch(`/acq/orders/${order.id}/add-copies`, { body: { recordId: recordId.trim(), barcodes: typed, location, shelfMark, referenceOnly, count: typed.length > left ? typed.length : left } });
+      setBusy(false);
+      if (!r.ok) { toast.error(say(isAr, r.data?.error || `Error ${r.status}`)); return; }
+      toast.success(isAr ? `أُضيفت ${r.data.added} نسخ إلى التسجيلة ${r.data.recordId}` : `${r.data.added} copies added to record ${r.data.recordId}`);
+      setOpen(false);
+      onDone();
+    }}>
+      <div className="sm:col-span-2 text-xs text-slate-600">
+        {isAr ? `ستُضاف ${left} نسخ إلى طبعة التسجيلة، وتُحفظ التسجيلة نسخة جديدة. ملاحظة كل نسخة: «${`Order ${order.number}`}».` : `${left} copies will be added to the record's edition, and the record saved as a new version. Each copy's note: "Order ${order.number}".`}
+      </div>
+      <Field label={isAr ? 'رقم التسجيلة' : 'Record number'}>
+        <span className="flex gap-2">
+          <input className={input} dir="ltr" required value={recordId} onChange={(e) => setRecordId(e.target.value)} />
+          {onNewRecord && !recordId && <button type="button" className={`${light} py-1 px-3 text-xs shrink-0`} onClick={onNewRecord}><FilePlus className="h-3.5 w-3.5" /> {isAr ? 'فهرسه' : 'Catalogue it'}</button>}
+        </span>
+      </Field>
+      <Field label={isAr ? `الباركودات (اختياري، حتى ${left})` : `Barcodes (optional, up to ${left})`}>
+        <textarea className={input} rows={2} dir="ltr" value={barcodes} onChange={(e) => setBarcodes(e.target.value)} placeholder={isAr ? 'امسحها واحدًا تلو الآخر' : 'Scan them one after another'} />
+      </Field>
+      <Field label={isAr ? 'المكان (القاعة / الطابق)' : 'Location (room / floor)'}><input className={input} dir="auto" value={location} onChange={(e) => setLocation(e.target.value)} /></Field>
+      <Field label={isAr ? 'رقم الرف' : 'Shelf mark'}><input className={input} dir="ltr" value={shelfMark} onChange={(e) => setShelfMark(e.target.value)} /></Field>
+      <label className="sm:col-span-2 inline-flex items-center gap-2 text-sm text-slate-800"><input type="checkbox" checked={referenceOnly} onChange={(e) => setReferenceOnly(e.target.checked)} /> {isAr ? 'للاطلاع فقط' : 'Reference only'}</label>
+      <div className="sm:col-span-2 flex gap-2">
+        <button className={dark} disabled={busy || !recordId.trim() || typed.length > left}>{isAr ? `أضف ${count > left ? left : count} نسخ` : `Add ${count > left ? left : count} copies`}</button>
+        <button type="button" className={light} onClick={() => setOpen(false)}>{isAr ? 'إلغاء' : 'Cancel'}</button>
+      </div>
+      {typed.length > left && <p className="sm:col-span-2 text-xs text-red-700">{isAr ? `باركودات أكثر من النسخ الباقية (${left}).` : `More barcodes than copies left (${left}).`}</p>}
+    </form>
   );
 }
 
