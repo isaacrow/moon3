@@ -7,6 +7,8 @@
  *   GET    /acq/:kind  POST /acq/:kind      vendors | funds | orders | invoices | subscriptions
  *   PUT    /acq/:kind/:id  DELETE /acq/:kind/:id
  *   POST   /acq/orders/:id/receive {recordId?}   POST /acq/orders/:id/cancel
+ *   POST   /acq/orders/:id/add-copies {recordId?, count?, barcodes?, location?, shelfMark?, referenceOnly?}
+ *          the order's copies become bf:Items of the record's edition (a new version of the record)
  *   POST   /acq/invoices/:id/pay
  *   GET    /acq/issues?subscription=ID      POST /acq/issues {subscriptionId, label, receivedOn?}
  *   GET    /acq/eresources                  public: the databases and e-journals readers can open (title and link only)
@@ -14,7 +16,10 @@
 import { Hono } from "npm:hono";
 import { getClient } from "./db.tsx";
 import { getSession, libraryOf } from "./accountRoutes.tsx";
-import { ACQ_KINDS, readEntry, nextOrderNumber, fundStatus, lateIssues, endingSoon, type AcqKind } from "./acquisitions.tsx";
+import { ACQ_KINDS, readEntry, nextOrderNumber, fundStatus, lateIssues, endingSoon, readReceipt, firstInstanceId, receiptRows, type AcqKind } from "./acquisitions.tsx";
+import * as recordStore from "./recordStore.tsx";
+import { withCopies } from "./copiesImport.tsx";
+import { copiesIn } from "./circulation.tsx";
 
 const acquisitionsRoutes = new Hono();
 const P = "/acq";
@@ -155,6 +160,50 @@ acquisitionsRoutes.post(`${P}/orders/:id/receive`, async (c) => {
     .eq("id", Number(c.req.param("id"))).eq("library", st.library).neq("status", "cancelled").select().maybeSingle();
   if (error) return failed(c, "Receiving the order", error);
   return data ? c.json({ order: data }) : c.json({ error: "No such open order" }, 404);
+});
+
+/**
+ * A received order's copies go into the catalogue: each becomes a bf:Item of the record's edition, with the
+ * library, the shelf place, a barcode if one was typed, and the order number in its note. The record is saved as
+ * a new version noted with the order number (a published record stays published), and the order counts the
+ * copies added, so they are never added twice. A barcode already on any copy in Moon is refused.
+ */
+acquisitionsRoutes.post(`${P}/orders/:id/add-copies`, async (c) => {
+  const st = await staffOf(c);
+  if (!st) return denied(c);
+  const body = await c.req.json().catch(() => ({}));
+  try {
+    const { data: order } = await sb().from("acq_orders").select("*").eq("id", Number(c.req.param("id"))).eq("library", st.library).maybeSingle();
+    if (!order) return c.json({ error: "No such order" }, 404);
+    if (order.status === "cancelled") return c.json({ error: "This order was cancelled" }, 409);
+    const recordId = typeof body.recordId === "string" && body.recordId.trim() ? body.recordId.trim() : order.record_id;
+    if (!recordId || !/^[A-Za-z0-9._:-]{1,120}$/.test(recordId)) return c.json({ error: "Which record? Catalogue the book first, then give its record number" }, 400);
+    const read = readReceipt(body, order);
+    if ("error" in read) return c.json({ error: read.error }, 400);
+    const rec: any = await recordStore.getRecord(recordId);
+    if (!rec) return c.json({ error: "No record has this number" }, 404);
+    const instance = firstInstanceId(rec.document);
+    if (!instance) return c.json({ error: "This record has no edition (Instance) to hold copies" }, 409);
+    for (const b of read.input.barcodes) {
+      const { data } = await sb().rpc("moon_records_with_barcode", { p_barcode: b });
+      if ((data || []).some((r: any) => copiesIn(r.document).some((x) => x.barcode === b))) return c.json({ error: `The barcode ${b} is already on a copy` }, 409);
+    }
+    const already = (rec.document?.["@graph"] || []).filter((n: any) => [].concat(n?.["@type"] || []).some((t: any) => typeof t === "string" && /(^|[:/])Item$/.test(t))).length;
+    const rows = receiptRows(read.input, order, st.library, already + 1);
+    const document = withCopies(rec.document, instance, rows as any, Date.now().toString(36));
+    await recordStore.saveRecord({ ...rec, document, saved: new Date().toISOString() }, st.username, `acquisitions: ${order.number} received`,
+      Number.isInteger(rec.version) ? rec.version : undefined);
+    const now = new Date().toISOString();
+    const { data: updated, error } = await sb().from("acq_orders").update({
+      status: "received", received_at: order.received_at || now, record_id: recordId,
+      copies_added: (order.copies_added || 0) + rows.length, updated_at: now,
+    }).eq("id", order.id).select().single();
+    if (error) throw error;
+    return c.json({ order: updated, added: rows.length, recordId });
+  } catch (e: any) {
+    if (/conflict|version/i.test(e?.message || "")) return c.json({ error: "Someone saved this record just now; try again" }, 409);
+    return failed(c, "Adding the copies", e);
+  }
 });
 
 acquisitionsRoutes.post(`${P}/orders/:id/cancel`, async (c) => {

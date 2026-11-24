@@ -59,3 +59,32 @@ test('late journal issues and subscriptions about to end', () => {
   assert.deepEqual(endingSoon(subs, now).map((s) => s.title), ['A database', 'Quarterly', 'Monthly']);
   assert.deepEqual(endingSoon(subs, now, 30).map((s) => s.title), ['A database']);
 });
+
+test('a received order becomes copies of its record, with barcodes and the order number', async () => {
+  const { readReceipt, firstInstanceId, receiptRows } = await import('../supabase/functions/server/acquisitions.tsx');
+  const { withCopies } = await import('../supabase/functions/server/copiesImport.tsx');
+  const { copiesIn } = await import('../supabase/functions/server/circulation.tsx');
+  const order = { number: 'PO-2026-0007', quantity: 3, copies_added: 1 };
+  assert.match((readReceipt({}, { ...order, copies_added: 3 }) as any).error, /already in the record/);
+  assert.match((readReceipt({ count: 3 }, order) as any).error, /Only 2 copies/);
+  assert.match((readReceipt({ barcodes: 'A1 A1' }, order) as any).error, /twice/);
+  assert.match((readReceipt({ barcodes: ['x y'] }, order) as any).error, /Not a barcode/);
+  assert.match((readReceipt({ barcodes: 'A1 A2 A3' }, order) as any).error, /Only 2/);
+  const ok = readReceipt({ barcodes: '30001, 30002', location: ' Main  hall ', shelfMark: '892.7' }, order);
+  assert.ok('input' in ok);
+  if (!('input' in ok)) return;
+  assert.equal(ok.input.count, 2, 'every copy left, by default');
+  assert.equal(ok.input.location, 'Main hall');
+  const inst = 'https://mooon.site/resource/instance/r9';
+  const doc = { '@graph': [{ '@id': 'https://mooon.site/resource/work/r9', '@type': 'bf:Work' }, { '@id': inst, '@type': 'bf:Instance' }] };
+  assert.equal(firstInstanceId(doc), inst);
+  assert.equal(firstInstanceId({ '@graph': [] }), null);
+  const rows = receiptRows(ok.input, order, 'Test library', 1);
+  const after = withCopies(doc, inst, rows as any, 't');
+  const found = copiesIn(after);
+  assert.deepEqual(found.map((c) => [c.barcode, c.library, c.shelfMark, c.copyNumber]), [['30001', 'Test library', '892.7', '1'], ['30002', 'Test library', '892.7', '2']]);
+  assert.ok(after['@graph'].filter((n: any) => n['@type'] === 'bf:Item').every((n: any) => n['bf:note']['rdfs:label'] === 'Order PO-2026-0007'));
+  assert.equal(doc['@graph'].length, 2, 'the record given is not changed');
+  const noBarcodes = readReceipt({}, { number: 'PO-1', quantity: 2 });
+  assert.ok('input' in noBarcodes && noBarcodes.input.count === 2 && noBarcodes.input.barcodes.length === 0);
+});
