@@ -36,6 +36,8 @@ import accountRoutes, { getSession, isAdminSession, canReview, isReviewer, SUPER
 import { applyOwnership, withOwners, withoutOwners, blockedMessage } from "./protectedValues.tsx";
 import * as recordStore from "./recordStore.tsx";
 import * as linkedData from "./linkedData.tsx";
+import { searchableOf, searchDocs, type SearchDoc } from "./searchDocs.tsx";
+import { matchWork, fuzzyMatchWork, setEntityNames } from "./searchCore.tsx";
 import * as sparqlStore from "./sparqlEndpoint.tsx";
 import { missingForPublish, shapesFromProfile } from "./publishGate.tsx";
 import { PROFILES } from "./profiles.tsx";
@@ -2359,10 +2361,69 @@ app.post("/make-server-49c0e13c/records/check-duplicates", async (c) => {
 // Every word must match, however it is spelled (Arabic letter variants and diacritics are folded).
 // Same visibility rule as the list: the public and ?view=published search published versions only.
 // Registered before /records/:id so "search" is not read as a record id.
+// The published catalogue, read once into the search's fields (searchDocs.tsx) and kept for a minute, with every
+// entity's names in both scripts (as names.json gives the catalogue page): the server's search of the published
+// catalogue uses the catalogue page's own rules, so both answer a question the same way.
+let publishedIndex: { at: number; docs: Array<SearchDoc<any>>; loading?: Promise<Array<SearchDoc<any>>> } | null = null;
+async function publishedSearchDocs(): Promise<Array<SearchDoc<any>>> {
+  if (publishedIndex && Date.now() - publishedIndex.at < 60_000) return publishedIndex.docs;
+  if (publishedIndex?.loading) return publishedIndex.loading;
+  const loading = (async () => {
+    const [records, entities] = await Promise.all([recordStore.listPublishedRecords(), recordStore.listAllAuthorities()]);
+    const forms: Record<string, string[]> = {};
+    for (const e of entities as any[]) {
+      if (e.mergedInto || !e.label) continue;
+      const names = [...new Set([e.label, ...(Array.isArray(e.variants) ? e.variants : [])].filter((n: unknown) => typeof n === 'string' && n.trim()))].slice(0, 30);
+      if (names.length > 1) forms[`${linkedData.BASE_URI}/${e.kind}/${e.id}`] = names;
+    }
+    setEntityNames(forms);
+    const docs = (records as any[]).map((record) => ({ record, work: searchableOf(record.document)! })).filter((d) => d.work);
+    publishedIndex = { at: Date.now(), docs };
+    return docs;
+  })();
+  publishedIndex = { at: publishedIndex?.at ?? 0, docs: publishedIndex?.docs ?? [], loading };
+  try { return await loading; } catch (e) { publishedIndex = null; throw e; }
+}
+
+/** The language code of a record's Work (…/languages/ara → ara), for the published search's language filter. */
+function languageCodeOf(document: any): string {
+  const work = (document?.['@graph'] || []).find((n: any) => [].concat(n?.['@type'] || []).some((t: any) => typeof t === 'string' && /(^|[:/])Work$/.test(t)));
+  const lang = [].concat(work?.['bf:language'] || [])[0] as any;
+  const id = typeof lang === 'string' ? lang : lang?.['@id'] || '';
+  return String(id).split('/').pop() || '';
+}
+
 app.get("/make-server-49c0e13c/records/search", async (c) => {
   try {
     const published = c.req.query('view') === 'published' || !(await getSession(c));
     const num = (v: string | undefined, d: number) => (v && /^\d+$/.test(v) ? Number(v) : d);
+    if (published) {
+      // One search: the catalogue page's rules over every published record, best first, in pages (20 unless asked).
+      const language = c.req.query('language');
+      const template = c.req.query('template');
+      const cataloger = c.req.query('cataloger');
+      let docs = await publishedSearchDocs();
+      if (language) docs = docs.filter((d) => languageCodeOf(d.record.document) === language);
+      if (template) docs = docs.filter((d) => (d.record.metadata?.templateId || '') === template);
+      if (cataloger) docs = docs.filter((d) => d.record.cataloger === cataloger);
+      const limit = Math.min(num(c.req.query('limit'), 20), 200);
+      const offset = num(c.req.query('offset'), 0);
+      const query = (c.req.query('q') || '').slice(0, 200);
+      const all = searchDocs(docs, query, { matchWork, fuzzyMatchWork }, 0, 100000);
+      const count = (key: (r: any) => string) => all.results.reduce((acc: Record<string, number>, x) => { const k = key(x.record); if (k) acc[k] = (acc[k] || 0) + 1; return acc; }, {});
+      return c.json({
+        total: all.total,
+        offset,
+        limit,
+        records: all.results.slice(offset, offset + limit).map((x) => ({ ...x.record, score: x.score, reason: x.reason, nodeCount: x.record.document?.['@graph']?.length || 0 })),
+        facets: {
+          status: all.total ? { complete: all.total } : {},
+          cataloger: count((r) => r.cataloger || ''),
+          language: count((r) => languageCodeOf(r.document)),
+          template: count((r) => r.metadata?.templateId || ''),
+        },
+      }, 200, { 'Cache-Control': 'public, max-age=60' });
+    }
     const result = await recordStore.searchRecords({
       query: (c.req.query('q') || '').slice(0, 200),
       published,

@@ -20,6 +20,8 @@ export interface BenchmarkResult {
   byKind: Array<{ kind: string; questions: number; found: number; first: number }>;
   /** The questions not answered, for anyone to check. */
   missed: Answer[];
+  /** The same questions asked of the server's search of the published catalogue (one search: it should agree). */
+  server?: { records: number; found: number; inTop10: number; first: number; missed: string[] };
 }
 
 const has = (title: string, expect: string[]) => {
