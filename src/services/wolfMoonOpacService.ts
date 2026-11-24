@@ -67,7 +67,7 @@ export function resolveWorkCover(work: { coverUrl?: string; title?: string; id?:
 /**
  * Normalizes Arabic text for diacritic-insensitive, hamza-insensitive searching
  */
-import { allWordsIn, entityNamesOf, matchWork, wordsFound } from '../opac/searchIndex';
+import { allWordsIn, entityNamesOf, matchWork, wordsFound, fuzzyMatchWork } from '../opac/searchIndex';
 import { isSameRecord } from '../opac/sameRecord';
 
 import { isRelationTerm, LC_RELATIONSHIP, readWorkRelations, relationWords } from '../../supabase/functions/server/workRelations.tsx';
@@ -1736,13 +1736,24 @@ class WolfMoonOpacService {
 
     if (qNorm) {
       // Every word, in any field and order, ignoring accents and spelling variants (see ../opac/searchIndex.ts).
-      filtered = filtered.filter(w => {
+      const candidates = filtered;
+      filtered = candidates.filter(w => {
         const m = matchWork(w, parsedQuery.freeText || rawQ);
         if (!m) return false;
         w.matchReason = m.reason;
         (w as any)._matchScore = m.score;
         return true;
       });
+      // Nothing at all: the same words with one typing slip each ("Bagdad", "Gilgamesch").
+      if (!filtered.length) {
+        filtered = candidates.filter(w => {
+          const m = fuzzyMatchWork(w, parsedQuery.freeText || rawQ);
+          if (!m) return false;
+          w.matchReason = m.reason;
+          (w as any)._matchScore = m.score;
+          return true;
+        });
+      }
     } else if (parsedQuery.clauses.length === 0) {
       // Clear matchReason when no query is typed
       filtered.forEach(w => {

@@ -1,0 +1,1446 @@
+{
+ "about": "The catalogue search test: questions a reader would type, and the books that should come back in the first 10 results (any of them counts). Hand-written, plus ISBNs and rough titles generated from the catalogue on 26 November 2026 and then kept as they are, so the score can be compared over time. An empty expect means nothing should be found.",
+ "questions": [
+  {
+   "q": "The epic of Gilgamesh",
+   "kind": "title",
+   "expect": [
+    "epic of gilgamesh"
+   ]
+  },
+  {
+   "q": "Orientalism",
+   "kind": "title",
+   "expect": [
+    "orientalism"
+   ]
+  },
+  {
+   "q": "Palace Walk",
+   "kind": "title",
+   "expect": [
+    "palace walk"
+   ]
+  },
+  {
+   "q": "Gate of the Sun",
+   "kind": "title",
+   "expect": [
+    "gate of the sun"
+   ]
+  },
+  {
+   "q": "The forty rules of love",
+   "kind": "title",
+   "expect": [
+    "forty rules of love"
+   ]
+  },
+  {
+   "q": "A history of the Arab peoples",
+   "kind": "title",
+   "expect": [
+    "history of the arab peoples"
+   ]
+  },
+  {
+   "q": "The conference of the birds",
+   "kind": "title",
+   "expect": [
+    "conference of the birds"
+   ]
+  },
+  {
+   "q": "Woman at point zero",
+   "kind": "title",
+   "expect": [
+    "woman at point zero"
+   ]
+  },
+  {
+   "q": "The bamboo stalk",
+   "kind": "title",
+   "expect": [
+    "bamboo stalk"
+   ]
+  },
+  {
+   "q": "Lemon Tree",
+   "kind": "title",
+   "expect": [
+    "lemon tree"
+   ]
+  },
+  {
+   "q": "Footnotes in Gaza",
+   "kind": "title",
+   "expect": [
+    "footnotes in gaza"
+   ]
+  },
+  {
+   "q": "The Baghdad eucharist",
+   "kind": "title",
+   "expect": [
+    "baghdad eucharist"
+   ]
+  },
+  {
+   "q": "Hammurabi of Babylon",
+   "kind": "title",
+   "expect": [
+    "hammurabi of babylon"
+   ]
+  },
+  {
+   "q": "They Wrote on Clay",
+   "kind": "title",
+   "expect": [
+    "they wrote on clay"
+   ]
+  },
+  {
+   "q": "The treasures of darkness",
+   "kind": "title",
+   "expect": [
+    "treasures of darkness"
+   ]
+  },
+  {
+   "q": "The Bezels of Wisdom",
+   "kind": "title",
+   "expect": [
+    "bezels of wisdom"
+   ]
+  },
+  {
+   "q": "Fuṣūṣ al-ḥikam",
+   "kind": "title",
+   "expect": [
+    "fusus al-hikam",
+    "fuṣūṣ al-ḥikam"
+   ]
+  },
+  {
+   "q": "أولاد حارتنا",
+   "kind": "title",
+   "expect": [
+    "أولاد حارتنا"
+   ]
+  },
+  {
+   "q": "دعاء الكروان",
+   "kind": "title",
+   "expect": [
+    "دعاء الكروان"
+   ]
+  },
+  {
+   "q": "في الشعر الجاهلي",
+   "kind": "title",
+   "expect": [
+    "في الشعر الجاهلي"
+   ]
+  },
+  {
+   "q": "الوعد الحق",
+   "kind": "title",
+   "expect": [
+    "الوعد الحق"
+   ]
+  },
+  {
+   "q": "القبسات",
+   "kind": "title",
+   "expect": [
+    "القبسات"
+   ]
+  },
+  {
+   "q": "لا أريد لهذه القصيدة أن تنتهي",
+   "kind": "title",
+   "expect": [
+    "لا أريد لهذه القصيدة"
+   ]
+  },
+  {
+   "q": "نظرية المعرفة عند ابن خلدون",
+   "kind": "title",
+   "expect": [
+    "نظرية المعرفة عند ابن خلدون"
+   ]
+  },
+  {
+   "q": "البندقية وغصن الزيتون",
+   "kind": "title",
+   "expect": [
+    "البندقية وغصن الزيتون"
+   ]
+  },
+  {
+   "q": "أصداء السيرة الذاتية",
+   "kind": "title",
+   "expect": [
+    "أصداء السيرة الذاتية"
+   ]
+  },
+  {
+   "q": "gilgamesh epic",
+   "kind": "words",
+   "expect": [
+    "epic of gilgamesh"
+   ]
+  },
+  {
+   "q": "assassins gate",
+   "kind": "words",
+   "expect": [
+    "assassins' gate",
+    "assassins gate"
+   ]
+  },
+  {
+   "q": "rules of love forty",
+   "kind": "words",
+   "expect": [
+    "forty rules of love"
+   ]
+  },
+  {
+   "q": "ancient mesopotamia daily life",
+   "kind": "words",
+   "expect": [
+    "daily life in ancient mesopotamia"
+   ]
+  },
+  {
+   "q": "islamic philosophy oxford handbook",
+   "kind": "words",
+   "expect": [
+    "oxford handbook of islamic philosophy"
+   ]
+  },
+  {
+   "q": "TAHAFUT",
+   "kind": "words",
+   "expect": [
+    "tahafut"
+   ]
+  },
+  {
+   "q": "mehdi army",
+   "kind": "words",
+   "expect": [
+    "mehdi army"
+   ]
+  },
+  {
+   "q": "orange trees baghdad",
+   "kind": "words",
+   "expect": [
+    "orange trees of baghdad"
+   ]
+  },
+  {
+   "q": "abbasid belles lettres",
+   "kind": "words",
+   "expect": [
+    "abbasid belles-lettres",
+    "ʻabbasid belles-lettres"
+   ]
+  },
+  {
+   "q": "حارتنا",
+   "kind": "words",
+   "expect": [
+    "أولاد حارتنا"
+   ]
+  },
+  {
+   "q": "السيرة الذاتية أصداء",
+   "kind": "words",
+   "expect": [
+    "أصداء السيرة الذاتية"
+   ]
+  },
+  {
+   "q": "الشعر الجاهلي",
+   "kind": "words",
+   "expect": [
+    "في الشعر الجاهلي"
+   ]
+  },
+  {
+   "q": "Edward Said",
+   "kind": "author",
+   "expect": [
+    "orientalism",
+    "blaming the victims"
+   ]
+  },
+  {
+   "q": "Seyyed Hossein Nasr",
+   "kind": "author",
+   "expect": [
+    "heart of islam",
+    "ideals and realities of islam",
+    "philosophy of seyyed hossein nasr"
+   ]
+  },
+  {
+   "q": "Titus Burckhardt",
+   "kind": "author",
+   "expect": [
+    "introduction to sufism",
+    "introduction to sufi doctrine"
+   ]
+  },
+  {
+   "q": "Peter Adamson",
+   "kind": "author",
+   "expect": [
+    "philosophy in the islamic world"
+   ]
+  },
+  {
+   "q": "Thorkild Jacobsen",
+   "kind": "author",
+   "expect": [
+    "treasures of darkness"
+   ]
+  },
+  {
+   "q": "George Packer",
+   "kind": "author",
+   "expect": [
+    "assassins' gate",
+    "puerta de los asesinos"
+   ]
+  },
+  {
+   "q": "Phebe Marr",
+   "kind": "author",
+   "expect": [
+    "modern history of iraq"
+   ]
+  },
+  {
+   "q": "Albert Hourani",
+   "kind": "author",
+   "expect": [
+    "history of the arab peoples"
+   ]
+  },
+  {
+   "q": "Elif Shafak",
+   "kind": "author",
+   "expect": [
+    "forty rules of love"
+   ]
+  },
+  {
+   "q": "Sinan Antoon",
+   "kind": "author",
+   "expect": [
+    "baghdad eucharist"
+   ]
+  },
+  {
+   "q": "Freya Stark",
+   "kind": "author",
+   "expect": [
+    "baghdad sketches"
+   ]
+  },
+  {
+   "q": "Kahlil Gibran",
+   "kind": "author",
+   "expect": [
+    "secrets of the heart"
+   ]
+  },
+  {
+   "q": "نجيب محفوظ",
+   "kind": "author",
+   "expect": [
+    "أولاد حارتنا",
+    "أصداء السيرة الذاتية",
+    "palace walk"
+   ]
+  },
+  {
+   "q": "طه حسين",
+   "kind": "author",
+   "expect": [
+    "الوعد الحق",
+    "في الشعر الجاهلي",
+    "دعاء الكروان"
+   ]
+  },
+  {
+   "q": "محمود درويش",
+   "kind": "author",
+   "expect": [
+    "لا أريد لهذه القصيدة"
+   ]
+  },
+  {
+   "q": "علي الوردي",
+   "kind": "author",
+   "expect": [
+    "نظرية المعرفة عند ابن خلدون"
+   ]
+  },
+  {
+   "q": "said orientalism",
+   "kind": "author+title",
+   "expect": [
+    "orientalism"
+   ]
+  },
+  {
+   "q": "packer gate",
+   "kind": "author+title",
+   "expect": [
+    "assassins' gate"
+   ]
+  },
+  {
+   "q": "nasr heart islam",
+   "kind": "author+title",
+   "expect": [
+    "heart of islam"
+   ]
+  },
+  {
+   "q": "محفوظ حارتنا",
+   "kind": "author+title",
+   "expect": [
+    "أولاد حارتنا"
+   ]
+  },
+  {
+   "q": "طه حسين الكروان",
+   "kind": "author+title",
+   "expect": [
+    "دعاء الكروان"
+   ]
+  },
+  {
+   "q": "shafak love",
+   "kind": "author+title",
+   "expect": [
+    "forty rules of love"
+   ]
+  },
+  {
+   "q": "Naguib Mahfouz",
+   "kind": "cross-script",
+   "expect": [
+    "أولاد حارتنا",
+    "أصداء السيرة الذاتية",
+    "palace walk"
+   ]
+  },
+  {
+   "q": "Mahfuz",
+   "kind": "cross-script",
+   "expect": [
+    "أولاد حارتنا",
+    "أصداء السيرة الذاتية",
+    "palace walk"
+   ]
+  },
+  {
+   "q": "Taha Hussein",
+   "kind": "cross-script",
+   "expect": [
+    "الوعد الحق",
+    "في الشعر الجاهلي",
+    "دعاء الكروان"
+   ]
+  },
+  {
+   "q": "Taha Husayn",
+   "kind": "cross-script",
+   "expect": [
+    "الوعد الحق",
+    "في الشعر الجاهلي",
+    "دعاء الكروان"
+   ]
+  },
+  {
+   "q": "Ibn Khaldun",
+   "kind": "cross-script",
+   "expect": [
+    "نظرية المعرفة عند ابن خلدون"
+   ]
+  },
+  {
+   "q": "Mahmoud Darwish",
+   "kind": "cross-script",
+   "expect": [
+    "لا أريد لهذه القصيدة",
+    "almond blossoms",
+    "ka-zahr al-lawz"
+   ]
+  },
+  {
+   "q": "Ali al-Wardi",
+   "kind": "cross-script",
+   "expect": [
+    "نظرية المعرفة عند ابن خلدون"
+   ]
+  },
+  {
+   "q": "جلجامش",
+   "kind": "cross-script",
+   "expect": [
+    "epic of gilgamesh"
+   ]
+  },
+  {
+   "q": "بغداد",
+   "kind": "cross-script",
+   "expect": [
+    "baghdad"
+   ]
+  },
+  {
+   "q": "الاستشراق",
+   "kind": "cross-script",
+   "expect": [
+    "orientalism"
+   ]
+  },
+  {
+   "q": "Awlad haratina",
+   "kind": "cross-script",
+   "expect": [
+    "أولاد حارتنا"
+   ]
+  },
+  {
+   "q": "Duaa al-karawan",
+   "kind": "cross-script",
+   "expect": [
+    "دعاء الكروان"
+   ]
+  },
+  {
+   "q": "Al-Qabasat",
+   "kind": "cross-script",
+   "expect": [
+    "القبسات"
+   ]
+  },
+  {
+   "q": "نجيب محفوظ زقاق",
+   "kind": "cross-script",
+   "expect": []
+  },
+  {
+   "q": "Ibn Sina",
+   "kind": "spelling",
+   "expect": [
+    "life of ibn sina",
+    "metaphysics of the healing"
+   ]
+  },
+  {
+   "q": "Avicenna",
+   "kind": "spelling",
+   "expect": [
+    "metaphysics of the healing",
+    "probing in islamic philosophy"
+   ]
+  },
+  {
+   "q": "Ghazali",
+   "kind": "spelling",
+   "expect": [
+    "al-ghazzali on disciplining",
+    "ghazali's theory of virtue",
+    "al-ghazālī and the ismailis"
+   ]
+  },
+  {
+   "q": "al-Ghazzali",
+   "kind": "spelling",
+   "expect": [
+    "al-ghazzali on disciplining"
+   ]
+  },
+  {
+   "q": "Darweesh",
+   "kind": "spelling",
+   "expect": [
+    "sand and other poems"
+   ]
+  },
+  {
+   "q": "Darwish",
+   "kind": "spelling",
+   "expect": [
+    "almond blossoms",
+    "sand and other poems",
+    "لا أريد لهذه القصيدة"
+   ]
+  },
+  {
+   "q": "Nizar Qabbani",
+   "kind": "spelling",
+   "expect": [
+    "arabian love poems"
+   ]
+  },
+  {
+   "q": "Kabbani",
+   "kind": "spelling",
+   "expect": [
+    "arabian love poems"
+   ]
+  },
+  {
+   "q": "Ibn Arabi",
+   "kind": "spelling",
+   "expect": [
+    "bezels of wisdom",
+    "fuṣūṣ al-ḥikam"
+   ]
+  },
+  {
+   "q": "Mutanabbi",
+   "kind": "spelling",
+   "expect": [
+    "mutanabbī",
+    "mutanabbi"
+   ]
+  },
+  {
+   "q": "المتنبي",
+   "kind": "spelling",
+   "expect": [
+    "mutanabbī",
+    "mutanabbi"
+   ]
+  },
+  {
+   "q": "Hallaj",
+   "kind": "spelling",
+   "expect": [
+    "al-hallaj"
+   ]
+  },
+  {
+   "q": "Tabari",
+   "kind": "spelling",
+   "expect": [
+    "history of al-tabari"
+   ]
+  },
+  {
+   "q": "Rumi",
+   "kind": "spelling",
+   "expect": [
+    "way of passion"
+   ]
+  },
+  {
+   "q": "Sufism",
+   "kind": "subject",
+   "expect": [
+    "sufi",
+    "sufism"
+   ]
+  },
+  {
+   "q": "Islamic philosophy",
+   "kind": "subject",
+   "expect": [
+    "islamic philosophy",
+    "philosophy in the islamic world"
+   ]
+  },
+  {
+   "q": "Arab-Israeli conflict",
+   "kind": "subject",
+   "expect": [
+    "gaza",
+    "lemon tree",
+    "one country"
+   ]
+  },
+  {
+   "q": "Iraq War",
+   "kind": "subject",
+   "expect": [
+    "assassins",
+    "occupational hazards",
+    "big boy rules"
+   ]
+  },
+  {
+   "q": "Sumerians",
+   "kind": "subject",
+   "expect": [
+    "sumerians"
+   ]
+  },
+  {
+   "q": "Arabic poetry translations",
+   "kind": "subject",
+   "expect": [
+    "arabic poetry",
+    "voices of arabia",
+    "arabian love poems"
+   ]
+  },
+  {
+   "q": "الرواية العربية",
+   "kind": "subject",
+   "expect": [
+    "أولاد حارتنا",
+    "دعاء الكروان"
+   ]
+  },
+  {
+   "q": "الشعر العربي",
+   "kind": "subject",
+   "expect": [
+    "في الشعر الجاهلي",
+    "لا أريد لهذه القصيدة"
+   ]
+  },
+  {
+   "q": "Akkadian language",
+   "kind": "subject",
+   "expect": [
+    "they wrote on clay"
+   ]
+  },
+  {
+   "q": "Hammurabi",
+   "kind": "subject",
+   "expect": [
+    "hammurabi of babylon"
+   ]
+  },
+  {
+   "q": "B753.D363",
+   "kind": "call number",
+   "expect": [
+    "القبسات"
+   ]
+  },
+  {
+   "q": "Orientalizm",
+   "kind": "typo",
+   "expect": [
+    "orientalism"
+   ]
+  },
+  {
+   "q": "Gilgamesch",
+   "kind": "typo",
+   "expect": [
+    "epic of gilgamesh"
+   ]
+  },
+  {
+   "q": "Mesopotamya",
+   "kind": "typo",
+   "expect": [
+    "mesopotamia"
+   ]
+  },
+  {
+   "q": "Burckhart sufism",
+   "kind": "typo",
+   "expect": [
+    "introduction to sufism",
+    "introduction to sufi doctrine"
+   ]
+  },
+  {
+   "q": "Bagdad",
+   "kind": "typo",
+   "expect": [
+    "baghdad"
+   ]
+  },
+  {
+   "q": "نجيب محفوط",
+   "kind": "typo",
+   "expect": [
+    "أولاد حارتنا",
+    "أصداء السيرة الذاتية"
+   ]
+  },
+  {
+   "q": "اولاد حارتنا",
+   "kind": "typo",
+   "expect": [
+    "أولاد حارتنا"
+   ]
+  },
+  {
+   "q": "دعاء الكروان طه",
+   "kind": "words",
+   "expect": [
+    "دعاء الكروان"
+   ]
+  },
+  {
+   "q": "978-8-5359-1112-1",
+   "kind": "isbn",
+   "expect": [
+    "the boy in the striped pyjamas"
+   ]
+  },
+  {
+   "q": "978-0-2261-0424-9",
+   "kind": "isbn",
+   "expect": [
+    "they wrote on clay"
+   ]
+  },
+  {
+   "q": "978-0-9853-3980-7",
+   "kind": "isbn",
+   "expect": [
+    "stryker"
+   ]
+  },
+  {
+   "q": "978-1-5706-2408-7",
+   "kind": "isbn",
+   "expect": [
+    "the knowing heart"
+   ]
+  },
+  {
+   "q": "978-1-4087-0264-2",
+   "kind": "isbn",
+   "expect": [
+    "task force black"
+   ]
+  },
+  {
+   "q": "978-0-7660-4197-4",
+   "kind": "isbn",
+   "expect": [
+    "discover ancient mesopotamia"
+   ]
+  },
+  {
+   "q": "978-0-8739-5227-9",
+   "kind": "isbn",
+   "expect": [
+    "the life of ibn sina"
+   ]
+  },
+  {
+   "q": "978-0-9763-9502-7",
+   "kind": "isbn",
+   "expect": [
+    "gate of the sun"
+   ]
+  },
+  {
+   "q": "978-0-7103-0308-0",
+   "kind": "isbn",
+   "expect": [
+    "nurbakhsh"
+   ]
+  },
+  {
+   "q": "978-0-7486-0517-0",
+   "kind": "isbn",
+   "expect": [
+    "the influence of islam on medieval europ"
+   ]
+  },
+  {
+   "q": "978-0-8778-2500-5",
+   "kind": "isbn",
+   "expect": [
+    "enemy of the sun [poetry of palestinian "
+   ]
+  },
+  {
+   "q": "978-0-3000-1844-8",
+   "kind": "isbn",
+   "expect": [
+    "the treasures of darkness"
+   ]
+  },
+  {
+   "q": "978-9-4007-7902-0",
+   "kind": "isbn",
+   "expect": [
+    "islamic philosophy and occidental phenom"
+   ]
+  },
+  {
+   "q": "978-0-1999-1637-5",
+   "kind": "isbn",
+   "expect": [
+    "in god's path"
+   ]
+  },
+  {
+   "q": "978-9-7741-6817-8",
+   "kind": "isbn",
+   "expect": [
+    "no road to paradise"
+   ]
+  },
+  {
+   "q": "978-9-0040-7258-9",
+   "kind": "isbn",
+   "expect": [
+    "philosophy in the renaissance of islam"
+   ]
+  },
+  {
+   "q": "978-1-4766-1288-1",
+   "kind": "isbn",
+   "expect": [
+    "islamic images and ideas"
+   ]
+  },
+  {
+   "q": "978-0-8061-0922-0",
+   "kind": "isbn",
+   "expect": [
+    "baghdad"
+   ]
+  },
+  {
+   "q": "978-3-8799-7140-4",
+   "kind": "isbn",
+   "expect": [
+    "dīwān abī nuwās al-ḥasan ibn hāniʾ al-ḥa"
+   ]
+  },
+  {
+   "q": "978-1-8452-9155-6",
+   "kind": "isbn",
+   "expect": [
+    "a brief history of medicine"
+   ]
+  },
+  {
+   "q": "978-1-9369-4000-4",
+   "kind": "isbn",
+   "expect": [
+    "physicians of the heart: a sufi view of "
+   ]
+  },
+  {
+   "q": "978-0-7914-7249-1",
+   "kind": "isbn",
+   "expect": [
+    "the history of al-tabari"
+   ]
+  },
+  {
+   "q": "978-1-5988-4337-8",
+   "kind": "isbn",
+   "expect": [
+    "conflict and conquest in the islamic wor"
+   ]
+  },
+  {
+   "q": "978-0-8065-0062-1",
+   "kind": "isbn",
+   "expect": [
+    "secrets of the heart"
+   ]
+  },
+  {
+   "q": "978-1-3178-6420-2",
+   "kind": "isbn",
+   "expect": [
+    "short history of iraq"
+   ]
+  },
+  {
+   "q": "978-0-3930-6808-5",
+   "kind": "isbn",
+   "expect": [
+    "three trillion dollar war"
+   ]
+  },
+  {
+   "q": "978-0-1996-8367-3",
+   "kind": "isbn",
+   "expect": [
+    "philosophy in the islamic world: a very "
+   ]
+  },
+  {
+   "q": "978-1-5999-0200-5",
+   "kind": "isbn",
+   "expect": [
+    "a bottle in the gaza sea"
+   ]
+  },
+  {
+   "q": "978-1-6084-6621-4",
+   "kind": "isbn",
+   "expect": [
+    "confronting empire"
+   ]
+  },
+  {
+   "q": "978-1-8488-5655-4",
+   "kind": "isbn",
+   "expect": [
+    "baghdad sketches"
+   ]
+  },
+  {
+   "q": "978-0-3800-0691-5",
+   "kind": "isbn",
+   "expect": [
+    "sufi"
+   ]
+  },
+  {
+   "q": "978-0-3742-9963-7",
+   "kind": "isbn",
+   "expect": [
+    "the assassins' gate"
+   ]
+  },
+  {
+   "q": "978-0-8044-3024-1",
+   "kind": "isbn",
+   "expect": [
+    "modern arabic literature"
+   ]
+  },
+  {
+   "q": "978-0-9348-9377-0",
+   "kind": "isbn",
+   "expect": [
+    "the metaphysics of the healing"
+   ]
+  },
+  {
+   "q": "978-0-9060-9456-3",
+   "kind": "isbn",
+   "expect": [
+    "averroes' tahafut al-tahafut"
+   ]
+  },
+  {
+   "q": "978-0-3000-2291-9",
+   "kind": "isbn",
+   "expect": [
+    "the treasures of darkness"
+   ]
+  },
+  {
+   "q": "978-0-1405-8515-5",
+   "kind": "isbn",
+   "expect": [
+    "modern poetry of the arab world"
+   ]
+  },
+  {
+   "q": "978-1-4351-7055-1",
+   "kind": "isbn",
+   "expect": [
+    "middle east"
+   ]
+  },
+  {
+   "q": "978-0-4040-5507-3",
+   "kind": "isbn",
+   "expect": [
+    "eden"
+   ]
+  },
+  {
+   "q": "978-0-9143-9016-9",
+   "kind": "isbn",
+   "expect": [
+    "the wisdom of man"
+   ]
+  },
+  {
+   "q": "978-9-9335-8341-5",
+   "kind": "isbn",
+   "expect": [
+    "نظرية المعرفة عند ابن خلدون"
+   ]
+  },
+  {
+   "q": "978-0-6743-9565-7",
+   "kind": "isbn",
+   "expect": [
+    "a history of the arab peoples"
+   ]
+  },
+  {
+   "q": "978-0-4342-9075-8",
+   "kind": "isbn",
+   "expect": [
+    "thoughts and meditations"
+   ]
+  },
+  {
+   "q": "978-0-8126-9413-0",
+   "kind": "isbn",
+   "expect": [
+    "the philosophy of seyyed hossein nasr"
+   ]
+  },
+  {
+   "q": "978-1-9213-7223-0",
+   "kind": "isbn",
+   "expect": [
+    "the orange trees of baghdad"
+   ]
+  },
+  {
+   "q": "they wrote",
+   "kind": "words",
+   "expect": [
+    "they wrote on clay"
+   ]
+  },
+  {
+   "q": "baghdad minutes",
+   "kind": "words",
+   "expect": [
+    "two minutes over baghdad"
+   ]
+  },
+  {
+   "q": "adelphi authoritarianism",
+   "kind": "words",
+   "expect": [
+    "iraq  from war to a new authoritarianism"
+   ]
+  },
+  {
+   "q": "black force",
+   "kind": "words",
+   "expect": [
+    "task force black"
+   ]
+  },
+  {
+   "q": "materials translation",
+   "kind": "words",
+   "expect": [
+    "arabic materials in english translation"
+   ]
+  },
+  {
+   "q": "ancient mesopotamia",
+   "kind": "words",
+   "expect": [
+    "daily life in ancient mesopotamia"
+   ]
+  },
+  {
+   "q": "reason unbound",
+   "kind": "words",
+   "expect": [
+    "reason unbound"
+   ]
+  },
+  {
+   "q": "ḥikam fuṣūṣ",
+   "kind": "words",
+   "expect": [
+    "fuṣūṣ al-ḥikam"
+   ]
+  },
+  {
+   "q": "tarot guide",
+   "kind": "words",
+   "expect": [
+    "guide to the runi tarot"
+   ]
+  },
+  {
+   "q": "studies institutions",
+   "kind": "words",
+   "expect": [
+    "studies in islamic history and instituti"
+   ]
+  },
+  {
+   "q": "resistance palestinian",
+   "kind": "words",
+   "expect": [
+    "enemy of the sun [poetry of palestinian "
+   ]
+  },
+  {
+   "q": "depicted civilization",
+   "kind": "words",
+   "expect": [
+    "aspects of islamic civilization as depic"
+   ]
+  },
+  {
+   "q": "ghazālī ismailis",
+   "kind": "words",
+   "expect": [
+    "al-ghazālī and the ismailis"
+   ]
+  },
+  {
+   "q": "muslim intellectual",
+   "kind": "words",
+   "expect": [
+    "last muslim intellectual"
+   ]
+  },
+  {
+   "q": "poetry arabic",
+   "kind": "words",
+   "expect": [
+    "arabic poetry"
+   ]
+  },
+  {
+   "q": "philosophy renaissance",
+   "kind": "words",
+   "expect": [
+    "philosophy in the renaissance of islam"
+   ]
+  },
+  {
+   "q": "tree lemon",
+   "kind": "words",
+   "expect": [
+    "lemon tree"
+   ]
+  },
+  {
+   "q": "dīwān ḥakamī",
+   "kind": "words",
+   "expect": [
+    "dīwān abī nuwās al-ḥasan ibn hāniʾ al-ḥa"
+   ]
+  },
+  {
+   "q": "history sources",
+   "kind": "words",
+   "expect": [
+    "sources in the history of the modern mid"
+   ]
+  },
+  {
+   "q": "birds conference",
+   "kind": "words",
+   "expect": [
+    "the conference of the birds ="
+   ]
+  },
+  {
+   "q": "tabari history",
+   "kind": "words",
+   "expect": [
+    "the history of al-tabari"
+   ]
+  },
+  {
+   "q": "turkey mysticism",
+   "kind": "words",
+   "expect": [
+    "mysticism and magic in turkey"
+   ]
+  },
+  {
+   "q": "women poetry",
+   "kind": "words",
+   "expect": [
+    "the poetry of arab women"
+   ]
+  },
+  {
+   "q": "other voices",
+   "kind": "words",
+   "expect": [
+    "war's other voices"
+   ]
+  },
+  {
+   "q": "short history",
+   "kind": "words",
+   "expect": [
+    "short history of iraq"
+   ]
+  },
+  {
+   "q": "distant horizons",
+   "kind": "words",
+   "expect": [
+    "near and distant horizons"
+   ]
+  },
+  {
+   "q": "ancient mesopotamia",
+   "kind": "words",
+   "expect": [
+    "ancient mesopotamia"
+   ]
+  },
+  {
+   "q": "medieval figurative",
+   "kind": "words",
+   "expect": [
+    "figurative art in medieval islam and the"
+   ]
+  },
+  {
+   "q": "gaza bottle",
+   "kind": "words",
+   "expect": [
+    "a bottle in the gaza sea"
+   ]
+  },
+  {
+   "q": "comedy demonic",
+   "kind": "words",
+   "expect": [
+    "the demonic comedy"
+   ]
+  },
+  {
+   "q": "rivers between",
+   "kind": "words",
+   "expect": [
+    "between two rivers"
+   ]
+  },
+  {
+   "q": "mehdi death",
+   "kind": "words",
+   "expect": [
+    "death of the mehdi army"
+   ]
+  },
+  {
+   "q": "baghdad ancient",
+   "kind": "words",
+   "expect": [
+    "daily life in ancient and modern baghdad"
+   ]
+  },
+  {
+   "q": "philosophy philosophers",
+   "kind": "words",
+   "expect": [
+    "philosophy of seyyed hossein nasr (libra"
+   ]
+  },
+  {
+   "q": "lettres ʻabbasid",
+   "kind": "words",
+   "expect": [
+    "ʻabbasid belles-lettres"
+   ]
+  },
+  {
+   "q": "healing metaphysics",
+   "kind": "words",
+   "expect": [
+    "the metaphysics of the healing"
+   ]
+  },
+  {
+   "q": "philosophy definition",
+   "kind": "words",
+   "expect": [
+    "books of definition in islamic philosoph"
+   ]
+  },
+  {
+   "q": "philosophy transcendent",
+   "kind": "words",
+   "expect": [
+    "mulla sadra's transcendent philosophy"
+   ]
+  },
+  {
+   "q": "poetry modern",
+   "kind": "words",
+   "expect": [
+    "modern poetry of the arab world"
+   ]
+  },
+  {
+   "q": "zahra story",
+   "kind": "words",
+   "expect": [
+    "the story of zahra"
+   ]
+  },
+  {
+   "q": "middle patterns",
+   "kind": "words",
+   "expect": [
+    "middle east patterns"
+   ]
+  },
+  {
+   "q": "تنتهي القصيدة",
+   "kind": "words",
+   "expect": [
+    "لا أريد لهذه القصيدة أن تنتهي"
+   ]
+  },
+  {
+   "q": "السيرة الذاتية",
+   "kind": "words",
+   "expect": [
+    "أصداء السيرة الذاتية"
+   ]
+  },
+  {
+   "q": "pride prejudice",
+   "kind": "words",
+   "expect": [
+    "pride and prejudice"
+   ]
+  },
+  {
+   "q": "ashʻa mutanabbi",
+   "kind": "words",
+   "expect": [
+    "ʻalá khuṭā al-mutanabbī fī asfārih"
+   ]
+  },
+  {
+   "q": "pride prejudice",
+   "kind": "words",
+   "expect": [
+    "pride and prejudice"
+   ]
+  },
+  {
+   "q": "ancient mesopotamia",
+   "kind": "words",
+   "expect": [
+    "ancient mesopotamia"
+   ]
+  },
+  {
+   "q": "ideals realities",
+   "kind": "words",
+   "expect": [
+    "ideals and realities of islam."
+   ]
+  }
+ ]
+}
