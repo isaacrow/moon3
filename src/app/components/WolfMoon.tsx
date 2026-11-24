@@ -30,8 +30,14 @@ import {
   Copy, ExternalLink, Settings, RefreshCw, Plus, X, Home,
   Orbit, 
   Sliders, LayoutGrid, List, Lock, Box,
-  Trash2, History, Send
+  Trash2, History, Send, ChevronDown, Check
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "./ui/dropdown-menu";
+
+/** The material types' names in Arabic (the templates carry English names). */
+const TEMPLATE_NAMES_AR: Record<string, string> = {
+  'monograph-complete': 'كتاب', serial: 'دورية', manuscript: 'مخطوط', music: 'موسيقى', map: 'مواد خرائطية', 'still-image': 'صورة / طابع',
+};
 import { motion, AnimatePresence } from "motion/react";
 import moonLogoWhite from "../../assets/white.png";
 
@@ -1642,6 +1648,45 @@ export default function WolfMoon({
                 </span>
               </h1>
             </div>
+            {/* The kind of material (template): one menu instead of a row of buttons. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="group glass-bubble-pill hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white cursor-pointer shadow-xl shrink-0"
+                  title={language === "ar" ? "نوع المادة" : "Kind of material"}
+                >
+                  {TEMPLATE_ICONS[selectedTemplate] || <BookOpen className="h-3.5 w-3.5" />}
+                  <span>{language === "ar" ? (TEMPLATE_NAMES_AR[selectedTemplate] || template.name) : template.name}</span>
+                  <ChevronDown className="h-3 w-3 opacity-70 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                sideOffset={8}
+                className="w-60 rounded-2xl border-white/20 bg-slate-900/85 text-white backdrop-blur-xl shadow-2xl p-1.5"
+                style={{ direction: language === "ar" ? "rtl" : "ltr" }}
+              >
+                <DropdownMenuLabel className="text-[11px] font-bold uppercase tracking-wider text-white/60">
+                  {language === "ar" ? "نوع المادة" : "Kind of material"}
+                </DropdownMenuLabel>
+                {getAllTemplates().map((tmpl, i) => {
+                  const isSelected = selectedTemplate === tmpl.id;
+                  return (
+                    <DropdownMenuItem
+                      key={tmpl.id}
+                      onSelect={() => setSelectedTemplate(tmpl.id)}
+                      className={`moon-menu-item flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-bold cursor-pointer text-white focus:bg-white/15 focus:text-white ${isSelected ? "bg-white/20" : ""}`}
+                      style={{ animationDelay: `${i * 35}ms` }}
+                    >
+                      <span className="shrink-0">{TEMPLATE_ICONS[tmpl.id] || <BookOpen className="h-4 w-4" />}</span>
+                      <span className="flex-1">{language === "ar" ? (TEMPLATE_NAMES_AR[tmpl.id] || tmpl.name) : tmpl.name}</span>
+                      {isSelected && <Check className="h-4 w-4 text-emerald-300" />}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Center: The Dynamic Notch (True Centered in Column 2, will NEVER collide) */}
@@ -1749,30 +1794,6 @@ export default function WolfMoon({
 
         {/* ===== ROW 2: TEMPLATES & RECORD CONTROLS (UNIFIED ON A SINGLE LINE WITH DIVIDER) ===== */}
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-1.5 flex-nowrap overflow-x-auto scrollbar-none pt-2 pb-1.5 border-t border-white/10">
-          <span className="text-[11px] font-bold text-white/60 uppercase tracking-wider mr-1 shrink-0">
-            Templates:
-          </span>
-          {getAllTemplates().map(tmpl => {
-            const isSelected = selectedTemplate === tmpl.id;
-            return (
-              <button
-                type="button"
-                key={tmpl.id}
-                onClick={() => setSelectedTemplate(tmpl.id)}
-                className={`glass-bubble-pill flex items-center gap-1.5 px-3 py-1 text-xs font-bold transition-all duration-200 cursor-pointer shrink-0 ${
-                  isSelected
-                    ? "bg-white/35 border-white text-white shadow-xl scale-[1.02] ring-1 ring-white/50"
-                    : "text-white/85 hover:text-white hover:bg-white/20 border-white/20"
-                }`}
-              >
-                {TEMPLATE_ICONS[tmpl.id]}
-                <span>{tmpl.name}</span>
-              </button>
-            );
-          })}
-
-          {/* Divider Line (The "line between them") */}
-          <div className="h-5 w-px bg-white/30 mx-1.5 shrink-0" />
 
           {/* Record Title input with Save Status indicator */}
           <div className="flex items-center gap-1.5 glass-bubble-pill px-2.5 py-1 text-xs shrink-0">
@@ -2080,7 +2101,7 @@ export default function WolfMoon({
 
         {/* ===== BIBFRAME EDITOR ===== */}
         {activeTab === "editor" && (
-          <div className="space-y-4">
+          <div className="moon-enter space-y-4">
 
             {/* Floating Marva Diacritics Bar */}
             {marvaPreferences.showDiacriticBar && (
@@ -2432,7 +2453,7 @@ export default function WolfMoon({
 
         {/* ===== MARC ===== */}
         {activeTab === "marc-editor" && (
-          <div className="px-6 py-4 max-w-7xl mx-auto">
+          <div className="moon-enter px-6 py-4 max-w-7xl mx-auto">
             <React.Suspense fallback={<LazyPanelFallback />}>
               <MarcEditor workData={workData} instanceData={instanceData} uriSet={uriSet} language={language}
                 onApply={(work, instance) => { setWorkData(work); setInstanceData(instance); setSaveStatus("unsaved"); }} />
@@ -2513,7 +2534,7 @@ export default function WolfMoon({
 
         {/* ===== OPAC ===== */}
         {activeTab === "opac" && (
-          <div className="space-y-4">
+          <div className="moon-enter space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
               <div>
                 <h4 className="text-sm font-bold text-white">WOF MOON Public Discovery OPAC</h4>
@@ -2586,7 +2607,7 @@ export default function WolfMoon({
         )}
 
         {activeTab === "validation" && (
-          <div className="space-y-4">
+          <div className="moon-enter space-y-4">
             {graphValidation && (
               <ValidationPanel validation={graphValidation} theme={isLight ? "light" : "dark"} />
             )}
@@ -2738,7 +2759,7 @@ export default function WolfMoon({
 
         {/* ===== DISCOVERY LAYER ===== */}
         {activeTab === "discovery" && (
-          <div className="-mx-4" style={{ minHeight: "80vh" }}>
+          <div className="moon-enter -mx-4" style={{ minHeight: "80vh" }}>
             <React.Suspense fallback={<LazyPanelFallback />}><LinkedDataDiscovery
               glassTheme={glassTheme}
               onThemeToggle={() => setGlassTheme(glassTheme === "dark" ? "legacy" : "dark")}

@@ -202,11 +202,13 @@ export function AcquisitionsDesk({ isAr, onOpenRecord, onNewRecord }: { isAr: bo
           })}
         </nav>
       </header>
-      {tab === 'overview' && <Overview isAr={isAr} summary={summary} onTab={setTab} />}
+      <div key={tab} className="moon-enter">
+        {tab === 'overview' && <Overview isAr={isAr} summary={summary} onTab={setTab} />}
       {tab !== 'overview' && (
         <Entries key={tab} kind={tab} isAr={isAr} refs={refs} onChange={changed} canEdit={tab !== 'funds' || canBudget} canBudget={canBudget}
           onOpenRecord={onOpenRecord} onNewRecord={onNewRecord} />
       )}
+      </div>
     </main>
   );
 }
@@ -361,7 +363,7 @@ function Entries({ kind, isAr, refs, onChange, canEdit, canBudget, onOpenRecord,
         </div>
         {kind === 'funds' && !canBudget && <p className="text-xs text-slate-500">{isAr ? 'المراجع أو المشرف العام يضيف الصناديق ويضبط الميزانيات.' : 'A reviewer or the Super Admin adds funds and sets budgets.'}</p>}
         {items === null ? <p className="text-sm text-slate-500">…</p> : items.length === 0 ? <p className="text-sm text-slate-500">{isAr ? EMPTY[kind][0] : EMPTY[kind][1]}</p> : (
-          <ul className="divide-y divide-slate-200">
+          <ul className="moon-stagger divide-y divide-slate-200">
             {items.map((it) => {
               const l = line(it);
               const expanded = open === it.id;

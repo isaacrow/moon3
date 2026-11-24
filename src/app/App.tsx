@@ -322,7 +322,8 @@ function CatalogApp() {
       {currentSection && currentSection !== viewMode && (
         <SectionPath isAr={isAr} sectionId={currentSection} taskView={viewMode} onOpenSection={(id) => navigate(id)} />
       )}
-      {content}
+      {/* Each screen rises in when opened (styles/motion.css). */}
+      <div key={viewMode} className="moon-enter">{content}</div>
     </div>
   );
 
