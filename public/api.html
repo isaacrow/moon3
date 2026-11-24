@@ -92,17 +92,17 @@ https://mooon.site/resource/?format=json</code></pre>
 
   <section class="card glass" id="search">
     <h2>البحث</h2>
-    <p>بحث في الفهرس المنشور يفهم العربية: يساوي بين أ وإ وآ وا، وبين ة وه، وبين ى وي، ويتجاهل التشكيل. يجب أن تظهر كل كلمات البحث في السجل، بأي ترتيب.</p>
+    <p>بحث في الفهرس المنشور بالقواعد نفسها التي يستخدمها الفهرس العام: يساوي بين أ وإ وآ وا، وبين ة وه، وبين ى وي، ويتجاهل التشكيل وعلامات الحرف اللاتيني؛ يجب أن تظهر كل كلمات البحث في السجل بأي ترتيب؛ ويجد الاسم أو العنوان المكتوب بالخط الآخر (Ibn Khaldun = ابن خلدون)، وإن لم يجد شيئاً قَبِل خطأً واحداً في الكتابة. النتائج مرتبة من الأفضل، ولكل نتيجة <code>score</code> وسبب المطابقة <code>reason</code>. يقيس <a href="/score.html">اختبار البحث</a> جودته كل يوم.</p>
 <pre><code>GET https://mooon.site/resource/search?q=بغداد&amp;limit=20&amp;offset=0</code></pre>
     <table>
       <tr><th>المعامل</th><th>المعنى</th></tr>
       <tr><td><code>q</code></td><td>كلمات البحث (حتى 200 حرف)</td></tr>
       <tr><td><code>language</code></td><td>رمز اللغة، مثل <code>ara</code></td></tr>
-      <tr><td><code>limit</code> · <code>offset</code></td><td>حجم الصفحة (حتى 200، والافتراضي 50) وموضع البدء</td></tr>
+      <tr><td><code>limit</code> · <code>offset</code></td><td>حجم الصفحة (حتى 200، والافتراضي 20) وموضع البدء</td></tr>
     </table>
 <pre><code>{ "total": 3,
   "facets": { "language": { "ara": 2, "eng": 1 }, … },
-  "records": [ { "id": "record-…", "title": "…", "saved": "…", "document": { "@graph": [ … ] } } ] }</code></pre>
+  "records": [ { "id": "record-…", "title": "…", "saved": "…", "score": 100, "reason": "تطابق تام في العنوان", "document": { "@graph": [ … ] } } ] }</code></pre>
     <p>يحمل كل سجل في <code>document</code> رسمه البياني BIBFRAME كاملاً بصيغة JSON-LD.</p>
   </section>
 

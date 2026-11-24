@@ -59,6 +59,7 @@
   fetch('/search-test.json').then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (t) {
     var p = function (v) { return (100 * v).toFixed(1) + '%'; };
     document.getElementById('search-total').innerHTML = '<b>' + t.found + ' of ' + t.questions + ' (' + p(t.inTop10) + ')</b> found in the first 10 results; ' + p(t.first) + ' by the very first result. Over ' + t.books + ' books, ' + new Date(t.at).toLocaleString('en-GB', { timeZone: 'Asia/Baghdad' }) + ' (Baghdad).';
+    if (t.server) document.getElementById('search-total').innerHTML += '<br>The server\u2019s search of the published catalogue (the public API and Studio), asked the same questions: <b>' + t.server.found + ' of ' + t.questions + ' (' + p(t.server.inTop10) + ')</b>, ' + p(t.server.first) + ' by the first result. <span class="ar" dir="rtl">بحث الخادم في الفهرس المنشور بالأسئلة نفسها.</span>';
     document.querySelector('#search tbody').innerHTML = t.byKind.map(function (k) {
       var share = k.questions ? k.found / k.questions : 0; var c = cls(share); var n = KIND[k.kind] || [k.kind, ''];
       return '<tr><td>' + esc(n[0]) + '<span class="ar" dir="rtl">' + esc(n[1]) + '</span></td><td class="num ' + c + '">' + k.found + ' / ' + k.questions + '</td><td class="hide">' + bar(share, c) + '</td><td class="num">' + k.first + '</td></tr>';
