@@ -51,6 +51,8 @@ export function readerError(code: string | undefined, message?: string): string 
     case 'blocked': return t('بطاقتك موقوفة. راجع المكتبة.', 'Your card is blocked. Please ask the library.');
     case 'already': return t('حجزت هذا الكتاب من قبل.', 'You have already placed a hold on this book.');
     case 'record': return t('لم يُعثر على هذا الكتاب.', 'This book was not found.');
+    case 'code': return t('الرمز غير صحيح أو انتهت صلاحيته أو استُخدم. اطلب رمزًا جديدًا.', 'The code is wrong, has run out or was already used. Ask for a new one.');
+    case 'no-email': return t('إعادة التعيين بالبريد غير مفعّلة بعد. اطلب رمزًا من مكتب الإعارة.', 'Reset by email is not set up yet. Ask the loan desk for a reset code.');
     case 'network': return t('تعذّر الاتصال. حاول مرة أخرى.', 'Could not connect. Try again.');
     default: return t('حدث خطأ. حاول مرة أخرى.', 'Something went wrong. Try again.');
   }
@@ -87,6 +89,27 @@ export function useReader(): { me: ReaderMe | null; loaded: boolean } {
 /** Sign up or sign in; on success the session is kept and the account loaded. */
 export async function enter(kind: 'login' | 'register', body: Record<string, unknown>): Promise<{ ok: true } | { ok: false; error: string }> {
   const r = await readerApi<{ token?: string; error?: string; message?: string }>(`/${kind}`, { body });
+  if (!r.ok || !r.data.token) return { ok: false, error: readerError(r.data.error, r.data.message) };
+  setToken(r.data.token);
+  await refreshReader();
+  return { ok: true };
+}
+
+/** Whether the catalogue can email a reset link (the library has set up email). */
+export async function emailResetAvailable(): Promise<boolean> {
+  const r = await readerApi<{ email?: boolean }>('/forgot');
+  return !!r.data?.email;
+}
+
+/** Asks for a reset link by email; the answer is the same whether or not an account has this email. */
+export async function askReset(email: string, lang: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const r = await readerApi<{ error?: string; message?: string }>('/forgot', { body: { email, lang } });
+  return r.ok ? { ok: true } : { ok: false, error: readerError(r.data.error, r.data.message) };
+}
+
+/** Sets a new password with a reset code; on success the reader is signed in here (and out everywhere else). */
+export async function resetPassword(code: string, password: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const r = await readerApi<{ token?: string; error?: string; message?: string }>('/reset', { body: { code, password } });
   if (!r.ok || !r.data.token) return { ok: false, error: readerError(r.data.error, r.data.message) };
   setToken(r.data.token);
   await refreshReader();

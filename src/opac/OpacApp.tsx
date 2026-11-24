@@ -262,13 +262,24 @@ function TransmissionChain({ copies }: { copies: Array<{ id: string; heldBy?: st
 
 // ---------------------------------------------------------------------------
 
+/** A reset code from the emailed link, read once when the page loads (readerReset.tsx). */
+const RESET_CODE: string | undefined = typeof window === 'undefined' ? undefined : new URLSearchParams(window.location.search).get('reset') || undefined;
+
 export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
   const [view, setView] = useState<View>(() => viewFromUrl());
   const [ready, setReady] = useState(false);
   const [rev, setRev] = useState(0);
   const [saved, setSaved] = useState<string[]>(() => wolfMoonOpacService.getBookbagIds());
   const [savedOpen, setSavedOpen] = useState(false);
-  const [readerOpen, setReaderOpen] = useState<ReaderMode | null>(null);
+  // The emailed reset link (?reset=CODE) opens "Set a new password"; the code leaves the address at once.
+  const resetCode = RESET_CODE;
+  useEffect(() => {
+    if (!resetCode) return;
+    const u = new URL(window.location.href);
+    u.searchParams.delete('reset');
+    window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash);
+  }, [resetCode]);
+  const [readerOpen, setReaderOpen] = useState<ReaderMode | null>(resetCode ? 'reset' : null);
   const { me } = useReader();
   const [toast, setToast] = useState<string | null>(null);
   const [navOpen, setNavOpen] = useState(false);
@@ -436,7 +447,7 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
 
       {savedOpen && <SavedSheet ctx={ctx} onClose={() => setSavedOpen(false)} />}
       {readerOpen && (
-        <ReaderSheet mode={readerOpen} onClose={() => setReaderOpen(null)}
+        <ReaderSheet mode={readerOpen} onClose={() => setReaderOpen(null)} resetCode={resetCode}
           onOpenBook={(id) => { setReaderOpen(null); go({ mode: 'work', id }); }}
           onStaff={onOpenEditor ? () => { setReaderOpen(null); onOpenEditor(); } : undefined} />
       )}

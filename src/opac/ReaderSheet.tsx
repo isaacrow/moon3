@@ -2,12 +2,12 @@
  * The reader's panel in the catalogue: sign in, create an account, and "My account" (loans, holds, reading
  * history with its switch and "clear", saved books follow the account, delete the account).
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, LogOut, Trash2, History, BookOpen, CalendarClock } from 'lucide-react';
 import { t } from './i18n';
-import { enter, signOut, forget, readerApi, readerError, refreshReader, useReader } from './readerAccount';
+import { enter, signOut, forget, readerApi, readerError, refreshReader, useReader, emailResetAvailable, askReset, resetPassword } from './readerAccount';
 
-export type ReaderMode = 'signin' | 'register' | 'account';
+export type ReaderMode = 'signin' | 'register' | 'account' | 'forgot' | 'reset';
 
 const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(t('ar-EG', 'en-GB'), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '');
 
@@ -15,13 +15,17 @@ const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', b
 const label: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, fontWeight: 600 };
 const h3: React.CSSProperties = { margin: '14px 0 6px', fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 };
 
-export function ReaderSheet({ mode: initial, onClose, onOpenBook, onStaff }: {
+export function ReaderSheet({ mode: initial, onClose, onOpenBook, onStaff, resetCode }: {
   mode: ReaderMode; onClose: () => void; onOpenBook: (id: string) => void; onStaff?: () => void;
+  /** From the emailed link (?reset=...): opens "Set a new password" with the code filled in. */
+  resetCode?: string;
 }) {
   const { me } = useReader();
   const [mode, setMode] = useState<ReaderMode>(me ? 'account' : initial === 'account' ? 'signin' : initial);
-  const shown: ReaderMode = me ? 'account' : mode === 'account' ? 'signin' : mode;
-  const title = shown === 'account' ? t('حسابي', 'My account') : shown === 'register' ? t('إنشاء حساب قارئ', 'Create a reader account') : t('دخول القرّاء', 'Reader sign in');
+  // A reset link opens its form even for someone signed in on this browser.
+  const shown: ReaderMode = mode === 'reset' ? 'reset' : me ? 'account' : mode === 'account' ? 'signin' : mode;
+  const title = shown === 'account' ? t('حسابي', 'My account') : shown === 'register' ? t('إنشاء حساب قارئ', 'Create a reader account')
+    : shown === 'forgot' ? t('نسيت كلمة المرور', 'Forgot your password') : shown === 'reset' ? t('كلمة مرور جديدة', 'Set a new password') : t('دخول القرّاء', 'Reader sign in');
   return (
     <>
       <div className="scrim" onClick={onClose} />
@@ -31,7 +35,10 @@ export function ReaderSheet({ mode: initial, onClose, onOpenBook, onStaff }: {
           <button className="icon-btn" onClick={onClose} aria-label={t('إغلاق', 'Close')}><X size={18} /></button>
         </div>
         <div className="sheet-body">
-          {shown === 'account' && me ? <Account onOpenBook={onOpenBook} /> : <EnterForm mode={shown as 'signin' | 'register'} setMode={setMode} />}
+          {shown === 'account' && me ? <Account onOpenBook={onOpenBook} />
+            : shown === 'forgot' ? <ForgotForm setMode={setMode} />
+            : shown === 'reset' ? <ResetForm initialCode={resetCode} onDone={() => setMode('account')} />
+            : <EnterForm mode={shown as 'signin' | 'register'} setMode={setMode} />}
         </div>
         {onStaff && (
           <p className="muted" style={{ fontSize: 12, margin: '12px 0 0' }}>
@@ -81,6 +88,65 @@ function EnterForm({ mode, setMode }: { mode: 'signin' | 'register'; setMode: (m
       <button type="button" className="inline-link" onClick={() => { setError(''); setMode(register ? 'signin' : 'register'); }}>
         {register ? t('لديك حساب؟ سجّل الدخول', 'Have an account? Sign in') : t('ليس لديك حساب؟ أنشئ حسابًا', 'No account yet? Create one')}
       </button>
+      {!register && <button type="button" className="inline-link" onClick={() => setMode('forgot')}>{t('نسيت كلمة المرور؟', 'Forgot your password?')}</button>}
+    </form>
+  );
+}
+
+/** Forgot password: a link by email (when the library has set up email), or a code from the loan desk. */
+function ForgotForm({ setMode }: { setMode: (m: ReaderMode) => void }) {
+  const [canEmail, setCanEmail] = useState<boolean | null>(null);
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => { emailResetAvailable().then(setCanEmail); }, []);
+  const desk = canEmail
+    ? t('أو اطلب رمز إعادة التعيين من مكتب الإعارة: يعطيك الموظف رمزًا بعد التحقق منك، صالحًا ٢٤ ساعة.', 'Or ask the loan desk for a reset code: staff give you one after checking who you are, valid for 24 hours.')
+    : t('اطلب رمز إعادة التعيين من مكتب الإعارة: يعطيك الموظف رمزًا بعد التحقق منك، صالحًا ٢٤ ساعة.', 'Ask the loan desk for a reset code: staff give you one after checking who you are, valid for 24 hours.');
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {canEmail === null ? <p className="muted">…</p> : canEmail ? (
+        sent ? (
+          <p role="status" style={{ margin: 0 }}>{t('إن كان لهذا البريد حساب، فقد أرسلنا إليه رابطًا لتعيين كلمة مرور جديدة، صالحًا ٣٠ دقيقة. افحص مجلد الرسائل غير المرغوبة أيضًا.', 'If an account has this email, we sent it a link to set a new password, valid for 30 minutes. Check your spam folder too.')}</p>
+        ) : (
+          <form style={{ display: 'flex', flexDirection: 'column', gap: 12 }} onSubmit={async (e) => {
+            e.preventDefault(); setBusy(true); setError('');
+            const r = await askReset(email, t('ar', 'en'));
+            setBusy(false);
+            if (r.ok) setSent(true); else setError(r.error);
+          }}>
+            <label style={label}>{t('بريد حسابك', 'Your account email')}<input style={inputStyle} type="email" required value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" dir="ltr" /></label>
+            {error && <p role="alert" style={{ color: '#b91c1c', margin: 0, fontSize: 14 }}>{error}</p>}
+            <button className="btn-black" disabled={busy} style={{ justifyContent: 'center' }}>{t('أرسل الرابط', 'Send the link')}</button>
+          </form>
+        )
+      ) : <p style={{ margin: 0 }}>{t('إعادة التعيين بالبريد غير مفعّلة بعد في هذه المكتبة.', 'Reset by email is not set up in this library yet.')}</p>}
+      <p className="muted" style={{ margin: 0, fontSize: 13 }}>{desk}</p>
+      <button type="button" className="btn-ghost" style={{ justifyContent: 'center' }} onClick={() => setMode('reset')}>{t('معي رمز', 'I have a code')}</button>
+      <button type="button" className="inline-link" onClick={() => setMode('signin')}>{t('رجوع إلى الدخول', 'Back to sign in')}</button>
+    </div>
+  );
+}
+
+/** Set a new password with the code from the email or the loan desk. */
+function ResetForm({ initialCode, onDone }: { initialCode?: string; onDone: () => void }) {
+  const [code, setCode] = useState(initialCode || '');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  return (
+    <form style={{ display: 'flex', flexDirection: 'column', gap: 12 }} onSubmit={async (e) => {
+      e.preventDefault(); setBusy(true); setError('');
+      const r = await resetPassword(code, password);
+      setBusy(false);
+      if (r.ok) onDone(); else setError(r.error);
+    }}>
+      <label style={label}>{t('الرمز', 'Code')}<input style={{ ...inputStyle, fontFamily: 'monospace', letterSpacing: 1 }} required value={code} onChange={e => setCode(e.target.value)} placeholder="ABCD-EFGH-JKMN" autoComplete="one-time-code" dir="ltr" /></label>
+      <label style={label}>{t('كلمة المرور الجديدة', 'New password')}<input style={inputStyle} type="password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" dir="ltr" /></label>
+      <p className="muted" style={{ margin: 0, fontSize: 12 }}>{t('بعدها تُسجَّل خارج حسابك في كل الأجهزة الأخرى.', 'You are then signed out of your account on every other device.')}</p>
+      {error && <p role="alert" style={{ color: '#b91c1c', margin: 0, fontSize: 14 }}>{error}</p>}
+      <button className="btn-black" disabled={busy} style={{ justifyContent: 'center' }}>{t('احفظ كلمة المرور', 'Save the password')}</button>
     </form>
   );
 }

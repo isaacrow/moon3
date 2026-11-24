@@ -421,6 +421,7 @@ function Patrons({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
                 <h2 className="font-black text-lg text-slate-900" dir="auto">{open.patron.name}</h2>
                 <div className="text-sm text-slate-600">{open.patron.card} · {isAr ? KIND_AR[open.patron.kind as Kind] : KIND_EN[open.patron.kind as Kind]}{open.patron.email ? ` · ${open.patron.email}` : ''}{open.patron.phone ? ` · ${open.patron.phone}` : ''}</div>
                 {open.patron.readerEmail && <div className="text-xs text-emerald-700 mt-0.5">{isAr ? `مربوط بحساب القارئ ${open.patron.readerEmail}` : `Linked to the reader account ${open.patron.readerEmail}`}</div>}
+                {open.patron.readerEmail && <ReaderResetCode isAr={isAr} patronId={open.patron.id} />}
                 {open.patron.note && <div className="text-sm text-slate-700 mt-1" dir="auto">{open.patron.note}</div>}
               </div>
               <div className="flex gap-2">
@@ -444,6 +445,34 @@ function Patrons({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * A one-time code for the borrower to set a new password for their catalogue account, after staff have seen
+ * them in person. Shown once; valid 24 hours.
+ */
+function ReaderResetCode({ isAr, patronId }: { isAr: boolean; patronId: string }) {
+  const [code, setCode] = useState<{ code: string; expires: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { setCode(null); }, [patronId]);
+  if (code) {
+    return (
+      <div className="mt-2 rounded-xl bg-white/80 border border-slate-200 p-2 text-sm">
+        <div className="text-xs text-slate-600">{isAr ? 'أعطِ المستفيد هذا الرمز ليكتبه في الفهرس («نسيت كلمة المرور» ثم «معي رمز»):' : 'Give the borrower this code to type in the catalogue ("Forgot your password", then "I have a code"):'}</div>
+        <div className="font-mono text-lg font-black tracking-wider text-slate-900" dir="ltr">{code.code}</div>
+        <div className="text-xs text-slate-500">{isAr ? 'صالح ٢٤ ساعة، لمرة واحدة. لن يظهر مرة أخرى.' : 'Valid for 24 hours, once. It will not be shown again.'}</div>
+      </div>
+    );
+  }
+  return (
+    <button className="mt-2 text-xs underline text-slate-700" disabled={busy} onClick={async () => {
+      if (!window.confirm(isAr ? 'هل تحققت من هوية المستفيد؟ سيستطيع من يحمل الرمز تغيير كلمة مرور حسابه.' : 'Have you checked who the borrower is? Whoever has the code can change their account password.')) return;
+      setBusy(true);
+      const r = await moonFetch(`/circulation/patrons/${patronId}/reader-reset`, { method: 'POST', body: {} });
+      setBusy(false);
+      if (r.ok) setCode(r.data); else toast.error(say(isAr, r.data?.error || `Error ${r.status}`));
+    }}>{isAr ? 'رمز لإعادة تعيين كلمة مرور حسابه' : 'Code to reset their account password'}</button>
   );
 }
 
