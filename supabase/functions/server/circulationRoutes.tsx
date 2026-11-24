@@ -398,6 +398,24 @@ circulationRoutes.put(`${P}/external`, async (c) => {
 
 // ─── For readers (the OPAC) ──────────────────────────────────
 
+/** The same for a page of results: ?records=id1,id2,… (up to 60); copies out, by record. */
+circulationRoutes.get(`${P}/availability`, async (c) => {
+  const ids = [...new Set((c.req.query("records") || "").split(",").map((s) => s.trim()).filter((s) => /^[A-Za-z0-9._:-]{1,120}$/.test(s)))].slice(0, 60);
+  if (!ids.length) return c.json({ inUse: false, out: {} });
+  try {
+    const [{ count }, { data }] = await Promise.all([
+      sb().from("patrons").select("id", { count: "exact", head: true }),
+      sb().from("loans").select("record_id, item_id, barcode, due_at").in("record_id", ids).is("returned_at", null),
+    ]);
+    const out: Record<string, Array<{ itemId: string | null; barcode: string; due: string }>> = {};
+    for (const l of data || []) (out[l.record_id] ||= []).push({ itemId: l.item_id, barcode: l.barcode, due: l.due_at });
+    c.header("Cache-Control", "public, max-age=60");
+    return c.json({ inUse: (count || 0) > 0, out });
+  } catch {
+    return c.json({ inUse: false, out: {} });
+  }
+});
+
 /** Which copies of a book are out and until when; nothing about who has them. */
 circulationRoutes.get(`${P}/availability/:recordId`, async (c) => {
   const recordId = c.req.param("recordId");
