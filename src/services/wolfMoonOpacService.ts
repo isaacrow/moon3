@@ -2702,6 +2702,14 @@ class WolfMoonOpacService {
     }
   }
 
+  /** Replaces the saved books (after a reader signs in, with their account's list). */
+  public setBookbagIds(ids: string[]): void {
+    try {
+      if (typeof window !== 'undefined') localStorage.setItem(this.bookbagKey, JSON.stringify(ids));
+    } catch {}
+    this.notify();
+  }
+
   public getBookbagWorks(): OpacWorkEntity[] {
     const ids = new Set(this.getBookbagIds());
     return this.works.filter(w => ids.has(w.id));
