@@ -37,6 +37,12 @@
   <h2>The data, against the plan's targets <span class="ar" dir="rtl">البيانات مقابل أهداف الخطة</span></h2>
   <table id="plan"><thead><tr><th>Measure</th><th class="num">Now</th><th class="hide">Progress to target</th><th class="num">Target</th></tr></thead><tbody></tbody></table>
 
+  <h2>Search test <span class="ar" dir="rtl">اختبار البحث</span></h2>
+  <p class="muted">200 questions a reader would type (titles, words in any order, authors, names in the other script, other spellings, subjects, ISBNs, typing slips), asked of the catalogue with the search its results page uses. A question counts when a right book is in the first 10 results. <a href="/search-test.json">The full result</a>.<span class="ar" dir="rtl">٢٠٠ سؤال يكتبها القارئ، تُطرح على الفهرس بالبحث نفسه الذي تستخدمه صفحة النتائج. يُحسب السؤال إن جاء كتاب صحيح في أول ١٠ نتائج.</span></p>
+  <p id="search-total" class="muted"></p>
+  <table id="search"><thead><tr><th>Kind of question</th><th class="num">Found</th><th class="hide"></th><th class="num">First result</th></tr></thead><tbody></tbody></table>
+  <details id="search-missed-box" style="margin-top:8px"><summary>Questions not answered yet · أسئلة لم يُجب عنها بعد</summary><ul id="search-missed"></ul></details>
+
   <h2>BIBFRAME 3.0.1 and linked-data checks <span class="ar" dir="rtl">فحوص BIBFRAME 3.0.1 والبيانات المترابطة</span></h2>
   <table id="audit"><thead><tr><th>Check</th><th class="num">Result</th><th class="hide"></th><th class="num">Should be</th></tr></thead><tbody></tbody></table>
 
@@ -49,6 +55,16 @@
   var cls = function (p) { return p >= 0.999 ? 'ok' : p >= 0.5 ? 'mid' : 'low'; };
   var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); };
   var bar = function (p, c) { return '<div class="bar"><i style="width:' + Math.max(2, Math.round(100 * Math.min(1, p))) + '%;background:var(--' + c + ')"></i></div>'; };
+  var KIND = { title: ['Exact title', 'العنوان كما هو'], words: ['Title words, any order', 'كلمات من العنوان بأي ترتيب'], author: ['Author', 'المؤلف'], 'author+title': ['Author and a title word', 'المؤلف وكلمة من العنوان'], 'cross-script': ['Name or title in the other script', 'الاسم أو العنوان بالخط الآخر'], spelling: ['Other spellings of a name', 'كتابات أخرى للاسم'], subject: ['Subject', 'الموضوع'], 'call number': ['Call number', 'رقم الطلب'], typo: ['Typing slips', 'أخطاء الكتابة'], isbn: ['ISBN with hyphens', 'ردمك بالشرطات'] };
+  fetch('/search-test.json').then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (t) {
+    var p = function (v) { return (100 * v).toFixed(1) + '%'; };
+    document.getElementById('search-total').innerHTML = '<b>' + t.found + ' of ' + t.questions + ' (' + p(t.inTop10) + ')</b> found in the first 10 results; ' + p(t.first) + ' by the very first result. Over ' + t.books + ' books, ' + new Date(t.at).toLocaleString('en-GB', { timeZone: 'Asia/Baghdad' }) + ' (Baghdad).';
+    document.querySelector('#search tbody').innerHTML = t.byKind.map(function (k) {
+      var share = k.questions ? k.found / k.questions : 0; var c = cls(share); var n = KIND[k.kind] || [k.kind, ''];
+      return '<tr><td>' + esc(n[0]) + '<span class="ar" dir="rtl">' + esc(n[1]) + '</span></td><td class="num ' + c + '">' + k.found + ' / ' + k.questions + '</td><td class="hide">' + bar(share, c) + '</td><td class="num">' + k.first + '</td></tr>';
+    }).join('');
+    document.getElementById('search-missed').innerHTML = t.missed.length ? t.missed.map(function (m) { return '<li><span dir="auto">' + esc(m.q) + '</span> <span class="muted">(' + esc((KIND[m.kind] || [m.kind])[0]) + ')</span></li>'; }).join('') : '<li>None.</li>';
+  }).catch(function () { document.getElementById('search-total').textContent = 'The search test has not run yet. · لم يُجرَ اختبار البحث بعد.'; });
   fetch('/resource/score.json').then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
     var c = d.counts || {};
     document.getElementById('counts').innerHTML = [

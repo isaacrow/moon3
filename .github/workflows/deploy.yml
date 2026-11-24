@@ -47,6 +47,13 @@ jobs:
       - name: Type check the server
         run: npm run typecheck:server
 
+      # The catalogue search test (src/opac/searchBenchmark.ts): 200 questions against the live catalogue, with the
+      # results page's own search. Published as /search-test.json and on the scorecard; a measure, never a gate.
+      - name: Search test
+        continue-on-error: true
+        timeout-minutes: 5
+        run: npx tsx scripts/search-benchmark.mts public/search-test.json
+
       - name: Build
         run: |
           set -o pipefail

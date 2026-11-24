@@ -48,3 +48,6 @@ backups/
 # Cloudflare Worker local dev (wrangler dev)
 .wrangler/
 .dev.vars
+
+# Made by the deploy (scripts/search-benchmark.mts)
+public/search-test.json

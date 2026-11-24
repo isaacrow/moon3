@@ -88,9 +88,10 @@ export function crossScriptMatch(query: string, keys: Set<string>, textHasArabic
   const qArabic = ARABIC.test(query);
   if (qArabic ? !textHasLatin : !textHasArabic) return false;
   const typed = words(query).filter((w) => ARABIC.test(w) === qArabic);
+  // Words with fewer than two consonants ("Ali" علي, "Duaa" دعاء) cannot be compared and are left out; the
+  // others must all match, and at least one of them must have three consonants or more, so "Ibn" (key "bn")
+  // alone is never the whole of a match.
   const wanted = typed.map(crossKey).filter(Boolean);
-  // Every typed word must be comparable, so "Ibn" alone (key "bn") is never the whole of a match.
-  if (!wanted.length || wanted.length < typed.filter((w) => w.length > 2).length) return false;
-  if (wanted.length === 1 && wanted[0].length < 3) return false;
+  if (!wanted.length || Math.max(...wanted.map((k) => k.length)) < 3) return false;
   return wanted.every((k) => keys.has(k));
 }

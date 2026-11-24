@@ -173,6 +173,44 @@ export function matchWork(w: SearchableWork, rawQuery: string): Match | null {
   return { score, reason: `تطابق كل الكلمات (أقواها في ${strongest!.ar})` };
 }
 
+/**
+ * Whether two words are one typing slip apart: one letter wrong, missing, added, or two letters swapped
+ * ("Bagdad" / "baghdad", "Gilgamesch" / "gilgamesh", "محفوط" / "محفوظ").
+ */
+export function oneSlipApart(a: string, b: string): boolean {
+  if (a === b) return true;
+  const la = a.length, lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0;
+  while (i < la && i < lb && a[i] === b[i]) i++;
+  if (la === lb) {
+    // One letter wrong, or two neighbours swapped.
+    if (a.slice(i + 1) === b.slice(i + 1)) return true;
+    return a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2);
+  }
+  // One letter missing or added.
+  return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+}
+
+/**
+ * The second chance, used only when nothing at all matched (searchWorks): every word typed is in the book, or
+ * one typing slip away from a word of its title, people or subjects (words of five letters or more, so short
+ * words never match by chance). Ranked below everything else.
+ */
+export function fuzzyMatchWork(w: SearchableWork, rawQuery: string): Match | null {
+  const typed = fold(rawQuery).split(' ').filter(Boolean);
+  if (!typed.length) return null;
+  const fields = fieldsFor(w);
+  const near = fields.filter((f) => f.weight >= 55).flatMap((f) => f.text.split(' ')).filter((x) => x.length >= 4);
+  let slips = 0;
+  for (const word of typed) {
+    if (fields.some((f) => f.text.includes(word))) continue;
+    if (word.length < 5 || !near.some((x) => oneSlipApart(word, x))) return null;
+    slips++;
+  }
+  return slips ? { score: 12, reason: 'تطابق تقريبي (ربما خطأ في الكتابة)' } : null;
+}
+
 /** True when every word typed is found in any of the texts (any order, accents and spelling variants ignored). */
 export function allWordsIn(rawQuery: string, ...texts: unknown[]): boolean {
   const words = fold(rawQuery).split(' ').filter(Boolean);
