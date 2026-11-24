@@ -31,6 +31,7 @@ import {
 import { MOON_API, moonHeaders } from '../app/utils/moonApi';
 import { relationWords } from '../../supabase/functions/server/workRelations.tsx';
 import { setEntityNames } from './searchIndex';
+import { useLoansOut, loanLine, useEResources, matchResources, type EResource } from './libraryServices';
 import { t, opacLang, setOpacLang, type OpacLang } from './i18n';
 import { IiifViewer } from './IiifViewer';
 import { readDate, bothCalendars } from '../services/hijri';
@@ -761,6 +762,7 @@ function Home({ ctx }: { ctx: Ctx }) {
           <Shelf title={t(`من أعمال ${personName(featured.person)}`, `By ${personName(featured.person)}`)} works={featured.works} ctx={ctx} more={{ label: t('صفحة المؤلف', 'Author page'), view: { mode: 'person', key: featured.person.id } }} />
         )}
         <Shelf title={t('مخطوطات', 'Manuscripts')} works={manuscripts} ctx={ctx} />
+        <EResourceList />
         <Shelf title={t('على رفوف المكتبة', 'On the library shelves')} works={withCopies} ctx={ctx} more={{ label: t('كل ما له نسخ', 'Everything with copies'), view: { mode: 'search', query: '', params: 'f_avail=physical' } }} />
 
         {languages.length > 1 && (
@@ -869,7 +871,9 @@ function contributorsLine(w: OpacWorkEntity): React.ReactNode[] {
 function ResultCard({ w, ctx, i }: { w: OpacWorkEntity; ctx: Ctx; i: number }) {
   const meta = whatItIs(w);
   const year = workYearOf(w);
-  const h = holdingsSummary(w);
+  const loans = useLoansOut(w.id);
+  // Once the library lends from Moon: "Available", "2 of 3 available" or "On loan, due back …".
+  const h = loanLine(realCopies(w).length, loans.out, loans.inUse, t('ar', 'en') as 'ar' | 'en') || holdingsSummary(w);
   const who = contributorsLine(w);
   return (
     <button className="row result glass rise" style={stagger(i)} onClick={() => ctx.go({ mode: 'work', id: w.id })}>
@@ -1009,6 +1013,45 @@ function AdvancedSearch({ ctx, query, adv }: { ctx: Ctx; query: string; adv: Adv
   );
 }
 
+/** One subscribed database or e-journal: its title, what it is, and the link that opens it. */
+function EResourceLink({ r }: { r: EResource }) {
+  return (
+    <a className="row glass" href={r.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 16px', borderRadius: 14, textDecoration: 'none', color: 'inherit' }}>
+      <span style={{ minWidth: 0 }}>
+        <span className="kicker" style={{ display: 'block' }}>{r.kind === 'database' ? t('قاعدة بيانات', 'Database') : t('دورية إلكترونية', 'E-journal')}{r.issn ? ` · ISSN ${r.issn}` : ''}</span>
+        <span className="t" dir="auto" style={{ display: 'block' }}>{r.title}</span>
+      </span>
+      <span className="status" data-s="digital_access">{t('افتح', 'Open')} ↗</span>
+    </a>
+  );
+}
+
+/** On the home page: the databases and e-journals the library subscribes to (Acquisitions in Moon Studio). */
+function EResourceList() {
+  const list = useEResources();
+  if (!list.length) return null;
+  return (
+    <section className="section" aria-labelledby="h-eres">
+      <div className="section-head"><h2 id="h-eres">{t('قواعد البيانات والدوريات الإلكترونية', 'Databases and e-journals')}</h2></div>
+      <p className="muted" style={{ marginTop: -6 }}>{t('تشترك فيها المكتبة؛ قد يطلب بعضها الدخول من داخل المكتبة.', 'The library subscribes to these; some may need you to be in the library to open them.')}</p>
+      <div className="rows">{list.slice(0, 12).map(r => <EResourceLink key={r.id} r={r} />)}</div>
+    </section>
+  );
+}
+
+/** Above the results: subscribed databases and e-journals whose title matches what was typed. */
+function EResourceMatches({ query }: { query: string }) {
+  const list = useEResources();
+  const hits = useMemo(() => matchResources(query, list), [query, list]);
+  if (!hits.length) return null;
+  return (
+    <div style={{ margin: '8px 0 14px' }}>
+      <h4 style={{ margin: '0 0 6px' }}>{t('من اشتراكات المكتبة', 'From the library’s subscriptions')}</h4>
+      <div className="rows">{hits.map(r => <EResourceLink key={r.id} r={r} />)}</div>
+    </div>
+  );
+}
+
 function Results({ ctx, query }: { ctx: Ctx; query: string }) {
   const initial = useMemo(() => readState(new URLSearchParams(window.location.search)), [query]);
   const adv = useMemo(() => readAdvanced(new URLSearchParams(window.location.search)), [query]);
@@ -1121,6 +1164,8 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
               </select>
             </label>
           </div>
+
+          <EResourceMatches query={query} />
 
           {chips.length > 0 && (
             <div className="chips" aria-label={t('الفلاتر المختارة', 'Chosen filters')}>
@@ -1492,7 +1537,7 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
                         // The loan desk knows: on loan until a date, or on the shelf.
                         const out = loanStatus?.out.find(o => (o.itemId && (o.itemId === c.id || o.itemId === c.uri)) || (!!o.barcode && o.barcode === c.barcode));
                         if (loanStatus?.inUse && (s === 'not_connected' || s === 'available' || s === 'checked_out')) s = out ? 'checked_out' : 'available';
-                        const back = out?.due ? new Date(out.due).toLocaleDateString(t('ar-EG', 'en-GB'), { day: 'numeric', month: 'long' }) : '';
+                        const back = out?.due ? new Date(out.due).toLocaleDateString(t('ar-EG', 'en-GB'), { day: 'numeric', month: 'long', timeZone: 'UTC' }) : '';
                         return (
                           <div key={c.id} className="copy">
                             <span className="t">{[where, c.shelfMark && t(`الرف ${c.shelfMark}`, `Shelf ${c.shelfMark}`)].filter(Boolean).join(' · ') || t('نسخة', 'Copy')}</span>

@@ -67,7 +67,7 @@ export const dark = `${btn} bg-slate-900 text-white hover:bg-slate-700`;
 export const light = `${btn} bg-white/80 text-slate-900 border border-slate-300 hover:bg-white`;
 
 function useDate(isAr: boolean) {
-  return (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(isAr ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+  return (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(isAr ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '');
 }
 
 /** The tab in the address (?tab=patrons), so a refresh or a link opens the same part of the desk. */

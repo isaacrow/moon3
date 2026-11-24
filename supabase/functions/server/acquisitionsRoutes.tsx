@@ -9,6 +9,7 @@
  *   POST   /acq/orders/:id/receive {recordId?}   POST /acq/orders/:id/cancel
  *   POST   /acq/invoices/:id/pay
  *   GET    /acq/issues?subscription=ID      POST /acq/issues {subscriptionId, label, receivedOn?}
+ *   GET    /acq/eresources                  public: the databases and e-journals readers can open (title and link only)
  */
 import { Hono } from "npm:hono";
 import { getClient } from "./db.tsx";
@@ -83,6 +84,25 @@ acquisitionsRoutes.get(`${P}/summary`, async (c) => {
       funds: (funds.data || []).map((f: any) => ({ ...f, ...fundStatus(f, orderRows, subRows) })),
     });
   } catch (e) { return failed(c, "The numbers", e); }
+});
+
+// ─── For readers (the OPAC) ──────────────────────────────────
+
+/**
+ * The databases and e-journals the libraries subscribe to and that have an access link, while the subscription
+ * runs: for the catalogue's "Databases and e-journals" list and its search. Nothing about cost or vendor.
+ */
+acquisitionsRoutes.get(`${P}/eresources`, async (c) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data, error } = await sb().from("acq_subscriptions").select("id, kind, title, issn, access_url, record_id, library")
+      .eq("active", true).not("access_url", "is", null).lte("start_date", today).gte("end_date", today).order("title").limit(500);
+    if (error) throw error;
+    c.header("Cache-Control", "public, max-age=300");
+    return c.json({ resources: (data || []).map((r: any) => ({ id: r.id, kind: r.kind, title: r.title, issn: r.issn, url: r.access_url, recordId: r.record_id, library: r.library })) });
+  } catch {
+    return c.json({ resources: [] });
+  }
 });
 
 // ─── Journal issues ──────────────────────────────────────────
