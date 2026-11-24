@@ -11,7 +11,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import {
-  Search, Bookmark, BookmarkCheck, Quote, Link2, X, Menu, Download, Copy, Check, ArrowUpRight, Mail, Printer, SlidersHorizontal,
+  Search, Bookmark, BookmarkCheck, Quote, Link2, X, Menu, Download, Copy, Check, ArrowUpRight, Mail, Printer, SlidersHorizontal, CalendarClock,
 } from 'lucide-react';
 import { FIELDS, FIELD_PARAM_KEYS, ADVANCED_KEYS, readAdvanced, hasAdvanced, applyFieldSearch, advancedParams, type FieldKey, type Advanced } from './fieldSearch';
 import { generateCitations } from './citations';
@@ -32,6 +32,8 @@ import { MOON_API, moonHeaders } from '../app/utils/moonApi';
 import { relationWords } from '../../supabase/functions/server/workRelations.tsx';
 import { setEntityNames } from './searchIndex';
 import { useLoansOut, loanLine, useEResources, matchResources, type EResource } from './libraryServices';
+import { useReader, pushSaved, readerApi, readerError, refreshReader } from './readerAccount';
+import { ReaderSheet, type ReaderMode } from './ReaderSheet';
 import { t, opacLang, setOpacLang, type OpacLang } from './i18n';
 import { IiifViewer } from './IiifViewer';
 import { readDate, bothCalendars } from '../services/hijri';
@@ -266,6 +268,8 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
   const [rev, setRev] = useState(0);
   const [saved, setSaved] = useState<string[]>(() => wolfMoonOpacService.getBookbagIds());
   const [savedOpen, setSavedOpen] = useState(false);
+  const [readerOpen, setReaderOpen] = useState<ReaderMode | null>(null);
+  const { me } = useReader();
   const [toast, setToast] = useState<string | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [lang, setLang] = useState<OpacLang>(opacLang);
@@ -332,9 +336,21 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
     (say as any)._t = window.setTimeout(() => setToast(null), 2200);
   }, []);
 
+  // A reader who signs in gets their account's saved books, with the ones saved in this browser added to them.
+  const mergedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!me || mergedFor.current === me.reader.email) { if (!me) mergedFor.current = null; return; }
+    mergedFor.current = me.reader.email;
+    const ids = [...new Set([...me.saved, ...wolfMoonOpacService.getBookbagIds()])].slice(0, 1000);
+    wolfMoonOpacService.setBookbagIds(ids);
+    setSaved(ids);
+    if (ids.length !== me.saved.length) pushSaved(ids);
+  }, [me]);
+
   const toggleSave = useCallback((id: string) => {
     const r = wolfMoonOpacService.toggleBookbag(id);
     setSaved(r.items);
+    pushSaved(r.items);
     say(r.added ? t('أُضيف إلى قائمتك', 'Added to your list') : t('أُزيل من قائمتك', 'Removed from your list'));
   }, [say]);
 
@@ -349,7 +365,7 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
     if (view.mode !== 'work') document.title = titles[view.mode];
   }, [view, lang]);
 
-  const ctx: Ctx = { go, saved, toggleSave, say, rev };
+  const ctx: Ctx = { go, saved, toggleSave, say, rev, openAccount: setReaderOpen };
 
   return (
     <div className="app" dir={lang === 'ar' ? 'rtl' : 'ltr'} lang={lang} key={lang}>
@@ -379,8 +395,14 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
             </button>
             <button className="btn-ghost lang-switch" onClick={switchLang} lang={lang === 'ar' ? 'en' : 'ar'}
               aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}>{lang === 'ar' ? 'English' : 'العربية'}</button>
-            <button className="btn-ghost sign-in" onClick={() => { reportAction('sign_in'); onOpenEditor?.(); }}>{t('دخول', 'Sign in')}</button>
-            <button className="btn-black" onClick={() => { reportAction('sign_up'); window.location.href = '/moon/?signup=1'; }}>{t('إنشاء حساب', 'Sign up')}</button>
+            {me ? (
+              <button className="btn-ghost sign-in" onClick={() => setReaderOpen('account')} dir="auto">{t('حسابي', 'My account')}</button>
+            ) : (
+              <>
+                <button className="btn-ghost sign-in" onClick={() => { reportAction('sign_in'); setReaderOpen('signin'); }}>{t('دخول', 'Sign in')}</button>
+                <button className="btn-black" onClick={() => { reportAction('sign_up'); setReaderOpen('register'); }}>{t('إنشاء حساب', 'Sign up')}</button>
+              </>
+            )}
             <button className="icon-btn menu-toggle" onClick={() => setNavOpen(o => !o)} aria-expanded={navOpen} aria-label={t('القائمة', 'Menu')}>
               {navOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -413,6 +435,11 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
       </footer>
 
       {savedOpen && <SavedSheet ctx={ctx} onClose={() => setSavedOpen(false)} />}
+      {readerOpen && (
+        <ReaderSheet mode={readerOpen} onClose={() => setReaderOpen(null)}
+          onOpenBook={(id) => { setReaderOpen(null); go({ mode: 'work', id }); }}
+          onStaff={onOpenEditor ? () => { setReaderOpen(null); onOpenEditor(); } : undefined} />
+      )}
       {toast && <div className="toast glass" role="status">{toast}</div>}
     </div>
   );
@@ -424,6 +451,8 @@ type Ctx = {
   toggleSave: (id: string) => void;
   say: (m: string) => void;
   rev: number;
+  /** Opens the reader's panel: sign in, create an account, or My account. */
+  openAccount: (mode: ReaderMode) => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -1329,6 +1358,26 @@ function useLoanStatus(recordId?: string) {
   return state;
 }
 
+/** "Place a hold" on a book's page, once the library lends from Moon: the reader signs in first. */
+function HoldButton({ ctx, recordId }: { ctx: Ctx; recordId: string }) {
+  const { me } = useReader();
+  const [busy, setBusy] = useState(false);
+  const held = !!me?.holds.some(h => h.record_id === recordId);
+  if (!me) return <button className="btn-ghost" onClick={() => ctx.openAccount('signin')}><CalendarClock size={16} />{t('ادخل لتحجز', 'Sign in to place a hold')}</button>;
+  return (
+    <button className="btn-ghost" disabled={busy || held} aria-pressed={held} onClick={async () => {
+      setBusy(true);
+      const r = await readerApi('/holds', { body: { recordId } });
+      setBusy(false);
+      if (!r.ok) { ctx.say(readerError(r.data?.error)); return; }
+      await refreshReader();
+      ctx.say(t('حُجز لك. ستُخبرك المكتبة حين يجهز.', 'Held for you. The library will tell you when it is ready.'));
+    }}>
+      <CalendarClock size={16} />{held ? t('محجوز لك', 'On hold for you') : t('احجز', 'Place a hold')}
+    </button>
+  );
+}
+
 function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
   const work = useMemo(() => wolfMoonOpacService.getWorkByIdOrUri(id), [id, ctx.rev]);
   useRecordHead(work);
@@ -1438,6 +1487,7 @@ function WorkPage({ ctx, id }: { ctx: Ctx; id: string }) {
                 {isSaved ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}{isSaved ? t('في قائمتك', 'In your list') : t('احفظ في قائمتك', 'Save to your list')}
               </span>
             </button>
+            {loanStatus?.inUse && copies.length > 0 && <HoldButton ctx={ctx} recordId={work.id} />}
             <button className="btn-ghost" onClick={() => { reportAction('cite'); setCiteOpen(true); }}><Quote size={16} />{t('استشهد', 'Cite')}</button>
             <button className="btn-ghost" onClick={copyLink}><Link2 size={16} />{t('انسخ الرابط', 'Copy link')}</button>
             <a className="btn-ghost" href={`mailto:?subject=${encodeURIComponent(work.title)}&body=${encodeURIComponent(`${citeOf(work).apa}\n\n${pageUrl(work.id)}`)}`} onClick={() => reportAction('export')}>

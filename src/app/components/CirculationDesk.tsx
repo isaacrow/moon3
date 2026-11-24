@@ -16,7 +16,7 @@ export type DeskTab = 'desk' | 'patrons' | 'loans' | 'holds' | 'rules';
 export const DESK_TABS: DeskTab[] = ['desk', 'patrons', 'loans', 'holds', 'rules'];
 
 type Kind = 'reader' | 'student' | 'staff';
-interface Patron { id: string; card: string; name: string; kind: Kind; email?: string | null; phone?: string | null; note?: string | null; blocked?: boolean }
+interface Patron { id: string; card: string; name: string; kind: Kind; email?: string | null; phone?: string | null; note?: string | null; blocked?: boolean; readerEmail?: string | null }
 interface Loan {
   id: number; barcode: string; record_id?: string; record_title?: string; due_at: string; loaned_at: string; returned_at?: string | null;
   renewals: number; fine: number; fine_settled: boolean; daysOverdue: number; fineNow: number; patron?: { id: string; name: string; card: string } | null;
@@ -50,6 +50,8 @@ const AR_ERRORS: Array<[RegExp, string]> = [
   [/^This borrower is already waiting/, 'المستفيد ينتظر هذا الكتاب أصلًا'],
   [/^No record has this number/, 'لا تسجيلة بهذا الرقم'],
   [/^A reviewer or the Super Admin sets/, 'المراجع أو المشرف العام يضبط قواعد الإعارة'],
+  [/^No reader account has this email/, 'لا حساب قارئ بهذا البريد؛ يسجّل القارئ في الفهرس أولًا'],
+  [/^The reader account email is not valid/, 'بريد حساب القارئ غير صحيح'],
 ];
 const say = (isAr: boolean, msg: string) => {
   if (!isAr) return msg;
@@ -395,6 +397,14 @@ function Patrons({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
             <Field label={isAr ? 'البريد (اختياري)' : 'Email (optional)'}><input type="email" className={input} dir="ltr" value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
             <Field label={isAr ? 'الهاتف (اختياري)' : 'Phone (optional)'}><input className={input} dir="ltr" value={form.phone || ''} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
             <Field label={isAr ? 'ملاحظة' : 'Note'}><input className={input} dir="auto" value={form.note || ''} onChange={(e) => setForm({ ...form, note: e.target.value })} /></Field>
+            <div className="sm:col-span-2">
+              <Field label={isAr ? 'بريد حساب القارئ في الفهرس (اختياري)' : 'Reader account email in the catalogue (optional)'}>
+                <input type="email" className={input} dir="ltr" value={form.readerEmail || ''} onChange={(e) => setForm({ ...form, readerEmail: e.target.value })} />
+              </Field>
+              <p className="text-xs text-slate-500 mt-1">{isAr
+                ? 'يربط البطاقة بحساب القارئ: فيرى إعاراته وحجوزاته في الفهرس ويحجز منه، ويُحفظ له سجل قراءته إن أبقاه مفعّلًا. لا يرى الموظفون هذا السجل.'
+                : 'Links the card to the reader’s account: they see their loans and holds in the catalogue and place holds there, and their reading history is kept if they leave it on. Staff never see that history.'}</p>
+            </div>
             <label className="sm:col-span-2 inline-flex items-center gap-2 text-sm text-slate-800">
               <input type="checkbox" checked={!!form.blocked} onChange={(e) => setForm({ ...form, blocked: e.target.checked })} /> {isAr ? 'موقوف عن الإعارة' : 'Blocked from borrowing'}
             </label>
@@ -410,6 +420,7 @@ function Patrons({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
               <div>
                 <h2 className="font-black text-lg text-slate-900" dir="auto">{open.patron.name}</h2>
                 <div className="text-sm text-slate-600">{open.patron.card} · {isAr ? KIND_AR[open.patron.kind as Kind] : KIND_EN[open.patron.kind as Kind]}{open.patron.email ? ` · ${open.patron.email}` : ''}{open.patron.phone ? ` · ${open.patron.phone}` : ''}</div>
+                {open.patron.readerEmail && <div className="text-xs text-emerald-700 mt-0.5">{isAr ? `مربوط بحساب القارئ ${open.patron.readerEmail}` : `Linked to the reader account ${open.patron.readerEmail}`}</div>}
                 {open.patron.note && <div className="text-sm text-slate-700 mt-1" dir="auto">{open.patron.note}</div>}
               </div>
               <div className="flex gap-2">

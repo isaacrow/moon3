@@ -95,7 +95,7 @@ export function cleanCode(raw: unknown): string | null {
   return /^[A-Za-z0-9._-]{1,40}$/.test(s) ? s : null;
 }
 
-export interface PatronInput { card: string; name: string; kind: PatronKind; email?: string | null; phone?: string | null; note?: string | null; blocked?: boolean }
+export interface PatronInput { card: string; name: string; kind: PatronKind; email?: string | null; phone?: string | null; note?: string | null; blocked?: boolean; readerEmail?: string | null }
 
 /** The borrower as sent from the desk, cleaned, or the reason it cannot be saved. */
 export function readPatron(raw: any): { patron: PatronInput } | { error: string } {
@@ -109,7 +109,10 @@ export function readPatron(raw: any): { patron: PatronInput } | { error: string 
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "The email address is not valid" };
   const phone = text(raw?.phone, 40);
   if (phone && !/^[+0-9 ()\-]{3,40}$/.test(phone)) return { error: "The phone number: digits, spaces, + ( ) - only" };
-  return { patron: { card, name, kind, email, phone, note: text(raw?.note, 500), blocked: raw?.blocked === true } };
+  // The email of the borrower's reader account in the catalogue, to link the two (blank: no link).
+  const readerEmail = text(raw?.readerEmail, 200)?.toLowerCase() || null;
+  if (readerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(readerEmail)) return { error: "The reader account email is not valid" };
+  return { patron: { card, name, kind, email, phone, note: text(raw?.note, 500), blocked: raw?.blocked === true, readerEmail } };
 }
 
 export interface FoundCopy {

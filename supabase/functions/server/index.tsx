@@ -30,6 +30,7 @@ import * as loadTesting from "./loadTesting.tsx";
 import recordRoutes from "./recordRoutes.tsx";
 import circulationRoutes from "./circulationRoutes.tsx";
 import acquisitionsRoutes from "./acquisitionsRoutes.tsx";
+import readerRoutes from "./readerRoutes.tsx";
 import manuscriptsRoutes from "./manuscriptsRoutes.tsx";
 import accountRoutes, { getSession, isAdminSession, canReview, isReviewer, SUPER_ADMIN_USERNAME, libraryOf } from "./accountRoutes.tsx";
 import { applyOwnership, withOwners, withoutOwners, blockedMessage } from "./protectedValues.tsx";
@@ -182,7 +183,7 @@ app.use(
   "/*",
   cors({
     origin: "*",
-    allowHeaders: ["Content-Type", "Authorization", "X-Moon-Session"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Moon-Session", "X-Moon-Reader"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
@@ -4877,6 +4878,7 @@ app.route('/make-server-49c0e13c', recordRoutes);
 app.route('/make-server-49c0e13c', accountRoutes);
 app.route('/make-server-49c0e13c', circulationRoutes);
 app.route('/make-server-49c0e13c', acquisitionsRoutes);
+app.route('/make-server-49c0e13c', readerRoutes);
 app.route('/make-server-49c0e13c', manuscriptsRoutes);
 
 // ═══════════════════════════════════════════════════════════

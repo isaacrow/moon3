@@ -24,9 +24,10 @@ import * as kv from "./kv_store.tsx";
 import { getClient } from "./db.tsx";
 import { getSession, libraryOf } from "./accountRoutes.tsx";
 import { hookUrlProblem } from "./webhooks.tsx";
+import { historyRow } from "./readers.tsx";
 import {
   parseRules, dueDate, fineFor, daysOverdue, cleanCode, readPatron, copiesIn, checkoutProblem, renewProblem,
-  renewedDue, holdExpiry, type Rules, type PatronKind, type FoundCopy,
+  renewedDue, holdExpiry, type Rules, type PatronKind, type FoundCopy, type PatronInput,
 } from "./circulation.tsx";
 
 const circulationRoutes = new Hono();
@@ -47,6 +48,18 @@ const failed = (c: any, what: string, e: unknown) => {
   console.error(`[circulation] ${what}:`, e instanceof Error ? e.message : e);
   return c.json({ error: `${what} failed` }, 500);
 };
+
+/**
+ * The borrower's row as stored: the reader account is linked by its email (readers.tsx); an email no reader
+ * has signed up with is refused, so a link always points at a real account.
+ */
+async function patronRow(p: PatronInput): Promise<{ row: Record<string, unknown> } | { error: string }> {
+  const { readerEmail, ...rest } = p;
+  if (!readerEmail) return { row: { ...rest, reader_id: null } };
+  const { data } = await sb().from("readers").select("id").eq("email", readerEmail).maybeSingle();
+  if (!data) return { error: "No reader account has this email; the reader signs up in the catalogue first" };
+  return { row: { ...rest, reader_id: data.id } };
+}
 
 async function rulesFor(library: string): Promise<Rules> {
   return parseRules(await kv.get(RULES_KEY(library)).catch(() => null));
@@ -143,7 +156,9 @@ circulationRoutes.post(`${P}/patrons`, async (c) => {
   if (!st) return denied(c);
   const read = readPatron(await c.req.json().catch(() => ({})));
   if ("error" in read) return c.json({ error: read.error }, 400);
-  const { data, error } = await sb().from("patrons").insert({ ...read.patron, library: st.library, created_by: st.username }).select().single();
+  const row = await patronRow(read.patron);
+  if ("error" in row) return c.json({ error: row.error }, 400);
+  const { data, error } = await sb().from("patrons").insert({ ...row.row, library: st.library, created_by: st.username }).select().single();
   if (error) {
     if (/duplicate|unique/i.test(error.message)) return c.json({ error: "A borrower already has this card number" }, 409);
     return failed(c, "Adding the borrower", error);
@@ -156,7 +171,9 @@ circulationRoutes.put(`${P}/patrons/:id`, async (c) => {
   if (!st) return denied(c);
   const read = readPatron(await c.req.json().catch(() => ({})));
   if ("error" in read) return c.json({ error: read.error }, 400);
-  const { data, error } = await sb().from("patrons").update({ ...read.patron, updated_at: new Date().toISOString() })
+  const row = await patronRow(read.patron);
+  if ("error" in row) return c.json({ error: row.error }, 400);
+  const { data, error } = await sb().from("patrons").update({ ...row.row, updated_at: new Date().toISOString() })
     .eq("id", c.req.param("id")).eq("library", st.library).select().maybeSingle();
   if (error) {
     if (/duplicate|unique/i.test(error.message)) return c.json({ error: "A borrower already has this card number" }, 409);
@@ -184,8 +201,10 @@ circulationRoutes.get(`${P}/patrons/:id`, async (c) => {
   const st = await staffOf(c);
   if (!st) return denied(c);
   try {
-    const { data: patron } = await sb().from("patrons").select("*").eq("id", c.req.param("id")).eq("library", st.library).maybeSingle();
+    const { data: patron } = await sb().from("patrons").select("*, reader:readers(email)").eq("id", c.req.param("id")).eq("library", st.library).maybeSingle();
     if (!patron) return c.json({ error: "No such borrower" }, 404);
+    patron.readerEmail = patron.reader?.email || null;
+    delete patron.reader;
     const rules = await rulesFor(st.library);
     const [{ data: loans }, { data: holds }] = await Promise.all([
       sb().from("loans").select("*").eq("patron_id", patron.id).order("due_at"),
@@ -250,7 +269,7 @@ circulationRoutes.post(`${P}/checkin`, async (c) => {
   const barcode = cleanCode((await c.req.json().catch(() => ({}))).barcode);
   if (!barcode) return c.json({ error: "Scan the copy's barcode" }, 400);
   try {
-    const { data: loan } = await sb().from("loans").select("*, patron:patrons(id, name, card)").eq("library", st.library).eq("barcode", barcode).is("returned_at", null).maybeSingle();
+    const { data: loan } = await sb().from("loans").select("*, patron:patrons(id, name, card, reader:readers(id, keep_history))").eq("library", st.library).eq("barcode", barcode).is("returned_at", null).maybeSingle();
     if (!loan) return c.json({ error: "This copy is not on loan" }, 404);
     const rules = await rulesFor(st.library);
     const now = new Date();
@@ -260,6 +279,10 @@ circulationRoutes.post(`${P}/checkin`, async (c) => {
       returned_at: now.toISOString(), returned_by: st.username, fine, fine_settled: fine === 0, patron_id: fine > 0 ? loan.patron_id : null,
     }).eq("id", loan.id);
     if (error) throw new Error(error.message);
+    // The reader's own reading history, when their borrower card is linked to a reader account with history on.
+    // It is the reader's, not the library's: staff never read it (readerRoutes.tsx).
+    const history = historyRow(loan, loan.patron?.reader, now.toISOString());
+    if (history) await sb().from("reading_history").insert(history).then(() => {}, (e: any) => console.error("[circulation] history:", e?.message));
     // The next borrower waiting for this book gets this copy on the hold shelf.
     let hold: any = null;
     if (loan.record_id) {
