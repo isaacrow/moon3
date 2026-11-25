@@ -23,6 +23,8 @@ export const SCHEMAS: Record<AcqKind, Record<string, FieldSpec>> = {
     country: { type: "text", max: 80 },
     note: { type: "longtext", max: 1000 },
     active: { type: "bool" },
+    /** Days this vendor usually takes to deliver (claims, H8); the library's default when empty. */
+    lead_days: { type: "int", min: 1, max: 730 },
   },
   funds: {
     code: { type: "text", required: true, max: 30 },
@@ -42,6 +44,8 @@ export const SCHEMAS: Record<AcqKind, Record<string, FieldSpec>> = {
     quantity: { type: "int", required: true, min: 1, max: 10000 },
     unit_price: { type: "number", min: 0, max: 1e9 },
     currency: { type: "currency" },
+    /** When the order should arrive (claims, H8); else the order date and the vendor's lead time. */
+    expected_at: { type: "date" },
     note: { type: "longtext", max: 1000 },
   },
   invoices: {
@@ -236,4 +240,52 @@ export function receiptRows(input: ReceiptInput, order: { number: string }, libr
     barcode: input.barcodes[i] || "", copyNumber: String(firstCopyNumber + i), referenceOnly: input.referenceOnly,
     note: `Order ${order.number}`,
   }));
+}
+
+// ─── Claiming late orders (plan step H8, after FOLIO's Claiming app) ───
+
+/** Days a vendor takes when neither the order nor the vendor says; and days between two claims of one order. */
+export const DEFAULT_LEAD_DAYS = 60;
+export const CLAIM_AGAIN_DAYS = 30;
+
+export interface LateOrder {
+  id: number; number: string; title: string; author?: string | null; isbn?: string | null; quantity: number;
+  ordered_at: string; expected: string; daysLate: number; claims: number; lastClaim: string | null;
+  /** Never claimed, or the last claim is CLAIM_AGAIN_DAYS old. */
+  claimNow: boolean;
+}
+export interface VendorClaims { vendor: { id: string | null; name: string; email?: string | null; contact?: string | null }; orders: LateOrder[] }
+
+/**
+ * Orders not yet received after their expected date (the one on the order, else the order date and the vendor's
+ * lead time), grouped by vendor, the latest first; with how often and when each was claimed.
+ */
+export function lateOrders(
+  orders: Array<{ id: number; number: string; title: string; author?: string | null; isbn?: string | null; quantity: number; status: string; ordered_at: string; expected_at?: string | null; vendor_id?: string | null }>,
+  vendors: Array<{ id: string; name: string; email?: string | null; contact?: string | null; lead_days?: number | null }>,
+  claims: Array<{ order_id: number; claimed_at: string }>,
+  now: Date,
+): VendorClaims[] {
+  const byVendor = new Map(vendors.map((v) => [v.id, v]));
+  const claimsOf = new Map<number, string[]>();
+  for (const c of claims) claimsOf.set(c.order_id, [...(claimsOf.get(c.order_id) || []), c.claimed_at].sort());
+  const groups = new Map<string, VendorClaims>();
+  for (const o of orders) {
+    if (o.status !== "ordered") continue;
+    const v = o.vendor_id ? byVendor.get(o.vendor_id) : undefined;
+    const expected = o.expected_at
+      ? o.expected_at.slice(0, 10)
+      : new Date(new Date(o.ordered_at).getTime() + (v?.lead_days || DEFAULT_LEAD_DAYS) * DAY).toISOString().slice(0, 10);
+    const daysLate = Math.floor((now.getTime() - new Date(`${expected}T23:59:59Z`).getTime()) / DAY);
+    if (daysLate < 1) continue;
+    const done = claimsOf.get(o.id) || [];
+    const last = done[done.length - 1] || null;
+    const claimNow = !last || now.getTime() - new Date(last).getTime() >= CLAIM_AGAIN_DAYS * DAY;
+    const key = v?.id || "";
+    const g = groups.get(key) || { vendor: v ? { id: v.id, name: v.name, email: v.email, contact: v.contact } : { id: null, name: "" }, orders: [] };
+    g.orders.push({ id: o.id, number: o.number, title: o.title, author: o.author, isbn: o.isbn, quantity: o.quantity, ordered_at: o.ordered_at, expected, daysLate, claims: done.length, lastClaim: last, claimNow });
+    groups.set(key, g);
+  }
+  return [...groups.values()].map((g) => ({ ...g, orders: g.orders.sort((a, b) => b.daysLate - a.daysLate) }))
+    .sort((a, b) => b.orders[0].daysLate - a.orders[0].daysLate);
 }

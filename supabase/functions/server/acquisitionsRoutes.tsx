@@ -11,12 +11,14 @@
  *          the order's copies become bf:Items of the record's edition (a new version of the record)
  *   POST   /acq/invoices/:id/pay
  *   GET    /acq/issues?subscription=ID      POST /acq/issues {subscriptionId, label, receivedOn?}
+ *   GET    /acq/claims                      orders past their expected date, by vendor, with their claims (H8)
+ *   POST   /acq/claims {orderIds, note?}  records a claim sent to the vendor for each of these orders
  *   GET    /acq/eresources                  public: the databases and e-journals readers can open (title and link only)
  */
 import { Hono } from "npm:hono";
 import { getClient } from "./db.tsx";
 import { getSession, libraryOf } from "./accountRoutes.tsx";
-import { ACQ_KINDS, readEntry, nextOrderNumber, fundStatus, lateIssues, endingSoon, readReceipt, firstInstanceId, receiptRows, type AcqKind } from "./acquisitions.tsx";
+import { ACQ_KINDS, readEntry, nextOrderNumber, fundStatus, lateIssues, endingSoon, readReceipt, firstInstanceId, receiptRows, lateOrders, type AcqKind } from "./acquisitions.tsx";
 import * as recordStore from "./recordStore.tsx";
 import { withCopies } from "./copiesImport.tsx";
 import { copiesIn } from "./circulation.tsx";
@@ -89,6 +91,42 @@ acquisitionsRoutes.get(`${P}/summary`, async (c) => {
       funds: (funds.data || []).map((f: any) => ({ ...f, ...fundStatus(f, orderRows, subRows) })),
     });
   } catch (e) { return failed(c, "The numbers", e); }
+});
+
+// ─── Claims (plan step H8) ───────────────────────────────────
+
+acquisitionsRoutes.get(`${P}/claims`, async (c) => {
+  const st = await staffOf(c);
+  if (!st) return denied(c);
+  try {
+    const [orders, vendors, claims] = await Promise.all([
+      sb().from("acq_orders").select("id, number, title, author, isbn, quantity, status, ordered_at, expected_at, vendor_id").eq("library", st.library).eq("status", "ordered"),
+      sb().from("acq_vendors").select("id, name, email, contact, lead_days").eq("library", st.library),
+      sb().from("acq_claims").select("order_id, claimed_at").eq("library", st.library),
+    ]);
+    for (const r of [orders, vendors, claims]) if (r.error) throw r.error;
+    return c.json({ library: st.library, vendors: lateOrders(orders.data || [], vendors.data || [], claims.data || [], new Date()) });
+  } catch (e) { return failed(c, "The late orders", e); }
+});
+
+acquisitionsRoutes.post(`${P}/claims`, async (c) => {
+  const st = await staffOf(c);
+  if (!st) return denied(c);
+  const body = await c.req.json().catch(() => ({}));
+  const ids = [...new Set((Array.isArray(body.orderIds) ? body.orderIds : []).map(Number).filter(Number.isInteger))].slice(0, 500);
+  if (!ids.length) return c.json({ error: "Which orders?" }, 400);
+  const note = typeof body.note === "string" ? body.note.trim().slice(0, 1000) : "";
+  try {
+    const { data: orders, error } = await sb().from("acq_orders").select("id, vendor_id").eq("library", st.library).eq("status", "ordered").in("id", ids);
+    if (error) throw error;
+    if (!orders?.length) return c.json({ error: "None of these orders is still waiting" }, 404);
+    const now = new Date().toISOString();
+    const { error: e2 } = await sb().from("acq_claims").insert(orders.map((o: any) => ({
+      library: st.library, order_id: o.id, vendor_id: o.vendor_id, claimed_at: now, claimed_by: st.username, note: note || null,
+    })));
+    if (e2) throw e2;
+    return c.json({ claimed: orders.length, at: now });
+  } catch (e) { return failed(c, "Recording the claim", e); }
 });
 
 // ─── For readers (the OPAC) ──────────────────────────────────
