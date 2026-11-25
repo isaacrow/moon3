@@ -1,7 +1,7 @@
 // Lists (lists.tsx): queries are read strictly, run on rows, and exported as CSV people can read.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ENTITIES, OPS_BY_TYPE, readQuery, runQuery, toCsv, type ListQuery } from '../supabase/functions/server/lists.tsx';
+import { ENTITIES, OPS_BY_TYPE, READY_LISTS, readQuery, runQuery, toCsv, dayOf, subjectsIn, scriptsOf, type ListQuery } from '../supabase/functions/server/lists.tsx';
 
 const loans = [
   { barcode: 'B1', record_title: 'كتاب الأغاني', borrower_name: 'Ali', patron_kind: 'student', due_at: '2026-11-01T10:00:00Z', out: true, overdue: true, fine: 2, renewals: 0 },
@@ -61,4 +61,60 @@ test('CSV: readable headers in either language, readable values, quoting, no for
   assert.equal(lines[4], `"'=HYPERLINK(""x"")","A, ""B""",,No,,-1`);
   assert.ok(toCsv(rows, query, true).includes('الباركود,العنوان,نوع المستفيد,متأخرة'));
   assert.ok(toCsv(rows, query, true).includes('طالب,نعم'));
+});
+
+const NOW = new Date('2026-11-25T12:00:00Z');
+
+test('dates counted from today: today, today-30, today+60; anything else refused', () => {
+  assert.equal(dayOf('today', NOW), '2026-11-25');
+  assert.equal(dayOf('today-30', NOW), '2026-10-26');
+  assert.equal(dayOf('today+61', NOW), '2027-01-25');
+  assert.equal(dayOf('2026-01-01', NOW), '2026-01-01');
+  assert.ok('query' in readQuery({ entity: 'loans', conditions: [{ field: 'due_at', op: 'before', value: 'today-7' }] }));
+  assert.ok('error' in readQuery({ entity: 'loans', conditions: [{ field: 'due_at', op: 'before', value: 'yesterday' }] }));
+  const due = runQuery(loans, q({ conditions: [{ field: 'due_at', op: 'before', value: 'today' }] }), NOW);
+  assert.deepEqual(barcodes(due), ['B1', 'B3']);
+});
+
+test('every ready-made list is a valid query, named in both languages', () => {
+  assert.equal(READY_LISTS.length, 6);
+  for (const l of READY_LISTS) {
+    assert.ok(l.en && l.ar && l.noteEn && l.noteAr, l.id);
+    const read = readQuery(l.query);
+    assert.ok('query' in read, `${l.id}: ${'error' in read ? read.error : ''}`);
+    assert.deepEqual(read.query, l.query, `${l.id} reads back as it is`);
+  }
+});
+
+const readyRun = (id: string, rows: any[]) => runQuery(rows, READY_LISTS.find((l) => l.id === id)!.query, NOW);
+
+test('ready-made lists keep the right rows', () => {
+  assert.deepEqual(barcodes(readyRun('overdue', loans)), ['B1']);
+  const holds = [
+    { barcode: 'H1', status: 'ready', expires_at: '2026-11-20T00:00:00Z' },
+    { barcode: 'H2', status: 'ready', expires_at: '2026-11-30T00:00:00Z' },
+    { barcode: 'H3', status: 'waiting', expires_at: null },
+  ];
+  assert.deepEqual(barcodes(readyRun('hold-shelf', holds)), ['H1']);
+  const orders = [{ number: 'O2', status: 'ordered', ordered_at: '2026-10-01' }, { number: 'O1', status: 'ordered', ordered_at: '2026-09-01' }, { number: 'O3', status: 'received', ordered_at: '2026-08-01' }];
+  assert.deepEqual(readyRun('orders-open', orders).map((r) => r.number), ['O1', 'O2']);
+  const subs = [{ title: 'A', active: true, end_date: '2026-12-31' }, { title: 'B', active: true, end_date: '2027-06-30' }, { title: 'C', active: false, end_date: '2026-12-01' }];
+  assert.deepEqual(readyRun('subs-ending', subs).map((r) => r.title), ['A']);
+  const books = [{ id: 'r1', subjects: 0 }, { id: 'r2', subjects: 3 }];
+  assert.deepEqual(readyRun('no-subjects', books).map((r) => r.id), ['r1']);
+  const people = [
+    { name: 'Ibn Khaldūn', ...scriptsOf(['Ibn Khaldūn', 'ابن خلدون']) },
+    { name: 'الجاحظ', ...scriptsOf(['الجاحظ']) },
+    { name: 'Twain, Mark', ...scriptsOf(['Twain, Mark']) },
+  ];
+  assert.deepEqual(readyRun('one-script', people).map((r) => r.name), ['الجاحظ', 'Twain, Mark'].sort((a, b) => a.localeCompare(b, 'ar')));
+});
+
+test('subjects are counted on the Work, not on the Instance', () => {
+  assert.equal(subjectsIn({ '@graph': [
+    { '@type': ['bf:Work', 'bf:Text'], 'bf:subject': [{ 'rdfs:label': 'History' }, { '@id': 'http://id.loc.gov/authorities/subjects/sh1' }] },
+    { '@type': 'bf:Instance', 'bf:subject': { 'rdfs:label': 'not counted' } },
+  ] }), 2);
+  assert.equal(subjectsIn({ '@graph': [{ '@type': 'bf:Work' }, { '@type': 'bf:Print' , 'bf:instanceOf': {} }] }), 0);
+  assert.equal(subjectsIn(null), 0);
 });

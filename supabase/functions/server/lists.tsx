@@ -8,12 +8,14 @@
  * A condition is a field, an operator and a value: is, contains, starts with, any of, is empty, before/after (dates),
  * more/less than (numbers); any condition can be turned around with NOT. A list matches all of its conditions, or
  * any of them. Text is compared the way the catalogue search compares it (fold: case, accents, Arabic letter forms).
+ * A date can be a day (2026-11-25) or a day counted from today (today, today-30, today+60), so a saved list stays
+ * true as days pass. READY_LISTS are the lists every library starts with (plan step H2).
  */
 import { fold } from "./searchCore.tsx";
 
 export type FieldType = "text" | "number" | "date" | "bool" | "choice";
 export interface ListField { key: string; en: string; ar: string; type: FieldType; choices?: Array<{ v: string; en: string; ar: string }> }
-export type EntityId = "books" | "copies" | "loans" | "borrowers" | "holds" | "orders" | "invoices" | "subscriptions" | "vendors" | "funds";
+export type EntityId = "books" | "people" | "copies" | "loans" | "borrowers" | "holds" | "orders" | "invoices" | "subscriptions" | "vendors" | "funds";
 export interface ListEntity { id: EntityId; en: string; ar: string; fields: ListField[]; columns: string[] }
 
 const t = (key: string, en: string, ar: string, type: FieldType = "text", choices?: ListField["choices"]): ListField => ({ key, en, ar, type, ...(choices ? { choices } : {}) });
@@ -26,10 +28,20 @@ export const ENTITIES: Record<EntityId, ListEntity> = {
       t("id", "Record number", "رقم التسجيلة"), t("title", "Title", "العنوان"),
       t("status", "Status", "الحالة", "choice", [c("complete", "Published", "منشورة"), c("pending-review", "Waiting for review", "بانتظار المراجعة"), c("needs-review", "Returned for changes", "معادة للتعديل")]),
       t("cataloger", "Cataloguer", "المفهرس"), t("assigned_to", "Reviewer", "المراجع"),
-      t("copies", "Copies", "عدد النسخ", "number"),
+      t("copies", "Copies", "عدد النسخ", "number"), t("subjects", "Subjects", "عدد الموضوعات", "number"),
       t("created_at", "Created", "تاريخ الإنشاء", "date"), t("updated_at", "Last changed", "آخر تعديل", "date"), t("approved_at", "Published on", "تاريخ النشر", "date"),
     ],
     columns: ["id", "title", "status", "cataloger", "copies", "updated_at"],
+  },
+  people: {
+    id: "people", en: "People and bodies (authority file)", ar: "الأشخاص والهيئات (الملف الاستنادي)",
+    fields: [
+      t("id", "Entity number", "رقم الكيان"), t("name", "Name", "الاسم"), t("variants", "Other names", "الأسماء الأخرى"),
+      t("has_arabic", "Has a name in Arabic script", "له اسم بالحرف العربي", "bool"), t("has_latin", "Has a name in Latin script", "له اسم بالحرف اللاتيني", "bool"),
+      t("links", "Links (LC, VIAF, Wikidata …)", "الروابط (LC وVIAF وويكي بيانات …)", "number"),
+      t("created_by", "Made by", "أنشأه"), t("created_at", "Created", "تاريخ الإنشاء", "date"), t("updated_at", "Last changed", "آخر تعديل", "date"),
+    ],
+    columns: ["name", "variants", "has_arabic", "has_latin", "links"],
   },
   copies: {
     id: "copies", en: "Copies", ar: "النسخ",
@@ -163,7 +175,7 @@ export function readQuery(input: any): { query: ListQuery } | { error: string } 
       value = String(x.value ?? "").trim().slice(0, 200);
       if (!value) return { error: `Give a value for ${f.en}` };
       if (f.type === "number" && !Number.isFinite(Number(value))) return { error: `${f.en} takes a number` };
-      if (f.type === "date" && !/^\d{4}-\d{2}-\d{2}$/.test(value)) return { error: `${f.en} takes a date (YYYY-MM-DD)` };
+      if (f.type === "date" && !/^(\d{4}-\d{2}-\d{2}|today([+-]\d{1,4})?)$/.test(value)) return { error: `${f.en} takes a date (YYYY-MM-DD, or today, today-30, today+60)` };
       if (f.type === "bool" && !["true", "false"].includes(value)) return { error: `${f.en} is yes or no` };
     }
     conditions.push({ field: f.key, op, ...(value !== undefined ? { value } : {}), ...(x.not ? { not: true } : {}) });
@@ -176,7 +188,7 @@ export function readQuery(input: any): { query: ListQuery } | { error: string } 
       match: input.match === "any" ? "any" : "all",
       conditions,
       columns: columns.length ? [...new Set<string>(columns)] : entity.columns,
-      ...(sortField ? { sort: { field: sortField, desc: !!input.sort.desc } } : {}),
+      ...(sortField ? { sort: { field: sortField, ...(input.sort.desc ? { desc: true } : {}) } } : {}),
     },
   };
 }
@@ -185,7 +197,14 @@ export type Row = Record<string, unknown>;
 const isEmpty = (v: unknown) => v == null || v === "" || (Array.isArray(v) && !v.length);
 const day = (v: unknown) => (typeof v === "string" && v ? v.slice(0, 10) : "");
 
-function holds(row: Row, cond: Condition, type: FieldType): boolean {
+/** A condition's date as a day: itself, or counted from today (today-30 is thirty days ago). */
+export function dayOf(value: string, now: Date): string {
+  const m = value.match(/^today([+-]\d+)?$/);
+  if (!m) return value;
+  return new Date(now.getTime() + Number(m[1] || 0) * 86_400_000).toISOString().slice(0, 10);
+}
+
+function holds(row: Row, cond: Condition, type: FieldType, now: Date): boolean {
   const v = row[cond.field];
   if (cond.op === "empty") return isEmpty(v);
   if (isEmpty(v)) return false;
@@ -196,7 +215,7 @@ function holds(row: Row, cond: Condition, type: FieldType): boolean {
       return cond.op === "is" ? n === w : cond.op === "more" ? n > w : n < w;
     }
     case "date": {
-      const d = day(v), w = String(want);
+      const d = day(v), w = dayOf(String(want), now);
       return cond.op === "is" ? d === w : cond.op === "before" ? d < w : d > w;
     }
     case "bool":
@@ -216,9 +235,9 @@ function holds(row: Row, cond: Condition, type: FieldType): boolean {
 }
 
 /** The rows the query keeps, sorted. */
-export function runQuery(rows: Row[], q: ListQuery): Row[] {
+export function runQuery(rows: Row[], q: ListQuery, now = new Date()): Row[] {
   const types = new Map(ENTITIES[q.entity].fields.map((f) => [f.key, f.type]));
-  const test = (r: Row, cond: Condition) => holds(r, cond, types.get(cond.field) || "text") !== !!cond.not;
+  const test = (r: Row, cond: Condition) => holds(r, cond, types.get(cond.field) || "text", now) !== !!cond.not;
   const kept = q.conditions.length
     ? rows.filter((r) => (q.match === "any" ? q.conditions.some((x) => test(r, x)) : q.conditions.every((x) => test(r, x))))
     : rows.slice();
@@ -255,4 +274,48 @@ export function toCsv(rows: Row[], q: ListQuery, isAr = false): string {
   const lines = [fields.map((f) => cell(isAr ? f.ar : f.en)).join(",")];
   for (const r of rows) lines.push(fields.map((f) => cell(shown(r, f, isAr))).join(","));
   return "﻿" + lines.join("\r\n") + "\r\n";
+}
+
+/** A list every library has from the start; opened like a saved one, and saved under a name to change it. */
+export interface ReadyList { id: string; en: string; ar: string; noteEn: string; noteAr: string; query: ListQuery }
+const ready = (id: string, en: string, ar: string, noteEn: string, noteAr: string, q: Omit<ListQuery, "columns"> & { columns?: string[] }): ReadyList =>
+  ({ id, en, ar, noteEn, noteAr, query: { ...q, columns: q.columns || ENTITIES[q.entity].columns } });
+
+export const READY_LISTS: ReadyList[] = [
+  ready("overdue", "Overdue loans", "الإعارات المتأخرة", "Copies out past their due date, oldest first, with who has them",
+    "النسخ المعارة بعد موعد إرجاعها، الأقدم أولًا، ومن معه كل منها",
+    { entity: "loans", match: "all", conditions: [{ field: "overdue", op: "is", value: "true" }], columns: ["barcode", "record_title", "borrower_card", "borrower_name", "due_at", "renewals"], sort: { field: "due_at" } }),
+  ready("hold-shelf", "Hold shelf to clear", "رف الحجز للتفريغ", "Copies on the hold shelf whose collection time has run out",
+    "نسخ على رف الحجز انتهت مدة استلامها",
+    { entity: "holds", match: "all", conditions: [{ field: "status", op: "is", value: "ready" }, { field: "expires_at", op: "before", value: "today" }], columns: ["barcode", "record_title", "borrower_name", "borrower_card", "expires_at"], sort: { field: "expires_at" } }),
+  ready("orders-open", "Orders not received", "طلبات لم تصل", "Purchase orders still waiting, oldest first",
+    "أوامر الشراء التي ما زالت بالانتظار، الأقدم أولًا",
+    { entity: "orders", match: "all", conditions: [{ field: "status", op: "is", value: "ordered" }], columns: ["number", "title", "vendor", "fund", "quantity", "total", "ordered_at"], sort: { field: "ordered_at" } }),
+  ready("subs-ending", "Subscriptions ending", "اشتراكات تنتهي", "Active subscriptions ending within two months",
+    "الاشتراكات الفعّالة التي تنتهي خلال شهرين",
+    { entity: "subscriptions", match: "all", conditions: [{ field: "active", op: "is", value: "true" }, { field: "end_date", op: "before", value: "today+61" }], columns: ["kind", "title", "vendor", "end_date", "cost", "currency"], sort: { field: "end_date" } }),
+  ready("no-subjects", "Books without subjects", "كتب بلا موضوعات", "Records with no subject, so readers cannot find them by topic",
+    "تسجيلات بلا موضوع، فلا يجدها القرّاء بالموضوع",
+    { entity: "books", match: "all", conditions: [{ field: "subjects", op: "is", value: "0" }], columns: ["id", "title", "status", "cataloger", "updated_at"], sort: { field: "updated_at", desc: true } }),
+  ready("one-script", "People without both scripts", "أشخاص بلا الكتابتين", "Names in the authority file missing an Arabic-script or a Latin-script form",
+    "أسماء في الملف الاستنادي ينقصها شكل بالحرف العربي أو بالحرف اللاتيني",
+    { entity: "people", match: "any", conditions: [{ field: "has_arabic", op: "is", value: "false" }, { field: "has_latin", op: "is", value: "false" }], sort: { field: "name" } }),
+];
+
+const asList = (v: unknown): any[] => (Array.isArray(v) ? v : v == null ? [] : [v]);
+const typed = (n: any, name: string) => asList(n?.["@type"]).some((t) => typeof t === "string" && (t === `bf:${name}` || t === name || t.endsWith(`/${name}`)));
+
+/** How many subjects a record's Works have (bf:subject), however the document nests them. */
+export function subjectsIn(document: any): number {
+  const nodes = Array.isArray(document?.["@graph"]) ? document["@graph"] : [document];
+  return nodes.filter((n: any) => n && !typed(n, "Instance") && !typed(n, "Item"))
+    .reduce((sum: number, n: any) => sum + asList(n?.["bf:subject"] ?? n?.["subject"]).filter((s) => s && (typeof s === "string" || Object.keys(s).length)).length, 0);
+}
+
+const ARABIC = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+const LATIN = /[A-Za-zÀ-ɏḀ-ỿ]/;
+/** Which scripts a name and its other forms are written in. */
+export function scriptsOf(names: Array<string | null | undefined>): { has_arabic: boolean; has_latin: boolean } {
+  const all = names.filter((n): n is string => typeof n === "string");
+  return { has_arabic: all.some((n) => ARABIC.test(n)), has_latin: all.some((n) => LATIN.test(n)) };
 }
