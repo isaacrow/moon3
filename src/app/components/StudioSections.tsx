@@ -10,7 +10,7 @@ import { motion } from 'motion/react';
 import {
   ShoppingCart, BookMarked, Repeat, Search, FilePlus, FileCode, Library, Users, UserSearch, History,
   Building2, Receipt, FileText, Newspaper, PackageCheck, Database, IdCard, ArrowLeftRight, CalendarClock,
-  Coins, Globe, ClipboardCheck, BarChart3, GraduationCap, Gauge, ChevronDown, ExternalLink,
+  Coins, Globe, ClipboardCheck, BarChart3, GraduationCap, Gauge, ChevronDown, ExternalLink, ListFilter,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
@@ -191,6 +191,7 @@ export const SECTIONS: Section[] = [
       { id: 'invoices', icon: Receipt, ar: 'الفواتير', en: 'Invoices', arNote: 'الفواتير مربوطة بأوامر الشراء', enNote: 'Invoices linked to their orders', action: { kind: 'view', view: 'acq', tab: 'invoices' }, stat: 'unpaidInvoices' },
       { id: 'vendors', icon: Building2, ar: 'الموردون والناشرون', en: 'Vendors and publishers', arNote: 'من تشتري منهم المكتبة وبيانات الاتصال بهم', enNote: 'Who the library buys from, and how to reach them', action: { kind: 'view', view: 'acq', tab: 'vendors' } },
       { id: 'funds', icon: Database, ar: 'الصناديق والميزانية', en: 'Funds and budgets', arNote: 'ميزانية كل صندوق في السنة، وما التُزم به وما صُرف', enNote: 'Each fund’s budget for the year; what is committed and spent', action: { kind: 'view', view: 'acq', tab: 'funds' } },
+      { id: 'lists', icon: ListFilter, ar: 'القوائم', en: 'Lists', arNote: 'قوائم بالطلبات والفواتير والاشتراكات بشروط، تُحفظ وتُصدَّر CSV', enNote: 'Lists of orders, invoices and subscriptions by conditions; saved and exported as CSV', action: { kind: 'view', view: 'lists', tab: 'orders' } },
     ],
   },
   {
@@ -209,6 +210,7 @@ export const SECTIONS: Section[] = [
       { id: 'authorities', icon: Users, ar: 'الملف الاستنادي', en: 'Authority file', arNote: 'الأسماء والموضوعات والأماكن، وإنشاء تسجيلات استنادية', enNote: 'Names, subjects and places; new authority records', action: { kind: 'view', view: 'entities' }, stat: 'entities' },
       { id: 'authors', icon: UserSearch, ar: 'البحث عن المؤلفين', en: 'Find authors', arNote: 'البحث عن اسم في LC وVIAF وويكي بيانات', enNote: 'Look up a name in LC, VIAF and Wikidata', action: { kind: 'view', view: 'author-finder' } },
       { id: 'activity', icon: History, ar: 'سجل النشاط', en: 'Activity log', arNote: 'من غيّر ماذا ومتى', enNote: 'Who changed what, and when', action: { kind: 'view', view: 'activity-log' } },
+      { id: 'lists', icon: ListFilter, ar: 'القوائم', en: 'Lists', arNote: 'قوائم بالكتب والنسخ بشروط، تُحفظ وتُحدَّث وتُصدَّر CSV', enNote: 'Lists of books and copies by conditions; saved, refreshed and exported as CSV', action: { kind: 'view', view: 'lists', tab: 'books' } },
     ],
   },
   {
@@ -225,6 +227,7 @@ export const SECTIONS: Section[] = [
       { id: 'holds', icon: ClipboardCheck, ar: 'الحجوزات', en: 'Holds', arNote: 'حجز كتاب لمستفيد، ورف الحجز عند إرجاع نسخة', enNote: 'Hold a book for a borrower; the hold shelf when a copy comes back', action: { kind: 'view', view: 'desk', tab: 'holds' }, stat: 'holdsReady' },
       { id: 'fines', icon: Coins, ar: 'قواعد الإعارة والغرامات', en: 'Loan rules and fines', arNote: 'مدة الإعارة وحدودها حسب نوع المستفيد؛ الغرامات اختيارية', enNote: 'Loan periods and limits by kind of borrower; fines are optional', action: { kind: 'view', view: 'desk', tab: 'rules' } },
       { id: 'copies', icon: Library, ar: 'النسخ المسجلة', en: 'Copies on record', arNote: 'النسخ وباركوداتها تُضاف في كل طبعة من المحرر', enNote: 'Copies and their barcodes are added on each edition in the editor', action: { kind: 'view', view: 'all-records' }, stat: 'copies' },
+      { id: 'lists', icon: ListFilter, ar: 'القوائم', en: 'Lists', arNote: 'قوائم بالإعارات والمستفيدين والحجوزات بشروط، تُحفظ وتُصدَّر CSV', enNote: 'Lists of loans, borrowers and holds by conditions; saved and exported as CSV', action: { kind: 'view', view: 'lists', tab: 'loans' } },
     ],
   },
   {

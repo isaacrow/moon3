@@ -12,6 +12,7 @@ import { SECTIONS, SectionPage, SectionPath, runTask, sectionById, type SectionI
 import { toast } from 'sonner';
 import { CirculationDesk, ExternalLoanSystem } from './components/CirculationDesk';
 import { AcquisitionsDesk } from './components/AcquisitionsDesk';
+import { ListsPage } from './components/ListsPage';
 import { Toaster } from './components/ui/sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BASE_URI } from '../services/uriMintingService';
@@ -36,9 +37,9 @@ const ManuscriptsPage = React.lazy(() => import('./components/ManuscriptsPage').
 // Moon Studio (Wolf Moon) is the one editor. The tools around it: dashboard, author finder, record
 // list, search and audit log. The public OPAC is served by main.tsx / opac.html.
 type ViewMode = 'dashboard' | 'wolf-moon' | 'author-finder' | 'all-records' | 'search' | 'activity-log' | 'entities'
-  | SectionId | 'new-record' | 'desk' | 'acq' | 'manuscripts';
+  | SectionId | 'new-record' | 'desk' | 'acq' | 'manuscripts' | 'lists';
 const VIEW_MODES: ViewMode[] = ['dashboard', 'wolf-moon', 'author-finder', 'all-records', 'search', 'activity-log', 'entities', 'new-record',
-  'acquisitions', 'technical', 'circulation', 'catalogue', 'desk', 'acq', 'manuscripts'];
+  'acquisitions', 'technical', 'circulation', 'catalogue', 'desk', 'acq', 'manuscripts', 'lists'];
 
 // Each screen has its own address, so a refresh or a shared link opens the same screen:
 // /dashboard/, /moon/ (Moon Studio), /records/, /search/, /authors/, /activity/, /entities/.
@@ -63,6 +64,8 @@ const VIEW_PATHS: Record<ViewMode, string> = {
   'acq': 'acq',
   // The Al-Qamar manuscripts catalogue: the Super Admin and Manuscripts accounts only.
   'manuscripts': 'manuscripts',
+  // Lists of books, copies, loans, borrowers, orders and more (?tab=the kind of row).
+  'lists': 'lists',
 };
 export const ROUTED_PATHS = Object.values(VIEW_PATHS);
 
@@ -298,7 +301,7 @@ function CatalogApp() {
     view: (v, tab) => {
       navigate(VIEW_MODES.includes(v as ViewMode) ? (v as ViewMode) : 'dashboard', undefined, false, tab);
       // The desk reads its tab from the address; tell an open desk it changed.
-      if (v === 'desk' || v === 'acq') window.dispatchEvent(new PopStateEvent('popstate'));
+      if (v === 'desk' || v === 'acq' || v === 'lists') window.dispatchEvent(new PopStateEvent('popstate'));
     },
     newRecord: () => chooseNewRecord(false),
     marcEditor: () => chooseNewRecord(true),
@@ -418,6 +421,14 @@ function CatalogApp() {
       screen = withNav(
         <ErrorBoundary fallbackTitle="Acquisitions" onReset={toDashboard}>
           <AcquisitionsDesk isAr={isAr} onOpenRecord={openRecordById} onNewRecord={() => chooseNewRecord(false)} />
+        </ErrorBoundary>,
+        'liquid-glass-spatial-canvas min-h-screen py-2'
+      );
+      break;
+    case 'lists':
+      screen = withNav(
+        <ErrorBoundary fallbackTitle="Lists" onReset={toDashboard}>
+          <ListsPage isAr={isAr} onOpenRecord={openRecordById} />
         </ErrorBoundary>,
         'liquid-glass-spatial-canvas min-h-screen py-2'
       );

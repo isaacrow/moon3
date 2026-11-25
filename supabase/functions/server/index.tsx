@@ -30,6 +30,7 @@ import * as loadTesting from "./loadTesting.tsx";
 import recordRoutes from "./recordRoutes.tsx";
 import circulationRoutes from "./circulationRoutes.tsx";
 import acquisitionsRoutes from "./acquisitionsRoutes.tsx";
+import listsRoutes from "./listsRoutes.tsx";
 import readerRoutes from "./readerRoutes.tsx";
 import manuscriptsRoutes from "./manuscriptsRoutes.tsx";
 import accountRoutes, { getSession, isAdminSession, canReview, isReviewer, SUPER_ADMIN_USERNAME, libraryOf } from "./accountRoutes.tsx";
@@ -4942,6 +4943,7 @@ app.route('/make-server-49c0e13c', recordRoutes);
 app.route('/make-server-49c0e13c', accountRoutes);
 app.route('/make-server-49c0e13c', circulationRoutes);
 app.route('/make-server-49c0e13c', acquisitionsRoutes);
+app.route('/make-server-49c0e13c', listsRoutes);
 app.route('/make-server-49c0e13c', readerRoutes);
 app.route('/make-server-49c0e13c', manuscriptsRoutes);
 
