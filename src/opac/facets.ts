@@ -9,6 +9,7 @@ import { t, opacLang } from './i18n';
 import { addedOrder } from './recent';
 import { readDate, hijriCenturyOf } from '../services/hijri';
 import { formatOf as formatOfInstance, categoryLabel, formatLabel, type CategoryId, type FormatId } from './category';
+import { termFor } from '../../supabase/functions/server/arabicGenres.tsx';
 
 export type FacetKey = 'avail' | 'category' | 'format' | 'genre' | 'lang' | 'library' | 'decade' | 'century' | 'author' | 'subject' | 'kind';
 export type Selection = Partial<Record<FacetKey, string[]>>;
@@ -173,6 +174,8 @@ export function valueLabel(key: FacetKey, value: string): string {
   if (key === 'lang') return languageDisplay(value);
   if (key === 'format') return formatLabel(value, opacLang() === 'en');
   if (key === 'category') return categoryLabel(value, opacLang() === 'en');
+  // A genre the Arabic genre scheme knows (arabicGenres.tsx, B2) is shown in the reader's language.
+  if (key === 'genre') { const t = termFor(value); return t ? (opacLang() === 'en' ? t.en.replace(/ \(.*\)$/, '') : t.ar) : value; }
   return value;
 }
 

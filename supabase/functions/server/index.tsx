@@ -33,6 +33,7 @@ import acquisitionsRoutes from "./acquisitionsRoutes.tsx";
 import listsRoutes from "./listsRoutes.tsx";
 import lcWorksRoutes from "./lcWorksRoutes.tsx";
 import * as bfArabic from "./bibframeArabic.tsx";
+import * as arabicGenres from "./arabicGenres.tsx";
 import * as libraryRules from "./libraryRules.tsx";
 import { readSequence, formatNumber, SEQUENCE_KINDS } from "./sequences.tsx";
 import { getClient } from "./db.tsx";
@@ -1676,6 +1677,13 @@ app.put("/make-server-49c0e13c/sequences/:kind", async (c) => {
   if (error) return c.json({ error: "The sequence could not be saved" }, 500);
   return c.json({ sequence: { kind, prefix, next, width, nextValue: formatNumber(prefix, next, width) } });
 });
+
+// Arabic genre and form terms (arabicGenres.tsx, plan step B2): the scheme as SKOS and as JSON, CC0.
+app.get("/make-server-49c0e13c/resource/genres-ar.ttl", (c) =>
+  c.body(arabicGenres.toTurtle(), 200, { 'Content-Type': 'text/turtle; charset=utf-8', 'Cache-Control': 'public, max-age=3600', 'Access-Control-Allow-Origin': '*' }));
+app.get("/make-server-49c0e13c/resource/genres-ar.json", (c) =>
+  c.json({ terms: arabicGenres.ARABIC_GENRES.map((t) => ({ ...t, uri: arabicGenres.termUri(t.id), lcgft: arabicGenres.lcgftOf(t.id) || null })) },
+    200, { 'Cache-Control': 'public, max-age=3600', 'Access-Control-Allow-Origin': '*' }));
 
 // BIBFRAME in Arabic (bibframeArabic.tsx, plan step E1): the Arabic labels for the terms Moon uses, reviewed by the
 // Super Admin. Public as Turtle (open RDF, CC0) and as JSON for the page bibframe-ar.html.

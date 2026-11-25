@@ -37,7 +37,7 @@ export function whatItIs(w: FacetWork & { genreForm?: string[] }): string {
     if (facts.length - base >= 2) break;
     // A genre that is the same as, or only the plural of, a fact already said ("مخطوطات" after "مخطوط") is left out.
     const repeats = said.some((f) => { const x = fold(f), y = fold(g); return sameFact(f, g) || (x.length >= 3 && y.startsWith(x) && y.length - x.length <= 2); });
-    if (!repeats && !/^(book|books|text|كتاب|كتب|نص)$/i.test(fold(g))) add(g);
+    if (!repeats && !/^(book|books|text|كتاب|كتب|نص)$/i.test(fold(g))) add(valueLabel('genre', g));
   }
   return facts.join(' · ');
 }
