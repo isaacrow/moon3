@@ -74,7 +74,7 @@ function hubOf(titleField: DataField, titleCode: 'a' | 't', nameField?: DataFiel
 const MAPPED = /^(010|020|022|024|035|040|043|050|082|1(00|10|11|30)|24[05]|246|250|26[04]|300|33[678]|490|50[0-6]|52[01]|540|546|58[68]|6(00|10|11|30|48|50|51|53|55)|7(00|10|11|30)|8(00|10|11|30)|856|880)$/;
 
 /** Mapped, but with subfields BIBFRAME does not hold here; kept as well (see above). */
-export const PARTLY_MAPPED = /^(020|250|502|505)$/;
+export const PARTLY_MAPPED = /^(020|082|250|260|502|505|856)$/;
 
 export interface ImportedMarcRecord { work: any; instance: any; item: any; title: string }
 
@@ -342,7 +342,7 @@ export function marcToBibframe(r: MarcRecord): ImportedMarcRecord {
 
   // Fields Moon has no BIBFRAME for (773 host item, 041 language codes, 340, 56X provenance, local 9XX …)
   // are kept as they are, so they go back out on export instead of being lost.
-  // Fields Moon maps only in part (020 $q, 250 $b, 502 $b-$d, 505 $t $r) are kept too: on export the kept
+  // Fields Moon maps only in part (020 $q $c, 082 prime marks, 250 $b, 260 as it was, 502 $b-$d, 505 $t $r, 856 $d $f $z …) are kept too: on export the kept
   // field is used while it still says what the record says (see bibframeToMarc), else Moon's own is.
   const kept = r.fields.filter((f): f is DataField => !isControl(f) && (!MAPPED.test(f.tag) || PARTLY_MAPPED.test(f.tag))).map((f) => toMarcKey(f, /^$/));
   if (kept.length) instance['moonext:marcField'] = kept;

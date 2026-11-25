@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moon round trip · رحلة مارك ذهابًا وإيابًا</title>
+<meta name="description" content="MARC records from the Library of Congress taken into Moon's BIBFRAME and back out to MARC, field by field: what came back and what did not.">
+<style>
+  :root { --bg: #f8fafc; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --ok: #047857; --low: #b91c1c; --card: #fff; --gone: #fee2e2; --new: #dcfce7; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0b1020; --ink: #e5e7eb; --muted: #94a3b8; --line: #1f2937; --ok: #34d399; --low: #f87171; --card: #111827; --gone: #3b1219; --new: #0f2e1f; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, "Segoe UI", Tahoma, sans-serif; }
+  main { max-width: 64rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  h1 { font-size: 1.7rem; margin: 0 0 .25rem; } h2 { font-size: 1.15rem; margin: 2rem 0 .6rem; }
+  .muted, .lede { color: var(--muted); }
+  .ar { display: block; color: var(--muted); font-size: .9rem; }
+  .big { font-size: 2.4rem; font-weight: 700; } .ok { color: var(--ok); } .low { color: var(--low); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; margin: .6rem 0; }
+  details.rec { background: var(--card); border: 1px solid var(--line); border-radius: 14px; margin: .5rem 0; }
+  details.rec > summary { cursor: pointer; padding: .7rem 1rem; display: flex; gap: .6rem; align-items: baseline; flex-wrap: wrap; }
+  details.rec > summary b { flex: 1; min-width: 12rem; }
+  .tag { font-size: .8rem; border-radius: 999px; padding: .05rem .6rem; border: 1px solid var(--line); white-space: nowrap; }
+  .tag.bad { color: var(--low); border-color: currentColor; } .tag.good { color: var(--ok); border-color: currentColor; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; padding: 0 1rem 1rem; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  .cols h3 { font-size: .85rem; color: var(--muted); margin: .2rem 0; }
+  pre { margin: 0; font: 12.5px/1.55 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-word; unicode-bidi: plaintext; }
+  pre span { display: block; padding: 0 .3rem; border-radius: 4px; }
+  pre .gone { background: var(--gone); } pre .new { background: var(--new); }
+  ul.issues { margin: 0 1rem .8rem; padding-inline-start: 1.2rem; }
+  .filters { display: flex; gap: .5rem; flex-wrap: wrap; margin: .5rem 0; }
+  .filters button { font: inherit; font-size: .9rem; padding: .25rem .8rem; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+  .filters button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Round trip: MARC → Moon → MARC</h1>
+  <span class="ar" dir="rtl">رحلة ذهاب وإياب: من مارك إلى مون ثم إلى مارك</span>
+  <p class="lede">Real catalogue records from the Library of Congress, taken into Moon's BIBFRAME and written back out as MARC by the same code the editor uses. Every field of each record is looked for in what came back. Moon's own fields (001, 005, 008, 040, 336–338 and the like) are rebuilt, not compared. The set is fixed, so the numbers change only when Moon's converters change.
+    <span class="ar" dir="rtl">تسجيلات حقيقية من مكتبة الكونغرس تُحوَّل إلى BIBFRAME في مون ثم تُكتب مارك من جديد بالشيفرة نفسها التي يستعملها المحرر، ويُبحث عن كل حقل منها فيما رجع. المجموعة ثابتة، فلا تتغير الأرقام إلا إذا تغيرت محولات مون.</span></p>
+
+  <div class="card">
+    <div class="big" id="share">…</div>
+    <div id="summary" class="muted"></div>
+  </div>
+
+  <h2>What did not come back <span class="ar" dir="rtl">ما لم يرجع</span></h2>
+  <div class="card" id="counts">…</div>
+
+  <h2>Field by field <span class="ar" dir="rtl">حقلًا حقلًا</span></h2>
+  <p class="muted">Open a record to see its MARC as it went in and as it came back. Red: a field that did not come back as it was. Green: a field Moon wrote differently or added.<span class="ar" dir="rtl">افتح تسجيلة لترى مارك كما دخل وكما رجع. الأحمر حقل لم يرجع كما كان، والأخضر حقل كتبه مون بصورة أخرى أو أضافه.</span></p>
+  <div class="filters" role="group" aria-label="Show">
+    <button data-show="issues" aria-pressed="true">With differences</button>
+    <button data-show="all" aria-pressed="false">All records</button>
+  </div>
+  <div id="records"></div>
+
+  <p class="muted" style="margin-top:2rem">The records: <span id="source"></span>, kept in Moon's repository as <code>test/fixtures/round-trip/lc-set.xml</code>. Data: <a href="round-trip.json">round-trip.json</a>. See also the <a href="score.html">scorecard</a>.</p>
+</main>
+<script>
+(function () {
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var KIND = { 'lost': 'field lost', 'subfield-lost': 'subfield lost', 'changed': 'changed' };
+  var SKIP = /^(001|003|005|008|035|040|066|336|337|338|880|9\d\d)$/;
+  var data, show = 'issues';
+  // A line's words without its punctuation and spacing, as the comparison reads it.
+  var key = function (line) { return line.replace(/[\s.,:;/=+،؛\[\]()]/g, '').toLowerCase(); };
+  function lines(list, other, cls) {
+    var set = {}; other.forEach(function (l) { set[key(l)] = true; });
+    return list.map(function (l) {
+      var tag = l.slice(0, 3);
+      var mark = !set[key(l)] && !(cls === 'gone' && SKIP.test(tag)) && !(cls === 'new' && /^(001|005|008|040|336|337|338|758)$/.test(tag));
+      return '<span' + (mark ? ' class="' + cls + '"' : '') + '>' + esc(l) + '</span>';
+    }).join('');
+  }
+  function render() {
+    var recs = data.records.filter(function (r) { return show === 'all' || r.issues.length; });
+    document.getElementById('records').innerHTML = recs.length ? recs.map(function (r) {
+      var issues = r.issues.map(function (i) {
+        return '<li>' + esc(i.tag) + (i.code ? ' $' + esc(i.code) : '') + ': ' + KIND[i.kind] + (i.before ? ' (“' + esc(i.before) + '”' + (i.after ? ' → “' + esc(i.after) + '”' : '') + ')' : '') + '</li>';
+      }).join('');
+      return '<details class="rec"' + (show === 'issues' && recs.length < 6 ? ' open' : '') + '><summary><b dir="auto">' + esc(r.title || r.id) + '</b><span class="muted">LC ' + esc(r.id) + '</span>' +
+        (r.issues.length ? '<span class="tag bad">' + r.issues.length + ' difference' + (r.issues.length > 1 ? 's' : '') + '</span>' : '<span class="tag good">came back whole</span>') + '</summary>' +
+        (issues ? '<ul class="issues">' + issues + '</ul>' : '') +
+        '<div class="cols"><div><h3>In (LC)</h3><pre>' + lines(r.before, r.after, 'gone') + '</pre></div><div><h3>Back out (Moon)</h3><pre>' + lines(r.after, r.before, 'new') + '</pre></div></div></details>';
+    }).join('') : '<p class="muted">Every record came back whole.</p>';
+  }
+  document.querySelectorAll('.filters button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      show = b.getAttribute('data-show');
+      document.querySelectorAll('.filters button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      render();
+    });
+  });
+  fetch('round-trip.json').then(function (r) { return r.json(); }).then(function (d) {
+    data = d;
+    var n = d.set.records, pct = Math.round(100 * d.clean / Math.max(1, n));
+    var share = document.getElementById('share');
+    share.textContent = pct + '%'; share.className = 'big ' + (pct >= 90 ? 'ok' : 'low');
+    document.getElementById('summary').innerHTML = esc(d.clean) + ' of ' + esc(n) + ' records came back whole, every field they had in its place.<span class="ar" dir="rtl">' + d.clean + ' من ' + n + ' تسجيلة رجعت كاملة، كل حقولها في مكانها.</span>';
+    document.getElementById('counts').innerHTML = d.counts.length ? '<ul style="margin:0">' + d.counts.map(function (c) {
+      var p = c[0].split(' '); return '<li>' + esc(p.slice(1).join(' ')) + ': ' + KIND[p[0]] + ', in ' + c[1] + ' record' + (c[1] > 1 ? 's' : '') + '</li>';
+    }).join('') + '</ul>' : 'Nothing.';
+    document.getElementById('source').textContent = d.set.name + ' (' + d.set.source + ')';
+    render();
+  }).catch(function () { document.getElementById('share').textContent = 'The report could not be read.'; });
+})();
+</script>
+</body>
+</html>
