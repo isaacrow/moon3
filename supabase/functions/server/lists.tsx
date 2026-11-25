@@ -62,6 +62,8 @@ export const ENTITIES: Record<EntityId, ListEntity> = {
       t("out", "Still out", "لم تُرجع", "bool"), t("overdue", "Overdue", "متأخرة", "bool"),
       t("renewals", "Renewals", "مرات التجديد", "number"), t("fine", "Fine", "الغرامة", "number"), t("fine_settled", "Fine settled", "سُددت الغرامة", "bool"),
       t("loaned_by", "Loaned by", "أعارها"),
+      t("in_room", "Reading room only", "للقاعة فقط", "bool"),
+      t("room_state", "In the reading room", "في قاعة الاطلاع", "choice", [c("in-use", "In use", "قيد الاطلاع"), c("on-shelf", "On the hold shelf", "على رف الحجز")]),
     ],
     columns: ["barcode", "record_title", "borrower_name", "loaned_at", "due_at", "overdue"],
   },
@@ -300,6 +302,9 @@ export const READY_LISTS: ReadyList[] = [
   ready("one-script", "People without both scripts", "أشخاص بلا الكتابتين", "Names in the authority file missing an Arabic-script or a Latin-script form",
     "أسماء في الملف الاستنادي ينقصها شكل بالحرف العربي أو بالحرف اللاتيني",
     { entity: "people", match: "any", conditions: [{ field: "has_arabic", op: "is", value: "false" }, { field: "has_latin", op: "is", value: "false" }], sort: { field: "name" } }),
+  ready("room-closing", "Reading room at closing", "قاعة الاطلاع عند الإغلاق", "Reading-room copies still in use: to the hold shelf for their readers",
+    "نسخ القاعة التي ما زالت قيد الاطلاع: إلى رف الحجز لقرّائها",
+    { entity: "loans", match: "all", conditions: [{ field: "out", op: "is", value: "true" }, { field: "in_room", op: "is", value: "true" }, { field: "room_state", op: "is", value: "in-use" }], columns: ["barcode", "record_title", "borrower_name", "borrower_card", "loaned_at"], sort: { field: "loaned_at" } }),
 ];
 
 const asList = (v: unknown): any[] => (Array.isArray(v) ? v : v == null ? [] : [v]);

@@ -29,7 +29,7 @@ import { makeResetCode, resetExpiry } from "./readerReset.tsx";
 import { sha256Hex } from "./signInSafety.tsx";
 import {
   parseRules, dueDate, fineFor, daysOverdue, cleanCode, readPatron, copiesIn, checkoutProblem, renewProblem,
-  renewedDue, holdExpiry, type Rules, type PatronKind, type FoundCopy, type PatronInput,
+  renewedDue, holdExpiry, type Rules, type PatronKind, type FoundCopy, type PatronInput, roomDue,
 } from "./circulation.tsx";
 
 const circulationRoutes = new Hono();
@@ -80,10 +80,11 @@ async function findCopy(barcode: string): Promise<{ copy: FoundCopy; recordId: s
 
 /** What a borrower has out and owes, for the checks. */
 async function patronState(patron: any) {
-  const { data, error } = await sb().from("loans").select("id, due_at, returned_at, fine, fine_settled").eq("patron_id", patron.id);
+  const { data, error } = await sb().from("loans").select("id, due_at, returned_at, fine, fine_settled, in_room").eq("patron_id", patron.id);
   if (error) throw new Error(error.message);
   const now = Date.now();
-  const open = (data || []).filter((l: any) => !l.returned_at);
+  // Reading-room loans are not counted: the copies never leave the library.
+  const open = (data || []).filter((l: any) => !l.returned_at && !l.in_room);
   return {
     kind: patron.kind as PatronKind,
     blocked: !!patron.blocked,
@@ -95,6 +96,7 @@ async function patronState(patron: any) {
 
 const withLate = (rules: Rules) => (l: any) => {
   const now = new Date();
+  if (l.in_room) return { ...l, daysOverdue: 0, fineNow: 0 };
   return { ...l, daysOverdue: l.returned_at ? 0 : daysOverdue(l.due_at, now), fineNow: l.returned_at ? Number(l.fine || 0) : fineFor(l.due_at, now, rules) };
 };
 
@@ -108,15 +110,17 @@ circulationRoutes.get(`${P}/summary`, async (c) => {
     const month = new Date(); month.setUTCDate(1); month.setUTCHours(0, 0, 0, 0);
     const count = async (q: any) => { const { count, error } = await q; if (error) throw new Error(error.message); return count || 0; };
     const head = (t: string) => sb().from(t).select("id", { count: "exact", head: true }).eq("library", st.library);
-    const [patrons, open, overdue, ready, waiting, thisMonth] = await Promise.all([
+    const [patrons, open, overdue, ready, waiting, thisMonth, roomInUse, roomOnShelf] = await Promise.all([
       count(head("patrons")),
-      count(head("loans").is("returned_at", null)),
-      count(head("loans").is("returned_at", null).lt("due_at", now)),
+      count(head("loans").is("returned_at", null).eq("in_room", false)),
+      count(head("loans").is("returned_at", null).eq("in_room", false).lt("due_at", now)),
       count(head("holds").eq("status", "ready")),
       count(head("holds").eq("status", "waiting")),
       count(head("loans").gte("loaned_at", month.toISOString())),
+      count(head("loans").is("returned_at", null).eq("in_room", true).eq("room_state", "in-use")),
+      count(head("loans").is("returned_at", null).eq("in_room", true).eq("room_state", "on-shelf")),
     ]);
-    return c.json({ library: st.library, patrons, open, overdue, holdsReady: ready, holdsWaiting: waiting, loansThisMonth: thisMonth, rules: await rulesFor(st.library) });
+    return c.json({ library: st.library, patrons, open, overdue, holdsReady: ready, holdsWaiting: waiting, loansThisMonth: thisMonth, roomInUse, roomOnShelf, rules: await rulesFor(st.library) });
   } catch (e) { return failed(c, "The numbers", e); }
 });
 
@@ -267,12 +271,15 @@ circulationRoutes.post(`${P}/checkout`, async (c) => {
     const { data: open } = await sb().from("loans").select("id").eq("library", st.library).eq("barcode", barcode).is("returned_at", null).maybeSingle();
     const { data: ready } = await sb().from("holds").select("id, patron_id").eq("barcode", barcode).eq("status", "ready");
     const heldForOther = (ready || []).some((h: any) => h.patron_id !== patron.id);
-    const problem = checkoutProblem(await patronState(patron), { referenceOnly: found.copy.referenceOnly, onLoan: !!open, heldForOther }, rules);
-    if (problem) return c.json({ error: problem }, 409);
+    const inRoom = body.inRoom === true;
+    const problem = checkoutProblem(await patronState(patron), { referenceOnly: found.copy.referenceOnly, onLoan: !!open, heldForOther }, rules, inRoom);
+    if (problem) return c.json({ error: problem, ...(found.copy.referenceOnly && !inRoom ? { readingRoomOnly: true } : {}) }, 409);
     const now = new Date();
     const { data: loan, error } = await sb().from("loans").insert({
       library: st.library, barcode, item_id: found.copy.itemId || null, record_id: found.recordId, record_title: found.title,
-      patron_id: patron.id, patron_kind: patron.kind, loaned_at: now.toISOString(), due_at: dueDate(now, patron.kind, rules), loaned_by: st.username,
+      patron_id: patron.id, patron_kind: patron.kind, loaned_at: now.toISOString(),
+      due_at: inRoom ? roomDue(now, "in-use", rules) : dueDate(now, patron.kind, rules), loaned_by: st.username,
+      in_room: inRoom, room_state: inRoom ? "in-use" : null,
     }).select().single();
     if (error) {
       if (/duplicate|unique/i.test(error.message)) return c.json({ error: "This copy is already on loan; check it in first" }, 409);
@@ -294,7 +301,7 @@ circulationRoutes.post(`${P}/checkin`, async (c) => {
     if (!loan) return c.json({ error: "This copy is not on loan" }, 404);
     const rules = await rulesFor(st.library);
     const now = new Date();
-    const fine = fineFor(loan.due_at, now, rules);
+    const fine = loan.in_room ? 0 : fineFor(loan.due_at, now, rules);
     // No reading history: the borrower leaves the loan now, unless a fine on it is still to be paid.
     const { error } = await sb().from("loans").update({
       returned_at: now.toISOString(), returned_by: st.username, fine, fine_settled: fine === 0, patron_id: fine > 0 ? loan.patron_id : null,
@@ -337,6 +344,36 @@ circulationRoutes.post(`${P}/renew`, async (c) => {
   } catch (e) { return failed(c, "The renewal", e); }
 });
 
+// ─── Reading room (plan step H7) ─────────────────────────────
+
+/** A reading-room loan goes on the hold shelf for its reader (between visits) or back in use. */
+circulationRoutes.post(`${P}/loans/:id/room`, async (c) => {
+  const st = await staffOf(c);
+  if (!st) return denied(c);
+  const state = (await c.req.json().catch(() => ({}))).state;
+  if (state !== "in-use" && state !== "on-shelf") return c.json({ error: "In use, or on the hold shelf?" }, 400);
+  try {
+    const rules = await rulesFor(st.library);
+    const { data, error } = await sb().from("loans").update({ room_state: state, due_at: roomDue(new Date(), state, rules) })
+      .eq("id", Number(c.req.param("id"))).eq("library", st.library).eq("in_room", true).is("returned_at", null).select().maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? c.json({ loan: data }) : c.json({ error: "No reading-room loan out with this number" }, 404);
+  } catch (e) { return failed(c, "The reading-room loan", e); }
+});
+
+/** Closing time: every reading-room copy still in use goes on the hold shelf for its reader. */
+circulationRoutes.post(`${P}/room/close`, async (c) => {
+  const st = await staffOf(c);
+  if (!st) return denied(c);
+  try {
+    const rules = await rulesFor(st.library);
+    const { data, error } = await sb().from("loans").update({ room_state: "on-shelf", due_at: roomDue(new Date(), "on-shelf", rules) })
+      .eq("library", st.library).eq("in_room", true).eq("room_state", "in-use").is("returned_at", null).select("id, barcode, record_title");
+    if (error) throw new Error(error.message);
+    return c.json({ shelved: (data || []).length, loans: data || [] });
+  } catch (e) { return failed(c, "Closing the reading room", e); }
+});
+
 circulationRoutes.post(`${P}/loans/:id/settle`, async (c) => {
   const st = await staffOf(c);
   if (!st) return denied(c);
@@ -353,9 +390,10 @@ circulationRoutes.get(`${P}/loans`, async (c) => {
   try {
     let q = sb().from("loans").select("*, patron:patrons(id, name, card)").eq("library", st.library).limit(300);
     if (state === "fines") q = q.not("returned_at", "is", null).eq("fine_settled", false).order("returned_at", { ascending: false });
+    else if (state === "room") q = q.is("returned_at", null).eq("in_room", true).order("room_state").order("loaned_at");
     else {
       q = q.is("returned_at", null).order("due_at");
-      if (state === "overdue") q = q.lt("due_at", new Date().toISOString());
+      if (state === "overdue") q = q.eq("in_room", false).lt("due_at", new Date().toISOString());
     }
     const { data, error } = await q;
     if (error) throw new Error(error.message);
