@@ -137,6 +137,18 @@ function fixNode(n: any, parentKey = ""): any {
       if (r.edtf) out["bf:date"] = [...dates, { "@value": r.edtf, "@type": EDTF }];
     }
   }
+  // The publisher, date and place as transcribed, beside the linked ones (bflc:simple*), as LC's converter writes
+  // them and as BIG's monograph shapes ask for them.
+  if (/provisionActivity$/.test(parentKey)) {
+    const labels = (v: any) => all(v).map((x: any) => (x && typeof x === "object" ? textOf(x["rdfs:label"] ?? x) : typeof x === "string" && !/^https?:/.test(x) ? x : "")).filter(Boolean);
+    const add = (key: string, texts: string[]) => {
+      if (out[key] !== undefined || !texts.length) return;
+      out[key] = tagLiterals([...new Set(texts)]);
+    };
+    add("bflc:simpleAgent", labels(out["bf:agent"]));
+    add("bflc:simplePlace", labels(out["bf:place"]));
+    add("bflc:simpleDate", all(out["bf:date"]).filter((d: any) => !(d && typeof d === "object" && d["@type"] === EDTF)).map((d: any) => textOf(d)).filter(Boolean).slice(0, 1));
+  }
   return out;
 }
 
