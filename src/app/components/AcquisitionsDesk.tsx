@@ -8,15 +8,15 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
   LayoutDashboard, FileText, Building2, Wallet, Receipt, Newspaper, Plus, X, ShieldAlert, PackageCheck, Ban,
-  BookOpen, FilePlus, ExternalLink, CheckCircle2, AlertTriangle, CalendarClock, Trash2,
+  BookOpen, FilePlus, ExternalLink, CheckCircle2, AlertTriangle, CalendarClock, Trash2, Mail, Download, Printer,
 } from 'lucide-react';
 import { moonFetch } from '../utils/moonApi';
 import { useAuth } from '../contexts/AuthContext';
 import { glass, input, btn, dark, light, Field } from './CirculationDesk';
 
-export type AcqTab = 'overview' | 'orders' | 'vendors' | 'funds' | 'invoices' | 'subscriptions';
-export const ACQ_TABS: AcqTab[] = ['overview', 'orders', 'vendors', 'funds', 'invoices', 'subscriptions'];
-type Kind = Exclude<AcqTab, 'overview'>;
+export type AcqTab = 'overview' | 'orders' | 'claims' | 'vendors' | 'funds' | 'invoices' | 'subscriptions';
+export const ACQ_TABS: AcqTab[] = ['overview', 'orders', 'claims', 'vendors', 'funds', 'invoices', 'subscriptions'];
+type Kind = Exclude<AcqTab, 'overview' | 'claims'>;
 
 type FieldType = 'text' | 'longtext' | 'number' | 'int' | 'date' | 'url' | 'email' | 'currency' | 'choice' | 'vendor' | 'fund' | 'bool' | 'ids';
 interface F { key: string; ar: string; en: string; type: FieldType; required?: boolean; choices?: Array<{ v: string; ar: string; en: string }>; wide?: boolean }
@@ -37,6 +37,7 @@ const FIELDS: Record<Kind, F[]> = {
     { key: 'fund_id', ar: 'الصندوق', en: 'Fund', type: 'fund' },
     { key: 'quantity', ar: 'عدد النسخ', en: 'Copies', type: 'int', required: true },
     { key: 'unit_price', ar: 'سعر النسخة', en: 'Price per copy', type: 'number' },
+    { key: 'expected_at', ar: 'موعد الوصول المتوقع', en: 'Expected by', type: 'date' },
     { key: 'currency', ar: 'العملة', en: 'Currency', type: 'currency' },
     { key: 'note', ar: 'ملاحظة', en: 'Note', type: 'longtext', wide: true },
   ],
@@ -49,6 +50,7 @@ const FIELDS: Record<Kind, F[]> = {
     { key: 'country', ar: 'البلد', en: 'Country', type: 'text' },
     { key: 'note', ar: 'ملاحظة', en: 'Note', type: 'longtext', wide: true },
     { key: 'active', ar: 'نتعامل معه حاليًا', en: 'Currently used', type: 'bool' },
+    { key: 'lead_days', ar: 'أيام التوريد المعتادة', en: 'Usual delivery days', type: 'int' },
   ],
   funds: [
     { key: 'code', ar: 'الرمز', en: 'Code', type: 'text', required: true },
@@ -157,6 +159,7 @@ export function AcquisitionsDesk({ isAr, onOpenRecord, onNewRecord }: { isAr: bo
   const TABS: Array<{ id: AcqTab; icon: any; ar: string; en: string }> = [
     { id: 'overview', icon: LayoutDashboard, ar: 'نظرة عامة', en: 'Overview' },
     { id: 'orders', icon: FileText, ar: 'أوامر الشراء', en: 'Orders' },
+    { id: 'claims', icon: Mail, ar: 'المطالبات', en: 'Claims' },
     { id: 'subscriptions', icon: Newspaper, ar: 'الاشتراكات', en: 'Subscriptions' },
     { id: 'invoices', icon: Receipt, ar: 'الفواتير', en: 'Invoices' },
     { id: 'vendors', icon: Building2, ar: 'الموردون', en: 'Vendors' },
@@ -204,7 +207,8 @@ export function AcquisitionsDesk({ isAr, onOpenRecord, onNewRecord }: { isAr: bo
       </header>
       <div key={tab} className="moon-enter">
         {tab === 'overview' && <Overview isAr={isAr} summary={summary} onTab={setTab} />}
-      {tab !== 'overview' && (
+        {tab === 'claims' && <Claims isAr={isAr} library={summary?.library || ''} />}
+      {tab !== 'overview' && tab !== 'claims' && (
         <Entries key={tab} kind={tab} isAr={isAr} refs={refs} onChange={changed} canEdit={tab !== 'funds' || canBudget} canBudget={canBudget}
           onOpenRecord={onOpenRecord} onNewRecord={onNewRecord} />
       )}
@@ -563,6 +567,94 @@ function IssueCheckIn({ isAr, subscriptionId, onChange }: { isAr: boolean; subsc
             <span className="text-slate-600">{dateText(i.received_on, isAr)} <button className="underline ms-1" onClick={() => remove(i.id)}>{isAr ? 'حذف' : 'remove'}</button></span></li>
         ))}</ul>
       )}
+    </div>
+  );
+}
+
+// ─── Claims (plan step H8) ───────────────────────────────────
+
+interface LateOrder { id: number; number: string; title: string; author?: string | null; isbn?: string | null; quantity: number; ordered_at: string; expected: string; daysLate: number; claims: number; lastClaim: string | null; claimNow: boolean }
+interface VendorClaims { vendor: { id: string | null; name: string; email?: string | null; contact?: string | null }; orders: LateOrder[] }
+
+const escHtml = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+/** A claim letter to one vendor, in Arabic and English, ready to print or save as PDF. */
+function claimLetter(library: string, v: VendorClaims['vendor'], orders: LateOrder[]): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = orders.map((o) => `<tr><td>${escHtml(o.number)}</td><td dir="auto">${escHtml(o.title)}${o.author ? ` / ${escHtml(o.author)}` : ''}</td><td>${escHtml(o.isbn || '')}</td><td>${o.quantity}</td><td>${escHtml(o.ordered_at.slice(0, 10))}</td><td>${escHtml(o.expected)}</td></tr>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Claim ${escHtml(v.name)} ${today}</title>
+<style>body{font:14px/1.6 system-ui,Tahoma,sans-serif;margin:2.5cm;color:#111}table{border-collapse:collapse;width:100%;margin:1em 0}td,th{border:1px solid #999;padding:4px 6px;text-align:start;font-size:12px}.ar{direction:rtl;text-align:right;margin-top:2em;border-top:1px solid #ccc;padding-top:1em}</style></head><body>
+<p>${escHtml(library)}<br>${today}</p>
+<p>To: ${escHtml(v.name)}${v.contact ? `, ${escHtml(v.contact)}` : ''}${v.email ? ` &lt;${escHtml(v.email)}&gt;` : ''}</p>
+<p><b>Claim for orders not received</b></p>
+<p>The following ${orders.length === 1 ? 'order has' : `${orders.length} orders have`} not reached us by the expected date. Please send ${orders.length === 1 ? 'it' : 'them'}, or tell us when ${orders.length === 1 ? 'it' : 'they'} will arrive, or whether ${orders.length === 1 ? 'it is' : 'any are'} no longer available.</p>
+<table><thead><tr><th>Order</th><th>Title / author</th><th>ISBN</th><th>Copies</th><th>Ordered</th><th>Expected</th></tr></thead><tbody>${rows}</tbody></table>
+<p>With thanks,<br>${escHtml(library)}</p>
+<div class="ar"><p><b>مطالبة بطلبات لم تصل</b></p><p>لم تصلنا الطلبات المذكورة في الجدول أعلاه حتى موعدها المتوقع. نرجو إرسالها، أو إعلامنا بموعد وصولها، أو بما لم يعد متوفرًا منها.</p><p>مع الشكر،<br>${escHtml(library)}</p></div>
+<script>window.onload=function(){window.print()}</script></body></html>`;
+}
+
+function Claims({ isAr, library }: { isAr: boolean; library: string }) {
+  const [groups, setGroups] = useState<VendorClaims[] | null>(null);
+  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const load = useCallback(() => {
+    moonFetch('/acq/claims').then((r) => {
+      const g: VendorClaims[] = r.ok ? r.data.vendors : [];
+      setGroups(g);
+      setPicked(new Set(g.flatMap((x) => x.orders.filter((o) => o.claimNow).map((o) => o.id))));
+    }).catch(() => setGroups([]));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  if (!groups) return <p className="text-sm text-slate-500">…</p>;
+  if (!groups.length) return <section className="p-5 text-sm text-slate-700" style={glass}>{isAr ? 'لا طلبات متأخرة. يُحسب الموعد من «موعد الوصول المتوقع» في الطلب، أو من تاريخ الطلب وأيام التوريد المعتادة للمورد (60 يومًا إن لم تُذكر).' : 'No late orders. An order is late after its “Expected by” date, or its order date plus the vendor’s usual delivery days (60 when not set).'}</section>;
+
+  const toggle = (id: number) => setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const claim = async (g: VendorClaims) => {
+    const orders = g.orders.filter((o) => picked.has(o.id));
+    if (!orders.length) { toast.error(isAr ? 'اختر الطلبات أولًا' : 'Choose the orders first'); return; }
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(claimLetter(library, g.vendor, orders)); w.document.close(); }
+    const r = await moonFetch('/acq/claims', { body: { orderIds: orders.map((o) => o.id) } });
+    if (!r.ok) { toast.error(say(isAr, r.data?.error || '')); return; }
+    toast.success(isAr ? `سُجّلت المطالبة بـ ${r.data.claimed} طلبًا` : `Claim recorded for ${r.data.claimed} orders`);
+    load();
+  };
+  const csv = (g: VendorClaims) => {
+    const cell = (s: unknown) => { const t = String(s ?? ''); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+    const lines = [['Order', 'Title', 'Author', 'ISBN', 'Copies', 'Ordered', 'Expected', 'Days late', 'Claims so far'].join(',')]
+      .concat(g.orders.filter((o) => picked.has(o.id)).map((o) => [o.number, o.title, o.author, o.isbn, o.quantity, o.ordered_at.slice(0, 10), o.expected, o.daysLate, o.claims].map(cell).join(',')));
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv' }));
+    const a = document.createElement('a'); a.href = url; a.download = `claim-${(g.vendor.name || 'vendor').replace(/[^\p{L}\p{N}]+/gu, '-')}.csv`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-slate-700">{isAr ? 'الطلبات التي تجاوزت موعد وصولها، لكل مورد. المختار مسبقًا ما لم يُطالب به بعد أو مضى على آخر مطالبة به 30 يومًا.' : 'Orders past their expected date, by vendor. Ticked are the ones never claimed, or last claimed 30 days ago or more.'}</p>
+      {groups.map((g) => (
+        <section key={g.vendor.id || 'none'} className="p-4 moon-enter" style={glass}>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div>
+              <h3 className="font-black text-slate-900">{g.vendor.name || (isAr ? 'بلا مورد' : 'No vendor')}</h3>
+              {g.vendor.email && <a className="text-xs text-slate-600 underline" href={`mailto:${g.vendor.email}`}>{g.vendor.email}</a>}
+            </div>
+            <div className="flex gap-2">
+              <button className={dark} onClick={() => claim(g)} disabled={!g.vendor.id}><Printer className="h-4 w-4" />{isAr ? 'رسالة المطالبة' : 'Claim letter'}</button>
+              <button className={light} onClick={() => csv(g)}><Download className="h-4 w-4" />CSV</button>
+            </div>
+          </div>
+          <ul className="divide-y divide-slate-200">
+            {g.orders.map((o) => (
+              <li key={o.id} className="py-2 flex flex-wrap items-center gap-3 text-sm">
+                <input type="checkbox" checked={picked.has(o.id)} onChange={() => toggle(o.id)} aria-label={o.number} />
+                <span className="flex-1 min-w-[12rem]"><b className="text-slate-900" dir="auto">{o.title}</b><span className="block text-xs text-slate-600">{o.number} · {num(o.quantity, isAr)} {isAr ? 'نسخة' : 'copies'}{o.isbn ? ` · ${o.isbn}` : ''}</span></span>
+                <span className="text-xs font-bold text-red-700">{isAr ? `متأخر ${num(o.daysLate, true)} يومًا` : `${o.daysLate} days late`}</span>
+                <span className="text-xs text-slate-600">{o.claims ? (isAr ? `طُولب ${num(o.claims, true)} مرة، آخرها ${dateText(o.lastClaim, true)}` : `claimed ${o.claims}×, last ${dateText(o.lastClaim, false)}`) : (isAr ? 'لم يُطالب به' : 'not claimed')}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

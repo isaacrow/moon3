@@ -88,3 +88,26 @@ test('a received order becomes copies of its record, with barcodes and the order
   const noBarcodes = readReceipt({}, { number: 'PO-1', quantity: 2 });
   assert.ok('input' in noBarcodes && noBarcodes.input.count === 2 && noBarcodes.input.barcodes.length === 0);
 });
+
+test('claims: late orders by vendor, from the expected date or the vendor\'s lead time, claimed again after 30 days', async () => {
+  const { lateOrders, DEFAULT_LEAD_DAYS } = await import('../supabase/functions/server/acquisitions.tsx');
+  const now = new Date('2026-11-25T12:00:00Z');
+  const vendors = [{ id: 'v1', name: 'Dar al-Kutub', lead_days: 30 }, { id: 'v2', name: 'Brill' }];
+  const orders = [
+    { id: 1, number: 'PO-1', title: 'A', quantity: 1, status: 'ordered', ordered_at: '2026-09-01T00:00:00Z', vendor_id: 'v1' }, // due 1 Oct
+    { id: 2, number: 'PO-2', title: 'B', quantity: 2, status: 'ordered', ordered_at: '2026-11-01T00:00:00Z', vendor_id: 'v1' }, // due 1 Dec: not late
+    { id: 3, number: 'PO-3', title: 'C', quantity: 1, status: 'ordered', ordered_at: '2026-01-01T00:00:00Z', expected_at: '2026-11-20', vendor_id: 'v2' },
+    { id: 4, number: 'PO-4', title: 'D', quantity: 1, status: 'received', ordered_at: '2025-01-01T00:00:00Z', vendor_id: 'v2' },
+    { id: 5, number: 'PO-5', title: 'E', quantity: 1, status: 'ordered', ordered_at: '2026-08-01T00:00:00Z', vendor_id: 'v2' }, // 60 days: due 30 Sep
+  ];
+  const claims = [{ order_id: 1, claimed_at: '2026-11-10T00:00:00Z' }, { order_id: 5, claimed_at: '2026-10-01T00:00:00Z' }];
+  const g = lateOrders(orders, vendors, claims, now);
+  assert.equal(DEFAULT_LEAD_DAYS, 60);
+  assert.deepEqual(g.map((x) => x.vendor.name), ['Brill', 'Dar al-Kutub'], 'the vendor with the latest order first');
+  const brill = g[0].orders;
+  assert.deepEqual(brill.map((o) => o.number), ['PO-5', 'PO-3']);
+  assert.equal(brill[1].expected, '2026-11-20');
+  assert.equal(brill[0].claimNow, true, 'last claimed 55 days ago');
+  const dar = g[1].orders;
+  assert.deepEqual(dar.map((o) => [o.number, o.claims, o.claimNow]), [['PO-1', 1, false]], 'claimed 15 days ago: not again yet');
+});
