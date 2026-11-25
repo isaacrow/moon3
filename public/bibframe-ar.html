@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIBFRAME بالعربية · BIBFRAME in Arabic</title>
+<meta name="description" content="Arabic labels for the BIBFRAME terms Moon's catalogue uses, reviewed by the library and published as open RDF (CC0).">
+<style>
+  :root { --bg: #f8fafc; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --card: #fff; --ok: #047857; --draft: #b45309; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0b1020; --ink: #e5e7eb; --muted: #94a3b8; --line: #1f2937; --card: #111827; --ok: #34d399; --draft: #fbbf24; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.7 system-ui, "Segoe UI", Tahoma, sans-serif; }
+  main { max-width: 60rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  h1 { font-size: 1.7rem; margin: 0 0 .25rem; }
+  .muted { color: var(--muted); } .en { display: block; color: var(--muted); font-size: .9rem; direction: ltr; text-align: left; }
+  .bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: 1rem 0; }
+  .bar input { flex: 1; min-width: 12rem; font: inherit; padding: .45rem .8rem; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+  .pill { font-size: .85rem; border: 1px solid var(--line); border-radius: 999px; padding: .2rem .8rem; background: var(--card); color: inherit; text-decoration: none; cursor: pointer; font-family: inherit; }
+  .pill[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  th, td { padding: .55rem .7rem; border-bottom: 1px solid var(--line); text-align: start; vertical-align: top; font-size: .95rem; }
+  th { font-size: .8rem; color: var(--muted); }
+  code { direction: ltr; unicode-bidi: embed; font-size: .85rem; }
+  .ar-label { font-weight: 700; font-size: 1.05rem; }
+  .status { font-size: .8rem; white-space: nowrap; } .reviewed { color: var(--ok); } .draft { color: var(--draft); }
+  .num { font-variant-numeric: tabular-nums; color: var(--muted); }
+  .review { display: flex; gap: .3rem; margin-top: .3rem; } .review input { flex: 1; font: inherit; padding: .2rem .5rem; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  .review button { font: inherit; font-size: .8rem; padding: .2rem .6rem; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+  @media (max-width: 600px) { .hide { display: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>BIBFRAME بالعربية</h1>
+  <span class="en">BIBFRAME in Arabic</span>
+  <p>تسميات عربية لكل مصطلح من مصطلحات BIBFRAME يستعمله فهرس مون، بالكلمات التي يستعملها المحرر نفسه. تبقى التسمية مسودة حتى تراجعها المكتبة، وتُنشر بياناتٍ مفتوحة (RDF، CC0) يستعملها من يشاء.
+    <span class="en">Arabic labels for every BIBFRAME term Moon's catalogue uses, in the words its editor uses. A label stays a draft until the library reviews it; the vocabulary is published as open data (RDF, CC0) for anyone to use.</span></p>
+  <p id="count" class="muted">…</p>
+  <div class="bar">
+    <input id="q" type="search" placeholder="ابحث بالمصطلح أو بالعربية · Find a term" aria-label="Find a term">
+    <button class="pill" data-show="all" aria-pressed="true">الكل · All</button>
+    <button class="pill" data-show="draft" aria-pressed="false">مسودات · Drafts</button>
+    <button class="pill" data-show="reviewed" aria-pressed="false">رُوجعت · Reviewed</button>
+    <a class="pill" href="/resource/bibframe-ar.ttl" download>Turtle (.ttl)</a>
+    <a class="pill" href="/resource/bibframe-ar.json">JSON</a>
+  </div>
+  <table>
+    <thead><tr><th>المصطلح · Term</th><th>العربية · Arabic</th><th class="hide">الحالة · Status</th><th class="hide num">الاستعمال · Uses</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="4" class="muted">…</td></tr></tbody>
+  </table>
+  <p class="muted" style="margin-top:1.5rem">على غرار «BIBFRAME en español» (2026). <a href="score.html">لوحة الجودة</a> · <a href="opac.html">الفهرس</a></p>
+</main>
+<script>
+(function () {
+  var API = 'https://gfbagczwhvxxstbfrfhu.supabase.co/functions/v1/make-server-49c0e13c';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmYmFnY3p3aHZ4eHN0YmZyZmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3ODg4OTksImV4cCI6MjA4NjM2NDg5OX0.Hrib4UwwVvCu0o7K51UAICoSmd2J-0XlkLegdkIqLJk';
+  // The Super Admin, signed in to Moon Studio on this site, reviews the labels here; the server checks it again.
+  var session = null;
+  try { var s = JSON.parse(localStorage.getItem('moon_auth') || 'null'); if (s && s.role === 'admin' && typeof s.sessionToken === 'string') session = s.sessionToken; } catch (e) {}
+  var esc = function (x) { return String(x == null ? '' : x).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var data = [], show = 'all';
+  function render() {
+    var q = document.getElementById('q').value.trim().toLowerCase();
+    var rows = data.filter(function (r) {
+      return (show === 'all' || r.status === show) && (!q || (r.term + ' ' + r.en + ' ' + r.ar).toLowerCase().indexOf(q) >= 0);
+    });
+    document.getElementById('rows').innerHTML = rows.map(function (r) {
+      return '<tr><td><code><a href="' + esc(r.uri) + '" target="_blank" rel="noopener">' + esc(r.term) + '</a></code><span class="en">' + esc(r.en) + '</span></td>' +
+        '<td><span class="ar-label">' + esc(r.ar) + '</span>' + (r.status === 'reviewed' && r.ar !== r.draft ? '<span class="muted" style="font-size:.8rem"> (المسودة: ' + esc(r.draft) + ')</span>' : '') +
+        (session ? '<div class="review"><input value="' + esc(r.ar) + '" data-term="' + esc(r.term) + '" aria-label="Arabic label for ' + esc(r.term) + '"><button data-ok="' + esc(r.term) + '">اعتمد</button>' + (r.status === 'reviewed' ? '<button data-reset="' + esc(r.term) + '">مسودة</button>' : '') + '</div>' : '') + '</td>' +
+        '<td class="hide status ' + r.status + '">' + (r.status === 'reviewed' ? 'رُوجعت · reviewed' : 'مسودة · draft') + '</td>' +
+        '<td class="hide num">' + (r.uses ? r.uses.toLocaleString('en') : '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="4" class="muted">لا شيء · Nothing</td></tr>';
+  }
+  function count(d) {
+    document.getElementById('count').textContent = d.total + ' مصطلحًا، رُوجع منها ' + d.reviewed + ' · ' + d.total + ' terms, ' + d.reviewed + ' reviewed';
+  }
+  function load() {
+    fetch('/resource/bibframe-ar.json').then(function (r) { return r.json(); }).then(function (d) { data = d.terms || []; count(d); render(); })
+      .catch(function () { document.getElementById('rows').innerHTML = '<tr><td colspan="4">تعذّرت القراءة · Could not be read</td></tr>'; });
+  }
+  function review(body) {
+    fetch(API + '/bibframe-ar/review', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + ANON, 'X-Moon-Session': session }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) { alert(res.j.error || 'Not saved'); return; }
+        var t = res.j.term; data = data.map(function (r) { return t && r.term === t.term ? Object.assign({}, r, t, { uses: r.uses }) : r; });
+        count({ total: data.length, reviewed: res.j.reviewed }); render();
+      });
+  }
+  document.getElementById('rows').addEventListener('click', function (e) {
+    var ok = e.target.getAttribute('data-ok'), reset = e.target.getAttribute('data-reset');
+    if (ok) review({ term: ok, ar: document.querySelector('input[data-term="' + ok + '"]').value });
+    if (reset) review({ term: reset, reset: true });
+  });
+  document.getElementById('q').addEventListener('input', render);
+  document.querySelectorAll('[data-show]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      show = b.getAttribute('data-show');
+      document.querySelectorAll('[data-show]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      render();
+    });
+  });
+  load();
+})();
+</script>
+</body>
+</html>
