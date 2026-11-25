@@ -8,6 +8,7 @@
  *   GET    /lists                            the library's saved lists
  *   POST   /lists {name, query, private?}    PUT /lists/:id    DELETE /lists/:id (its maker or a reviewer)
  *   POST   /lists/:id/refresh                runs a saved list again and keeps its count and time
+ *   GET    /lists/ready                      the ready-made lists (lists.tsx READY_LISTS) with how many rows each has now
  *
  * Rows are read per library, up to ROW_CAP of each kind; a result says when the cap was reached.
  */
@@ -15,7 +16,7 @@ import { Hono } from "npm:hono";
 import { getClient } from "./db.tsx";
 import { getSession, libraryOf } from "./accountRoutes.tsx";
 import { copiesIn } from "./circulation.tsx";
-import { readQuery, runQuery, toCsv, type EntityId, type ListQuery, type Row } from "./lists.tsx";
+import { readQuery, runQuery, toCsv, subjectsIn, scriptsOf, READY_LISTS, type EntityId, type ListQuery, type Row } from "./lists.tsx";
 
 const listsRoutes = new Hono();
 const sb = (): any => getClient();
@@ -55,7 +56,7 @@ export async function loadRows(entity: EntityId, library: string): Promise<{ row
         .select("id, title, status, cataloger, assigned_to, created_at, updated_at, approved_at, document")
         .is("deleted_at", null).order("updated_at", { ascending: false }).order("id").range(from, to));
       if (entity === "books") {
-        return { capped: got.capped, rows: got.rows.map(({ document, ...r }) => ({ ...r, copies: copiesIn(document).length })) };
+        return { capped: got.capped, rows: got.rows.map(({ document, ...r }) => ({ ...r, copies: copiesIn(document).length, subjects: subjectsIn(document) })) };
       }
       const { data: out } = await sb().from("loans").select("barcode").eq("library", library).is("returned_at", null);
       const onLoan = new Set((out || []).map((x: any) => x.barcode));
@@ -67,6 +68,18 @@ export async function loadRows(entity: EntityId, library: string): Promise<{ row
         }
       }
       return { capped: got.capped, rows };
+    }
+    case "people": {
+      // The authority file is shared by every library: its people and bodies (agents), not merged into another.
+      const got = await all((from, to) => sb().from("authorities").select("id, label, variants, same_as, created_by, created_at, updated_at")
+        .eq("kind", "agent").is("merged_into", null).order("label").order("id").range(from, to));
+      return {
+        capped: got.capped,
+        rows: got.rows.map((a: any) => ({
+          id: a.id, name: a.label, variants: (a.variants || []).join(" · "), links: (a.same_as || []).length,
+          created_by: a.created_by, created_at: a.created_at, updated_at: a.updated_at, ...scriptsOf([a.label, ...(a.variants || [])]),
+        })),
+      };
     }
     case "loans": {
       const got = await all(lib("loans", "*, patrons(card, name)", "loaned_at"));
@@ -222,6 +235,19 @@ listsRoutes.post("/lists/:id/refresh", async (c) => {
     console.error("[lists] refresh:", e?.message || e);
     return c.json({ error: "The list could not be refreshed" }, 500);
   }
+});
+
+listsRoutes.get("/lists/ready", async (c) => {
+  const st = await staffOf(c);
+  if (!st) return denied(c);
+  const loaded = new Map<EntityId, Promise<{ rows: Row[]; capped: boolean }>>();
+  const rowsOf = (e: EntityId) => { if (!loaded.has(e)) loaded.set(e, loadRows(e, st.library)); return loaded.get(e)!; };
+  const now = new Date();
+  const lists = await Promise.all(READY_LISTS.map(async (l) => {
+    try { return { ...l, total: runQuery((await rowsOf(l.query.entity)).rows, l.query, now).length }; }
+    catch (e: any) { console.error(`[lists] ready ${l.id}:`, e?.message || e); return { ...l, total: null }; }
+  }));
+  return c.json({ lists });
 });
 
 export default listsRoutes;

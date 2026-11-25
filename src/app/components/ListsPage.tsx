@@ -2,16 +2,17 @@
  * Lists (/lists/): build a list of books, copies, loans, borrowers, holds, orders, invoices, subscriptions, vendors
  * or funds from conditions, see it, save it, refresh it later and export it as CSV. The fields, operators and
  * query engine are the server's own (supabase/functions/server/lists.tsx), so what is offered here is exactly what
- * the server accepts; listsRoutes.tsx reads the library's rows.
+ * the server accepts; listsRoutes.tsx reads the library's rows. The ready-made lists (overdue loans, the hold shelf,
+ * orders not received …) come with their counts and open like saved ones; saving one under a name makes a copy.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { ListFilter, Plus, X, Play, Save, RefreshCw, Download, Trash2, Lock, ShieldAlert, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
+import { ListFilter, Plus, X, Play, Save, RefreshCw, Download, Trash2, Lock, ShieldAlert, ArrowDownAZ, ArrowUpAZ, Sparkles } from 'lucide-react';
 import { moonFetch, moonHeaders, MOON_API } from '../utils/moonApi';
 import { glass, input, dark, light } from './CirculationDesk';
 import {
   ENTITIES, ENTITY_IDS, OPS_BY_TYPE, OP_NAMES, shown,
-  type Condition, type EntityId, type ListField, type ListQuery, type Op,
+  type Condition, type EntityId, type ListField, type ListQuery, type Op, type ReadyList,
 } from '../../../supabase/functions/server/lists.tsx';
 
 interface Saved { id: string; name: string; description?: string | null; entity: EntityId; query: ListQuery; private: boolean; row_count?: number | null; refreshed_at?: string | null; created_by: string; updated_at: string }
@@ -32,6 +33,8 @@ export function ListsPage({ isAr, onOpenRecord }: { isAr: boolean; onOpenRecord?
   const [priv, setPriv] = useState(false);
   const [busy, setBusy] = useState(false);
   const [denied, setDenied] = useState(false);
+  const [ready, setReady] = useState<Array<ReadyList & { total: number | null }>>([]);
+  const [readyId, setReadyId] = useState<string | null>(null);
   const entity = ENTITIES[query.entity];
   const L = (en: string, ar: string) => (isAr ? ar : en);
   const fieldOf = (k: string) => entity.fields.find((f) => f.key === k)!;
@@ -44,15 +47,19 @@ export function ListsPage({ isAr, onOpenRecord }: { isAr: boolean; onOpenRecord?
     });
   }, []);
   useEffect(loadSaved, [loadSaved]);
+  const loadReady = useCallback(() => {
+    moonFetch<any>('/lists/ready').then((r) => { if (r.ok) setReady(r.data.lists || []); });
+  }, []);
+  useEffect(loadReady, [loadReady]);
   // A section menu opens Lists on another kind of row (?tab=); start a new list of that kind.
   useEffect(() => {
-    const onPop = () => { const id = entityFromUrl(); setQuery((q) => (q.entity === id ? q : blank(id))); setResult(null); setCurrent(null); setName(''); };
+    const onPop = () => { const id = entityFromUrl(); setQuery((q) => (q.entity === id ? q : blank(id))); setResult(null); setCurrent(null); setName(''); setReadyId(null); };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   const setEntity = (id: EntityId) => {
-    setQuery(blank(id)); setResult(null); setCurrent(null); setName('');
+    setQuery(blank(id)); setResult(null); setCurrent(null); setName(''); setReadyId(null);
     const u = new URL(window.location.href); u.searchParams.set('tab', id); window.history.replaceState(null, '', u.pathname + u.search);
   };
   const setCond = (i: number, patch: Partial<Condition>) => setQuery((q) => ({ ...q, conditions: q.conditions.map((c, j) => (j === i ? { ...c, ...patch } : c)) }));
@@ -72,8 +79,15 @@ export function ListsPage({ isAr, onOpenRecord }: { isAr: boolean; onOpenRecord?
   };
 
   const open = (s: Saved) => {
-    setCurrent(s); setName(s.name); setPriv(s.private); setQuery(s.query); setResult(null);
+    setCurrent(s); setName(s.name); setPriv(s.private); setQuery(s.query); setResult(null); setReadyId(null);
     void run(s.query);
+  };
+
+  /** A ready-made list, opened as a new list: change it and save it under a name to keep the change. */
+  const openReady = (r: ReadyList) => {
+    setCurrent(null); setName(''); setPriv(false); setQuery(r.query); setResult(null); setReadyId(r.id);
+    const u = new URL(window.location.href); u.searchParams.set('tab', r.query.entity); window.history.replaceState(null, '', u.pathname + u.search);
+    void run(r.query);
   };
 
   const save = async () => {
@@ -166,8 +180,10 @@ export function ListsPage({ isAr, onOpenRecord }: { isAr: boolean; onOpenRecord?
     }
     return (
       <input className={input}
-        type={f.type === 'date' ? 'date' : f.type === 'number' ? 'number' : 'text'}
-        placeholder={c.op === 'anyOf' ? L('Values, separated by commas', 'قيم تفصل بينها فواصل') : ''}
+        type={f.type === 'number' ? 'number' : 'text'}
+        dir={f.type === 'date' ? 'ltr' : undefined}
+        placeholder={c.op === 'anyOf' ? L('Values, separated by commas', 'قيم تفصل بينها فواصل')
+          : f.type === 'date' ? L('2026-11-25, or today, today-30, today+60', '2026-11-25، أو today أو today-30 أو today+60') : ''}
         value={Array.isArray(c.value) ? c.value.join(', ') : String(c.value ?? '')}
         onChange={(e) => setCond(i, { value: e.target.value })} />
     );
@@ -176,6 +192,22 @@ export function ListsPage({ isAr, onOpenRecord }: { isAr: boolean; onOpenRecord?
   return (
     <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 grid gap-4 lg:grid-cols-[260px_1fr]" dir={isAr ? 'rtl' : 'ltr'}>
       <aside className="p-3 h-fit moon-enter" style={glass}>
+        <h2 className="font-bold text-slate-900 flex items-center gap-1.5 mb-2"><Sparkles className="h-4 w-4" />{L('Ready-made', 'قوائم جاهزة')}</h2>
+        <ul className="space-y-1 moon-stagger mb-4">
+          {ready.map((r) => (
+            <li key={r.id}>
+              <button type="button" title={isAr ? r.noteAr : r.noteEn} onClick={() => openReady(r)}
+                className={`w-full text-start flex items-center gap-2 rounded-xl px-2 py-1.5 cursor-pointer transition-colors ${readyId === r.id ? 'bg-slate-900 text-white' : 'hover:bg-white/80 text-slate-900'}`}>
+                <span className="flex-1 min-w-0 text-sm font-bold truncate">{isAr ? r.ar : r.en}</span>
+                {r.total != null && (
+                  <span className={`text-[11px] font-bold rounded-full px-2 ${r.total ? (readyId === r.id ? 'bg-white/20' : 'bg-amber-100 text-amber-900') : 'opacity-50'}`}>
+                    {r.total.toLocaleString(isAr ? 'ar-EG' : 'en')}
+                  </span>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-bold text-slate-900 flex items-center gap-1.5"><ListFilter className="h-4 w-4" />{L('Saved lists', 'القوائم المحفوظة')}</h2>
           <button className="p-1 rounded-full hover:bg-white cursor-pointer" title={L('New list', 'قائمة جديدة')} onClick={() => setEntity(query.entity)}><Plus className="h-4 w-4" /></button>
