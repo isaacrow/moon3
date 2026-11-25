@@ -23,7 +23,7 @@ import {
   resolveWorkCover,
   normalizeArabic,
 } from '../services/wolfMoonOpacService';
-import { bookJsonLd, metaDescription, pageUrl, workUri } from './schemaOrg';
+import { SITE, bookJsonLd, metaDescription, pageUrl, workUri } from './schemaOrg';
 import {
   FACETS, SORTS as SORT_OPTIONS, applyFacets, facetCounts, sortWorks, readState, writeState, toggle, valueLabel, valuesOf,
   workYearOf, realCopies, libraryOf, languageName, languageDisplay, type FacetKey, type FacetValue, type Selection, type SortKey,
@@ -1272,21 +1272,30 @@ function download(name: string, text: string, type: string) {
  * The record page's <head> for search engines: its title, description, canonical address, and the
  * book as schema.org JSON-LD. Put back to the catalogue's own when the page is left.
  */
+// The catalogue's own <head>, as opac.html writes it. Kept here because a book's page can arrive with the book's
+// <head> already in place (the edge fills it in for search engines), so what the page loaded with is not always it.
+const CATALOGUE_HEAD = {
+  title: 'فهرس مون',
+  description: 'الفهرس العام لمكتبة مون: ابحث في الكتب والمؤلفين والموضوعات، واعرف أين تجد كل كتاب.',
+  canonical: `${SITE}/opac.html`,
+};
+
 function useRecordHead(work: OpacWorkEntity | undefined) {
   useEffect(() => {
     if (!work) return;
     const head = document.head;
     const meta = head.querySelector<HTMLMetaElement>('meta[name="description"]');
-    const before = { title: document.title, description: meta?.content };
     const who = work.primaryCreator?.nameArabic || work.primaryCreator?.name;
     document.title = [work.title, who].filter(Boolean).join(' — ') + ` | ${t('فهرس مون', 'Moon Catalogue')}`;
     if (meta) meta.content = metaDescription(work);
-    // opac.html carries the catalogue's own canonical link; the record page points it at itself (never two).
+    // opac.html carries one canonical link (the edge may already point it at this book); the record page points
+    // it at itself (never two), and leaving the record points it back at the catalogue.
     const existing = head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     const canonical = existing || document.createElement('link');
-    const beforeHref = existing?.href;
     canonical.rel = 'canonical';
     canonical.href = pageUrl(work.id);
+    // The copy the edge put in the page as it was first sent (workers/resource-router/opacHead.js) gives way to this one.
+    document.getElementById('schema-org-book')?.remove();
     const data = document.createElement('script');
     data.type = 'application/ld+json';
     data.id = 'schema-org-book';
@@ -1304,11 +1313,11 @@ function useRecordHead(work: OpacWorkEntity | undefined) {
     head.append(data, ...alternates);
     return () => {
       alternates.forEach((l) => l.remove());
-      if (existing && beforeHref) existing.href = beforeHref;
+      if (existing) existing.href = CATALOGUE_HEAD.canonical;
       else canonical.remove();
       data.remove();
-      document.title = before.title;
-      if (meta && before.description !== undefined) meta.content = before.description;
+      document.title = CATALOGUE_HEAD.title;
+      if (meta) meta.content = CATALOGUE_HEAD.description;
     };
   }, [work]);
 }
