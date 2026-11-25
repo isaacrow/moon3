@@ -176,13 +176,30 @@ export function bibframeToMarc(doc: { '@graph': any[] }, options: { recordId?: s
     // The name as it came from MARC (bflc:marcKey), when it is a name field and the name is in one script:
     // its parts keep their subfields ($a $b $c $d $q …); roles and the link are added as usual.
     const key = fromMarcKey(agent?.['bflc:marcKey']);
-    if (key && /^[1678](00|10|11)$/.test(key.tag) && !scripts(agent?.['rdfs:label'] ?? agent).alt) {
-      push({ tag: `${primary ? '1' : '7'}${suffix}`, ind1: key.ind1 || ind1, ind2: ' ', subfields: [
-        ...key.subfields,
+    if (key && /^[1678](00|10|11)$/.test(key.tag)) {
+      const tag = `${primary ? '1' : '7'}${suffix}`;
+      const extra = [
         ...roles.map((r) => sf('e', text(r) && !/^[a-z]{3}$/.test(text(r)) ? text(r) : '')).filter((s): s is Subfield => !!s),
         ...[sf('0', uri(agent))].filter((s): s is Subfield => !!s),
         ...roles.map((r) => sf('4', codeIn(r, 'relators'))).filter((s): s is Subfield => !!s),
-      ] });
+      ];
+      const alt = scripts(agent?.['rdfs:label'] ?? agent).alt;
+      if (!alt) { push({ tag, ind1: key.ind1 || ind1, ind2: ' ', subfields: [...key.subfields, ...extra] }); continue; }
+      // Also in Arabic script: the romanized field keeps its parts from the marcKey; in the 880 the parts after
+      // the name ($d dates …) are split off the end of the Arabic-script name where they are found there.
+      let rest = alt;
+      const tail: Subfield[] = [];
+      for (const [c, v] of [...key.subfields].reverse()) {
+        if (c === 'a') break;
+        const core = v.replace(/[\s.,:;،]+$/u, '').trim();
+        const at = core ? rest.lastIndexOf(core) : -1;
+        if (at <= 0 || rest.slice(at + core.length).replace(/[\s\u200f.,:;،]/gu, '')) break;
+        tail.unshift([c, rest.slice(at).trim()]);
+        rest = rest.slice(0, at).trimEnd();
+      }
+      const n = String(++linkCount).padStart(2, '0');
+      push({ tag, ind1: key.ind1 || ind1, ind2: ' ', subfields: [['6', `880-${n}`], ...key.subfields, ...extra] });
+      push({ tag: '880', ind1: key.ind1 || ind1, ind2: ' ', subfields: [['6', `${tag}-${n}/(3/r`], ['a', rest], ...tail, ...extra] });
       continue;
     }
     pfield(`${primary ? '1' : '7'}${suffix}`, ind1, ' ', [
@@ -364,13 +381,25 @@ export function bibframeToMarc(doc: { '@graph': any[] }, options: { recordId?: s
   // Fields kept from MARC that Moon maps only in part (020, 250, 502, 505): the kept field takes the place of
   // Moon's own when it still says the same (its words, punctuation aside); if the record was edited since,
   // Moon's own stays. Compared on the subfields Moon maps.
-  const PART = /^(020|250|502|505)$/;
-  const MAPPED_CODES: Record<string, RegExp> = { '020': /a/, '250': /a/, '502': /a/, '505': /[agrt]/ };
-  const words = (f: DataField) => f.subfields.filter(([c]) => MAPPED_CODES[f.tag].test(c)).map(([, v]) => v).join('').replace(/[\s\p{P}]/gu, '').toLowerCase();
+  // A pre-RDA 260 takes the place of the 264 Moon writes for it. The field keeps Moon's own link to its 880
+  // ($6), and that 880 is told the field's tag.
+  const PART = /^(020|082|250|260|502|505|856)$/;
+  const WRITTEN_AS: Record<string, string> = { '260': '264' };
+  const MAPPED_CODES: Record<string, RegExp> = { '020': /a/, '082': /a/, '250': /a/, '260': /[abc]/, '264': /[abc]/, '502': /a/, '505': /[agrt]/, '856': /u/ };
+  const words = (f: DataField) => f.subfields.filter(([c]) => MAPPED_CODES[f.tag].test(c)).map(([, v]) => v.replace(/[\s\p{P}\p{S}]/gu, '').toLowerCase()).sort().join('|'); // in any order
   const keptAll = all(instance['moonext:marcField']).map(fromMarcKey).filter((x): x is DataField => !!x);
+  const replaced = new Set<number>();
   for (const k of keptAll.filter((x) => PART.test(x.tag))) {
-    const at = fields.findIndex((x) => x.tag === k.tag && 'subfields' in x && words(x as DataField) === words(k));
-    if (at >= 0) fields[at] = { ...k, subfields: [...k.subfields] };
+    const as = WRITTEN_AS[k.tag] || k.tag;
+    const at = fields.findIndex((x, i) => !replaced.has(i) && x.tag === as && 'subfields' in x && words(x as DataField) === words(k));
+    if (at < 0) continue;
+    replaced.add(at);
+    const ownLink = (fields[at] as DataField).subfields.find(([c]) => c === '6');
+    const subfields = k.subfields.filter(([c]) => c !== '6');
+    fields[at] = { ...k, subfields: ownLink ? [ownLink, ...subfields] : subfields };
+    const n = ownLink?.[1].match(/^880-(\d+)/)?.[1];
+    const alt = n ? fields.find((x) => x.tag === '880' && 'subfields' in x && x.subfields.some(([c, v]) => c === '6' && v.startsWith(`${as}-${n}`))) as DataField | undefined : undefined;
+    if (alt) alt.subfields = alt.subfields.map(([c, v]) => (c === '6' ? [c, k.tag + v.slice(3)] : [c, v]) as Subfield);
   }
 
   // Fields kept from MARC that Moon has no BIBFRAME for (moonext:marcField), placed among the others by tag.

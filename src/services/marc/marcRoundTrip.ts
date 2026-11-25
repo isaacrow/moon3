@@ -58,5 +58,48 @@ export function roundTripReport(records: MarcRecord[]): { records: number; clean
     if (!issues.length) clean++;
     for (const k of new Set(issues.map((i) => `${i.kind} ${i.tag}${i.code ? '$' + i.code : ''}`))) counts.set(k, (counts.get(k) || 0) + 1);
   }
-  return { records: records.length, clean, counts: [...counts.entries()].sort((a, b) => b[1] - a[1]) };
+  return { records: records.length, clean, counts: [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])) };
+}
+
+/** A field as one line, the way MarcEdit shows it: "245 10 $aTitle /$cby X." (blank indicators as \). */
+export function fieldLine(f: MarcRecord['fields'][number]): string {
+  if (isControl(f)) return `${f.tag} ${f.data}`;
+  const ind = (c: string) => (c && c !== ' ' ? c : '\\');
+  return `${f.tag} ${ind(f.ind1)}${ind(f.ind2)} ${f.subfields.map(([c, v]) => `$${c}${v}`).join('')}`;
+}
+
+export interface PublicRoundTrip {
+  converter: string;
+  set: { name: string; source: string; records: number };
+  clean: number;
+  counts: Array<[string, number]>;
+  records: Array<{ id: string; title: string; issues: RoundTripIssue[]; before: string[]; after: string[] }>;
+}
+
+/**
+ * The public round-trip report (plan step A2): for a fixed set of records, each record's MARC as it went in and as
+ * Moon gave it back, and what did not come back. Nothing in it changes with the day (005 is left out), so the same
+ * converter always gives the same report; test/roundTripPublic.test.ts checks the published one is current.
+ */
+export function publicRoundTrip(records: MarcRecord[], set: { name: string; source: string }): PublicRoundTrip {
+  const summary = roundTripReport(records);
+  return {
+    converter: 'Moon: marcToBibframe, then bibframeToMarc',
+    set: { ...set, records: records.length },
+    clean: summary.clean,
+    counts: summary.counts,
+    records: records.map((r) => {
+      const { back, issues } = roundTrip(r);
+      const f245 = r.fields.find((f) => f.tag === '245');
+      const title = f245 && !isControl(f245) ? f245.subfields.filter(([c]) => /[abnp]/.test(c)).map(([, v]) => v).join(' ').replace(/\s*[/:;=.,]\s*$/, '') : '';
+      const id = r.fields.find((f) => f.tag === '001');
+      return {
+        id: id && isControl(id) ? id.data.trim() : '',
+        title,
+        issues,
+        before: r.fields.map(fieldLine),
+        after: back.fields.filter((f) => f.tag !== '005').map(fieldLine),
+      };
+    }),
+  };
 }
