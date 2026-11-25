@@ -221,3 +221,37 @@ export function roomDue(now: Date, state: RoomState, rules: Rules): string {
   d.setUTCHours(23, 59, 59, 0);
   return d.toISOString();
 }
+
+export interface PickSlip { holdId: number; placedAt: string; title: string; recordId: string; borrower: string; card: string; barcode: string; location: string; shelfMark: string }
+
+/** Shelf marks in shelf order: numbers by value ("QA76.9" before "QA100"), letters as letters. */
+export function shelfOrder(a: string, b: string): number {
+  return a.localeCompare(b, "en", { numeric: true, sensitivity: "base" });
+}
+
+/**
+ * Pick slips (plan step H9, after FOLIO's staff slips): for each hold still waiting, oldest first, one copy of the
+ * book to fetch from the shelves: on no loan, not reference only, not already put aside for another hold, of this
+ * library. Sorted the way staff walk the stacks: by location, then shelf mark.
+ */
+export function pickSlips(
+  holds: Array<{ id: number; record_id: string; record_title?: string | null; placed_at: string; patron?: { name?: string; card?: string } | null }>,
+  documents: Map<string, { title?: string; document: any }>,
+  busy: Set<string>,
+  library: string,
+): PickSlip[] {
+  const taken = new Set(busy);
+  const slips: PickSlip[] = [];
+  for (const h of [...holds].sort((a, b) => a.placed_at.localeCompare(b.placed_at))) {
+    const rec = documents.get(h.record_id);
+    if (!rec) continue;
+    const copy = copiesIn(rec.document).find((c) => !taken.has(c.barcode) && !c.referenceOnly && (!c.library || c.library === library));
+    if (!copy) continue;
+    taken.add(copy.barcode);
+    slips.push({
+      holdId: h.id, placedAt: h.placed_at, title: h.record_title || rec.title || h.record_id, recordId: h.record_id,
+      borrower: h.patron?.name || "", card: h.patron?.card || "", barcode: copy.barcode, location: copy.location, shelfMark: copy.shelfMark,
+    });
+  }
+  return slips.sort((a, b) => shelfOrder(a.location, b.location) || shelfOrder(a.shelfMark, b.shelfMark));
+}
