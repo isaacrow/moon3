@@ -40,7 +40,7 @@ import { applyOwnership, withOwners, withoutOwners, blockedMessage } from "./pro
 import * as recordStore from "./recordStore.tsx";
 import * as linkedData from "./linkedData.tsx";
 import { searchableOf, searchDocs, type SearchDoc } from "./searchDocs.tsx";
-import { checkBig } from "./bigShapes.tsx";
+import { checkBig, lcLinkCoverage } from "./bigShapes.tsx";
 import { matchWork, fuzzyMatchWork, setEntityNames } from "./searchCore.tsx";
 import * as sparqlStore from "./sparqlEndpoint.tsx";
 import { missingForPublish, shapesFromProfile } from "./publishGate.tsx";
@@ -1696,6 +1696,8 @@ app.get("/make-server-49c0e13c/resource/score.json", async (c) => {
       audit: { measures: audit.measures, unknownTerms: audit.unknownTerms, rangeErrors: audit.rangeErrors },
       // The BIBFRAME Interoperability Group's monograph shapes (bigShapes.tsx): can other systems take Moon's data?
       big: checkBig(nt),
+      // Works linked to LC Works or Hubs (lcWorks.tsx): part of the exchange score.
+      lcLinks: lcLinkCoverage(nt),
     }, 200, { 'Cache-Control': 'public, max-age=3600', 'Access-Control-Allow-Origin': '*' });
   } catch (error) {
     console.error('Scorecard error:', error);

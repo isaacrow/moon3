@@ -37,6 +37,11 @@
   <h2>The data, against the plan's targets <span class="ar" dir="rtl">البيانات مقابل أهداف الخطة</span></h2>
   <table id="plan"><thead><tr><th>Measure</th><th class="num">Now</th><th class="hide">Progress to target</th><th class="num">Target</th></tr></thead><tbody></tbody></table>
 
+  <h2>Exchange score <span class="ar" dir="rtl">درجة قابلية التبادل</span></h2>
+  <p class="muted">How well Moon's data travels to other systems, from three measures: records with no BIG violation, Library of Congress records that come back whole from the MARC round trip, and works linked to an LC Work or Hub. Each counts a third.<span class="ar" dir="rtl">مدى انتقال بيانات مون إلى الأنظمة الأخرى، من ثلاثة مقاييس: تسجيلات بلا مخالفة لأشكال BIG، وتسجيلات مكتبة الكونغرس التي ترجع كاملة من رحلة مارك، والأعمال المربوطة بعمل أو مجمّع في مكتبة الكونغرس. لكلٍّ منها الثلث.</span></p>
+  <div class="counts" id="exchange"><span>…</span></div>
+  <table id="exchange-parts"><thead><tr><th>Measure</th><th class="num">Now</th><th class="hide"></th><th class="num">Of</th></tr></thead><tbody></tbody></table>
+
   <h2>Exchange: BIG shapes <span class="ar" dir="rtl">قابلية التبادل: أشكال مجموعة BIG</span></h2>
   <p class="muted">Every published record checked against the <a href="https://github.com/bf-interop/DCTap">BIBFRAME Interoperability Group's monograph shapes</a> (<span id="big-version"></span>), the shapes BIBFRAME systems use to exchange data. A Violation means another system could reject the record; a Warning is a recommendation.<span class="ar" dir="rtl">كل تسجيلة منشورة مفحوصة بأشكال مجموعة التشغيل البيني لـ BIBFRAME للكتب. المخالفة تعني أن نظاماً آخر قد يرفض التسجيلة، والتحذير توصية.</span></p>
   <table id="big"><thead><tr><th>Shape</th><th class="num">Without violations</th><th class="hide"></th><th class="num">Checked</th></tr></thead><tbody></tbody></table>
@@ -85,6 +90,24 @@
       var target = m.goal === null ? 'more' : (m.goal >= 1 ? 'all' : Math.round(m.goal * 100) + '%');
       return '<tr><td>' + esc(m.en) + '<span class="ar" dir="rtl">' + esc(m.ar) + '</span></td><td class="num ' + k + '">' + now + '</td><td class="hide">' + bar(prog, k) + '</td><td class="num">' + target + '</td></tr>';
     }).join('');
+    // The exchange score (G1): BIG conformance of Works, the round trip (round-trip.json), LC links.
+    var exParts = [];
+    if (d.big) {
+      var w = d.big.shapes.filter(function (s) { return s.shape === 'big:Monograph:Work'; })[0];
+      if (w && w.checked) exParts.push({ en: 'Works with no BIG violation', ar: 'أعمال بلا مخالفة لأشكال BIG', n: w.conforming, of: w.checked, href: '#big' });
+    }
+    if (d.lcLinks && d.lcLinks.works) exParts.push({ en: 'Works linked to an LC Work or Hub', ar: 'أعمال مربوطة بعمل أو مجمّع في مكتبة الكونغرس', n: d.lcLinks.linked, of: d.lcLinks.works, href: '' });
+    fetch('round-trip.json').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (rt) {
+      var parts = exParts.slice();
+      if (rt && rt.set) parts.splice(1, 0, { en: 'LC records back whole from MARC → BIBFRAME → MARC', ar: 'تسجيلات مكتبة الكونغرس الراجعة كاملة من مارك ← BIBFRAME ← مارك', n: rt.clean, of: rt.set.records, href: 'round-trip.html' });
+      document.querySelector('#exchange-parts tbody').innerHTML = parts.map(function (p) {
+        var share = p.of ? p.n / p.of : 0; var k = cls(share);
+        var name = p.href ? '<a href="' + p.href + '">' + esc(p.en) + '</a>' : esc(p.en);
+        return '<tr><td>' + name + '<span class="ar" dir="rtl">' + esc(p.ar) + '</span></td><td class="num ' + k + '">' + p.n.toLocaleString('en') + ' (' + pct(p.n, p.of) + '%)</td><td class="hide">' + bar(share, k) + '</td><td class="num">' + p.of.toLocaleString('en') + '</td></tr>';
+      }).join('');
+      var score = parts.length ? Math.round(100 * parts.reduce(function (s, p) { return s + (p.of ? p.n / p.of : 0); }, 0) / parts.length) : 0;
+      document.getElementById('exchange').innerHTML = '<span class="' + cls(score / 100) + '"><b>' + score + '</b> / 100</span>' + (parts.length < 3 ? '<span class="muted">' + parts.length + ' of 3 measures available</span>' : '');
+    });
     if (d.big) {
       document.getElementById('big-version').textContent = d.big.version;
       document.querySelector('#big tbody').innerHTML = d.big.shapes.filter(function (s) { return s.checked; }).map(function (s) {
