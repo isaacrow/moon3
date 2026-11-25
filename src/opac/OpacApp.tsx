@@ -1281,7 +1281,10 @@ function useRecordHead(work: OpacWorkEntity | undefined) {
     const who = work.primaryCreator?.nameArabic || work.primaryCreator?.name;
     document.title = [work.title, who].filter(Boolean).join(' — ') + ` | ${t('فهرس مون', 'Moon Catalogue')}`;
     if (meta) meta.content = metaDescription(work);
-    const canonical = document.createElement('link');
+    // opac.html carries the catalogue's own canonical link; the record page points it at itself (never two).
+    const existing = head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    const canonical = existing || document.createElement('link');
+    const beforeHref = existing?.href;
     canonical.rel = 'canonical';
     canonical.href = pageUrl(work.id);
     const data = document.createElement('script');
@@ -1297,10 +1300,12 @@ function useRecordHead(work: OpacWorkEntity | undefined) {
       l.href = `${uri}.${ext}`;
       return l;
     }) : [];
-    head.append(canonical, data, ...alternates);
+    if (!existing) head.append(canonical);
+    head.append(data, ...alternates);
     return () => {
       alternates.forEach((l) => l.remove());
-      canonical.remove();
+      if (existing && beforeHref) existing.href = beforeHref;
+      else canonical.remove();
       data.remove();
       document.title = before.title;
       if (meta && before.description !== undefined) meta.content = before.description;
