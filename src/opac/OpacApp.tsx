@@ -767,9 +767,14 @@ function Home({ ctx }: { ctx: Ctx }) {
   const recent = useMemo(() => recentShelf(works, w => !!coverUrlOf(w), 12), [works]);
   const authors = useMemo(() => wolfMoonOpacService.getAllPersons().filter(p => p.worksCount > 0).slice(0, 8), [ctx.rev]);
   const subjects = useMemo(() => wolfMoonOpacService.getAllSubjects().filter(s => s.worksCount > 0 && isReadableLabel(s.label)).slice(0, 14), [ctx.rev]);
-  // Libris's home: categories to start from, then shelves.
-  const categories = useMemo(() => facetCounts(works, {}).category.slice(0, 8), [works]);
-  const manuscripts = useMemo(() => works.filter(w => /مخطوط|manuscript/i.test([...(w.genreForm || []), ...valuesOf(w, 'format')].join(' '))).slice(0, 12), [works]);
+  // Libris's home: categories to start from (Book, Manuscript, Periodical …), then shelves. A catalogue of one
+  // category starts from its genres instead.
+  const browse = useMemo(() => {
+    const counts = facetCounts(works, {});
+    return counts.category.length > 1 ? { key: 'category', values: counts.category.slice(0, 8) } : { key: 'genre', values: counts.genre.slice(0, 8) };
+  }, [works]);
+  const categories = browse.values;
+  const manuscripts = useMemo(() => works.filter(w => valuesOf(w, 'category').includes('manuscript') || valuesOf(w, 'format').includes('handwritten') || /مخطوط|manuscript/i.test((w.genreForm || []).join(' '))).slice(0, 12), [works]);
   const withCopies = useMemo(() => works.filter(w => realCopies(w).length > 0).slice(0, 12), [works]);
   const featured = useMemo(() => {
     const top = [...wolfMoonOpacService.getAllPersons()].filter(p => p.worksCount > 1).sort((a, b) => b.worksCount - a.worksCount)[0];
@@ -788,7 +793,7 @@ function Home({ ctx }: { ctx: Ctx }) {
           <div className="quick" aria-label={t('الفئات', 'Categories')}>
             <span className="quick-lbl">{t('الفئات', 'Categories')}</span>
             {categories.map(c => (
-              <button key={c.value} className="chip" onClick={() => ctx.go({ mode: 'search', query: '', params: `f_category=${encodeURIComponent(c.value)}` })}>
+              <button key={c.value} className="chip" onClick={() => ctx.go({ mode: 'search', query: '', params: `f_${browse.key}=${encodeURIComponent(c.value)}` })}>
                 {c.label} <span className="n">{c.count}</span>
               </button>
             ))}

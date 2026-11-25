@@ -5,9 +5,10 @@ import assert from 'node:assert/strict';
 import { whatItIs, formatChips, editionLines, exactMatch } from '../src/opac/plainWords';
 
 test('one plain "what it is" line, each fact once', () => {
-  assert.equal(whatItIs({ id: 'a', title: 'x', languageLabel: 'العربية (ara)', genreForm: ['شعر'], instances: [{ carrierType: 'volume' }] }), 'كتاب مطبوع · العربية · شعر');
+  assert.equal(whatItIs({ id: 'a', title: 'x', category: 'book', languageLabel: 'العربية (ara)', genreForm: ['شعر'], instances: [{ carrierType: 'volume' }] }), 'كتاب · مطبوع · العربية · شعر');
   assert.equal(whatItIs({ id: 'b', title: 'x', language: 'ara', genreForm: ['كتاب', 'العربية', 'شعر', 'شعر'], instances: [] }), 'العربية · شعر', 'a category that repeats the language or says "book" is left out');
-  assert.equal(whatItIs({ id: 'c', title: 'x', genreForm: ['مخطوط'], instances: [{ carrierType: 'manuscript' }] }), 'مخطوط');
+  assert.equal(whatItIs({ id: 'c', title: 'x', category: 'manuscript', genreForm: ['مخطوط'], instances: [{ carrierType: 'manuscript' }] }), 'مخطوط', 'the category, the format and the genre say the same once');
+  assert.equal(whatItIs({ id: 'd', title: 'x', category: 'manuscript', language: 'ara', genreForm: ['مخطوطات'], instances: [{ carrierType: 'online resource' }] }), 'مخطوط · على الإنترنت · العربية', 'a genre that is the plural of the category is left out');
 });
 
 test('format chips across the editions of a Work', () => {
@@ -15,7 +16,7 @@ test('format chips across the editions of a Work', () => {
     { id: 'a', title: 'x', instances: [{ carrierType: 'volume' }] },
     { id: 'b', title: 'x', instances: [{ carrierType: 'online resource' }] },
     { id: 'c', title: 'x', instances: [{ carrierType: 'volume' }] },
-  ]), ['كتاب مطبوع', 'مصدر إلكتروني']);
+  ]), ['مطبوع', 'على الإنترنت']);
 });
 
 test('each edition says only what is different from the others', () => {

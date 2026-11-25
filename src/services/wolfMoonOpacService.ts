@@ -69,6 +69,7 @@ export function resolveWorkCover(work: { coverUrl?: string; title?: string; id?:
  */
 import { allWordsIn, entityNamesOf, matchWork, wordsFound, fuzzyMatchWork } from '../opac/searchIndex';
 import { isSameRecord } from '../opac/sameRecord';
+import { categoryOf, formatOf, type CategoryId, type FormatId } from '../opac/category';
 
 import { isRelationTerm, LC_RELATIONSHIP, readWorkRelations, relationWords } from '../../supabase/functions/server/workRelations.tsx';
 
@@ -184,6 +185,8 @@ export interface OpacInstanceEntity {
   carrierType?: string;
   mediaType?: string;
   issuance?: string;
+  /** Printed, Handwritten, Online … (category.ts), from the Instance's type, media and carrier. */
+  format?: FormatId;
   callNumber?: string;
   shelfLocation?: string;
   holdingStatus?: 'available' | 'checked_out' | 'paged' | 'reference_only' | 'digital_access' | 'not_connected';
@@ -246,6 +249,8 @@ export interface OpacWorkEntity {
   era?: string;
   coverUrl?: string;
   genreForm?: string[];
+  /** Book, Manuscript, Periodical, Map … (category.ts), one for the Work. */
+  category?: CategoryId;
   classificationDdc?: string;
   classificationLcc?: string;
   matchReason?: string;
@@ -1008,6 +1013,8 @@ class WolfMoonOpacService {
       if (allInstanceNodes.length === 0 && instanceNode && Object.keys(instanceNode).length > 0) {
         allInstanceNodes.push(instanceNode);
       }
+      // One plain category for the Work and a format for each edition (B1), from what the record says.
+      const workCategory = categoryOf(workNode, allInstanceNodes);
 
       // Gather all Item nodes present in graph
       const allItemNodes = graph.filter((n: any) => {
@@ -1169,6 +1176,7 @@ class WolfMoonOpacService {
           extent: extentVal,
           dimensions: dimVal,
           carrierType: carrierVal,
+          format: formatOf(instN, workCategory),
           callNumber: shelfMarkVal,
           shelfLocation: shelfLocVal,
           isbn: isbnVal,
@@ -1463,6 +1471,7 @@ class WolfMoonOpacService {
         tableOfContents: tocStr || undefined,
         series: seriesStr,
         ...(genreFormList.length ? { genreForm: genreFormList } : {}),
+        category: workCategory,
         notes: notesList,
         incipit: incipitStr,
         explicit: explicitStr,
