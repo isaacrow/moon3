@@ -147,3 +147,24 @@ export function checkBig(nt: string, files: Record<string, string> = BIG_DCTAP):
     results: [...counts.values()].sort((a, b) => (a.severity === b.severity ? b.nodes - a.nodes : a.severity === "Violation" ? -1 : 1)),
   };
 }
+
+/**
+ * How many published Works are linked to the Library of Congress's Works or Hubs (plan steps A3 and G1): a
+ * bf:expressionOf to an LC Hub or an owl:sameAs to an LC Work.
+ */
+export function lcLinkCoverage(nt: string): { works: number; linked: number; hubs: number; lcWorks: number } {
+  const graph = readNTriples(nt);
+  const isWork = (s: string) => (graph.get(s) || []).some((x) => x.p === RDF_TYPE && x.o.v === "http://id.loc.gov/ontologies/bibframe/Work");
+  let works = 0, linked = 0, hubs = 0, lcWorks = 0;
+  for (const s of graph.keys()) {
+    if (!isWork(s) || !/^https?:\/\/mooon\.site\/resource\/work\//.test(s)) continue;
+    works++;
+    const props = graph.get(s) || [];
+    const hub = props.some((x) => x.p === "http://id.loc.gov/ontologies/bibframe/expressionOf" && /^http:\/\/id\.loc\.gov\/resources\/hubs\//.test(x.o.v));
+    const work = props.some((x) => x.p === "http://www.w3.org/2002/07/owl#sameAs" && /^http:\/\/id\.loc\.gov\/resources\/works\//.test(x.o.v));
+    if (hub) hubs++;
+    if (work) lcWorks++;
+    if (hub || work) linked++;
+  }
+  return { works, linked, hubs, lcWorks };
+}

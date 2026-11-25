@@ -42,3 +42,15 @@ test('a complete print monograph has no violations; gaps are reported with their
   assert.equal(find('Content Type', 'wrong kind')?.severity, 'Violation');
   assert.equal(r2.shapes.find((x) => x.shape === 'big:Monograph:Work')!.conforming, 0);
 });
+
+test('LC link coverage: Works linked to an LC Hub (expressionOf) or an LC Work (owl:sameAs)', async () => {
+  const { lcLinkCoverage } = await import('../supabase/functions/server/bigShapes.tsx');
+  const W = (id: string) => `<https://mooon.site/resource/work/${id}>`;
+  const nt = [
+    tr(W('a'), T, `<${BF}Work>`), tr(W('a'), BF + 'expressionOf', '<http://id.loc.gov/resources/hubs/h1>'),
+    tr(W('b'), T, `<${BF}Work>`), tr(W('b'), 'http://www.w3.org/2002/07/owl#sameAs', '<http://id.loc.gov/resources/works/123>'),
+    tr(W('c'), T, `<${BF}Work>`), tr(W('c'), BF + 'expressionOf', '<https://mooon.site/resource/hub/x>'),
+    tr('<http://id.loc.gov/resources/works/123>', T, `<${BF}Work>`),
+  ].join('\n');
+  assert.deepEqual(lcLinkCoverage(nt), { works: 3, linked: 2, hubs: 1, lcWorks: 1 });
+});
