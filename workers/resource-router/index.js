@@ -75,6 +75,12 @@ export default {
     // https://mooon.site/sitemap.xml (every published record's page, for search engines) is built by the server.
     // The public API (see /api.html): /resource/search searches the published catalogue only, and
     // /resource/authorities searches Moon's authority file.
+    // One copy of the sitemap for everyone, whatever the query string (see the end of this function).
+    const sitemapKey = new Request('https://mooon.site/sitemap.xml');
+    if (url.pathname === '/sitemap.xml') {
+      const kept = await caches.default.match(sitemapKey);
+      if (kept) return kept;
+    }
     let path = url.pathname;
     const search = new URLSearchParams(url.search);
     if (path === '/sitemap.xml') path = '/resource/sitemap.xml';
@@ -103,6 +109,13 @@ export default {
     // is a web page, so label it as one.
     if ((url.pathname === '/resource' || url.pathname === '/resource/' || isSparql) && (response.headers.get('Content-Type') || '').startsWith('text/plain')) {
       response.headers.set('Content-Type', 'text/html; charset=utf-8');
+    }
+    // The sitemap gets the same treatment: search engines expect XML to say it is XML. It is kept at the edge
+    // for an hour (as the server asks), so a search engine reading it is never kept waiting on the server.
+    if (url.pathname === '/sitemap.xml' && response.status === 200) {
+      response.headers.set('Content-Type', 'application/xml; charset=utf-8');
+      response.headers.set('Cache-Control', 'public, max-age=3600');
+      if (request.method === 'GET') ctx.waitUntil(caches.default.put(sitemapKey, response.clone()));
     }
     return response;
   },
