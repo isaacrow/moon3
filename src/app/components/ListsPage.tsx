@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { ListFilter, Plus, X, Play, Save, RefreshCw, Download, Trash2, Lock, ShieldAlert, ArrowDownAZ, ArrowUpAZ, Sparkles } from 'lucide-react';
 import { moonFetch, moonHeaders, MOON_API } from '../utils/moonApi';
 import { glass, input, dark, light } from './CirculationDesk';
+import { BulkChange, RecentBulk } from './BulkChange';
 import {
   ENTITIES, ENTITY_IDS, OPS_BY_TYPE, OP_NAMES, shown,
   type Condition, type EntityId, type ListField, type ListQuery, type Op, type ReadyList,
@@ -35,6 +36,7 @@ export function ListsPage({ isAr, onOpenRecord }: { isAr: boolean; onOpenRecord?
   const [denied, setDenied] = useState(false);
   const [ready, setReady] = useState<Array<ReadyList & { total: number | null }>>([]);
   const [readyId, setReadyId] = useState<string | null>(null);
+  const [bulkRev, setBulkRev] = useState(0);
   const entity = ENTITIES[query.entity];
   const L = (en: string, ar: string) => (isAr ? ar : en);
   const fieldOf = (k: string) => entity.fields.find((f) => f.key === k)!;
@@ -229,6 +231,7 @@ export function ListsPage({ isAr, onOpenRecord }: { isAr: boolean; onOpenRecord?
             </li>
           ))}
         </ul>
+        <RecentBulk isAr={isAr} reload={bulkRev} onUndone={() => { if (result) void run(); }} />
       </aside>
 
       <main className="space-y-4 min-w-0">
@@ -340,6 +343,9 @@ export function ListsPage({ isAr, onOpenRecord }: { isAr: boolean; onOpenRecord?
               </table>
             </div>
           </section>
+        )}
+        {result && result.total > 0 && (
+          <BulkChange isAr={isAr} query={query} onDone={() => { setBulkRev((n) => n + 1); void run(); loadReady(); }} />
         )}
       </main>
     </div>

@@ -9,6 +9,10 @@
  *   POST   /lists {name, query, private?}    PUT /lists/:id    DELETE /lists/:id (its maker or a reviewer)
  *   POST   /lists/:id/refresh                runs a saved list again and keeps its count and time
  *   GET    /lists/ready                      the ready-made lists (lists.tsx READY_LISTS) with how many rows each has now
+ *   POST   /lists/bulk/preview {query, field, value}          every change a bulk change would make (bulkEdit.tsx)
+ *   POST   /lists/bulk/apply {query, field, value, expect}    makes it, if the list still gives `expect` changes
+ *   GET    /lists/bulk                       the library's recent bulk changes
+ *   POST   /lists/bulk/:id/undo              puts every row back that has not been changed again since
  *
  * Rows are read per library, up to ROW_CAP of each kind; a result says when the cap was reached.
  */
@@ -16,6 +20,8 @@ import { Hono } from "npm:hono";
 import { getClient } from "./db.tsx";
 import { getSession, libraryOf } from "./accountRoutes.tsx";
 import { copiesIn } from "./circulation.tsx";
+import * as recordStore from "./recordStore.tsx";
+import { readBulk, planChanges, withCopyChange, bulkFieldOf, MAX_CHANGES, type BulkField, type Change } from "./bulkEdit.tsx";
 import { readQuery, runQuery, toCsv, subjectsIn, scriptsOf, READY_LISTS, type EntityId, type ListQuery, type Row } from "./lists.tsx";
 
 const listsRoutes = new Hono();
@@ -234,6 +240,130 @@ listsRoutes.post("/lists/:id/refresh", async (c) => {
   } catch (e: any) {
     console.error("[lists] refresh:", e?.message || e);
     return c.json({ error: "The list could not be refreshed" }, 500);
+  }
+});
+
+// ---- Bulk change (bulkEdit.tsx): preview, apply, undo ----
+
+async function plan(st: Staff, body: any) {
+  const read = readQuery(body?.query);
+  if ("error" in read) return { error: read.error };
+  const bulk = readBulk(read.query.entity, body);
+  if ("error" in bulk) return { error: bulk.error };
+  const { rows } = await run(read.query, st.library);
+  return { query: read.query, field: bulk.field, value: bulk.value, ...planChanges(read.query.entity, rows, bulk.field, bulk.value) };
+}
+
+listsRoutes.post("/lists/bulk/preview", async (c) => {
+  const st = await staffOf(c);
+  if (!st) return denied(c);
+  try {
+    const p = await plan(st, await c.req.json().catch(() => ({})));
+    if ("error" in p) return c.json({ error: p.error }, 400);
+    return c.json({ total: p.changes.length, changes: p.changes.slice(0, 500), unchanged: p.unchanged, skipped: p.skipped.slice(0, 200), skippedTotal: p.skipped.length, max: MAX_CHANGES });
+  } catch (e: any) {
+    console.error("[lists] bulk preview:", e?.message || e);
+    return c.json({ error: "The preview could not be made" }, 500);
+  }
+});
+
+/** Writes one change, or its undo (from → to), only while the row still has `from`. True when written. */
+async function write(st: Staff, field: BulkField, change: Change, from: unknown, to: unknown, by: string, note: string): Promise<boolean> {
+  if (field.entity === "copies") {
+    const rec: any = await recordStore.getRecord(change.recordId!);
+    if (!rec) return false;
+    const now = copiesIn(rec.document).find((x) => x.barcode === change.key);
+    if (!now || (now.library && now.library !== st.library)) return false;
+    const current = field.key === "location" ? now.location || null : now.referenceOnly;
+    if (field.key === "location" ? (current ?? "") !== (from ?? "") : !!current !== !!from) return false;
+    const document = withCopyChange(rec.document, change.key, field.key as "location" | "reference_only", to);
+    if (!document) return false;
+    await recordStore.saveRecord({ ...rec, document, saved: new Date().toISOString() }, by, note, Number.isInteger(rec.version) ? rec.version : undefined);
+    return true;
+  }
+  let q = sb().from(field.table!).update({ [field.column!]: to, ...(field.table === "loans" ? {} : { updated_at: new Date().toISOString() }) })
+    .eq("id", change.key).eq("library", st.library);
+  q = from === null || from === undefined ? q.is(field.column!, null) : q.eq(field.column!, from);
+  if (field.table === "loans") q = q.is("returned_at", null);
+  const { data, error } = await q.select("id");
+  if (error) throw new Error(error.message);
+  return (data || []).length > 0;
+}
+
+/** Copies of one record are changed in one new version of it, the others one row at a time. */
+async function writeAll(st: Staff, field: BulkField, changes: Change[], undo: boolean, note: string) {
+  let done = 0, kept = 0;
+  const ok: boolean[] = [];
+  for (const ch of changes) {
+    try {
+      const w = await write(st, field, ch, undo ? ch.after : ch.before, undo ? ch.before : ch.after, st.username, note);
+      ok.push(w);
+      if (w) done++; else kept++;
+    } catch (e: any) {
+      console.error("[lists] bulk write:", e?.message || e);
+      ok.push(false); kept++;
+    }
+  }
+  return { done, kept, ok };
+}
+
+listsRoutes.post("/lists/bulk/apply", async (c) => {
+  const st = await staffOf(c);
+  if (!st) return denied(c);
+  const body = await c.req.json().catch(() => ({}));
+  try {
+    const p = await plan(st, body);
+    if ("error" in p) return c.json({ error: p.error }, 400);
+    if (!p.changes.length) return c.json({ error: "Nothing to change: every row already has this value" }, 409);
+    if (p.changes.length > MAX_CHANGES) return c.json({ error: `At most ${MAX_CHANGES} rows in one job; narrow the list` }, 400);
+    if (Number(body.expect) !== p.changes.length) return c.json({ error: "The list changed since the preview; look at the preview again" }, 409);
+    const label = `${p.field.en} → ${p.field.type === "bool" ? (p.value ? "yes" : "no") : p.field.type === "choice" ? p.field.choices?.find((x) => x.v === p.value)?.en || p.value : p.value}`;
+    const { data: job, error } = await sb().from("bulk_jobs").insert({
+      library: st.library, entity: p.query.entity, field: p.field.key, value: String(p.value), label,
+      query: p.query, changes: p.changes, total: p.changes.length, created_by: st.username,
+    }).select("id").single();
+    if (error) throw new Error(error.message);
+    const r = await writeAll(st, p.field, p.changes, false, `bulk change ${job.id}: ${label}`);
+    const changes = p.changes.map((ch, i) => ({ ...ch, applied: r.ok[i] }));
+    await sb().from("bulk_jobs").update({ changes, applied: r.done, failed: r.kept }).eq("id", job.id);
+    return c.json({ job: { id: job.id, label, total: p.changes.length, applied: r.done, failed: r.kept } });
+  } catch (e: any) {
+    console.error("[lists] bulk apply:", e?.message || e);
+    return c.json({ error: "The change could not be made" }, 500);
+  }
+});
+
+listsRoutes.get("/lists/bulk", async (c) => {
+  const st = await staffOf(c);
+  if (!st) return denied(c);
+  const { data, error } = await sb().from("bulk_jobs")
+    .select("id, entity, field, value, label, total, applied, failed, created_by, created_at, undone_at, undone_by, restored, kept")
+    .eq("library", st.library).order("created_at", { ascending: false }).limit(30);
+  if (error) return c.json({ error: "Bulk changes could not be read" }, 500);
+  return c.json({ jobs: data || [] });
+});
+
+listsRoutes.post("/lists/bulk/:id/undo", async (c) => {
+  const st = await staffOf(c);
+  if (!st) return denied(c);
+  const { data: job } = await sb().from("bulk_jobs").select("*").eq("id", Number(c.req.param("id"))).eq("library", st.library).maybeSingle();
+  if (!job) return c.json({ error: "No such bulk change" }, 404);
+  if (job.undone_at) return c.json({ error: "This change was undone already" }, 409);
+  if (job.created_by !== st.username && st.role === "cataloger") return c.json({ error: "Only who made the change, or a reviewer, can undo it" }, 403);
+  const field = bulkFieldOf(job.entity, job.field);
+  if (!field) return c.json({ error: "This change can no longer be undone" }, 409);
+  // Mark it first, so two undos at once cannot both run.
+  const { data: claimed } = await sb().from("bulk_jobs").update({ undone_at: new Date().toISOString(), undone_by: st.username })
+    .eq("id", job.id).is("undone_at", null).select("id");
+  if (!claimed?.length) return c.json({ error: "This change was undone already" }, 409);
+  try {
+    const applied = (job.changes || []).filter((ch: any) => ch.applied !== false);
+    const r = await writeAll(st, field, applied, true, `undo bulk change ${job.id}`);
+    await sb().from("bulk_jobs").update({ restored: r.done, kept: r.kept }).eq("id", job.id);
+    return c.json({ restored: r.done, kept: r.kept });
+  } catch (e: any) {
+    console.error("[lists] bulk undo:", e?.message || e);
+    return c.json({ error: "The undo could not be finished" }, 500);
   }
 });
 
