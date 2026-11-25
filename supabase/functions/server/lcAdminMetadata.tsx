@@ -68,6 +68,21 @@ export function catalogingLanguage(graph: any[], stored?: string): string | unde
 }
 
 /** The record's document with LC-style admin metadata. The input is not changed. */
+const XSD_DATE = "http://www.w3.org/2001/XMLSchema#date";
+/** A date written as a string or { "@value": … }, if it parses. */
+function textOfDate(v: any): string | undefined {
+  const x = Array.isArray(v) ? v[0] : v;
+  const s = typeof x === "string" ? x : x && typeof x === "object" ? x["@value"] : undefined;
+  return typeof s === "string" && !isNaN(new Date(s).getTime()) ? new Date(s).toISOString() : undefined;
+}
+
+/** The first text of a label (a string, { "@value": … } or a list of them). */
+function textOfLabel(v: any): string {
+  const x = Array.isArray(v) ? v[0] : v;
+  const t = typeof x === "string" ? x : x && typeof x === "object" ? x["@value"] : "";
+  return typeof t === "string" ? t.trim() : "";
+}
+
 export function withLcAdminMetadata(document: any, facts: AdminFacts, base = "https://mooon.site/resource"): any {
   const doc = structuredClone(document || {});
   const graph: any[] = Array.isArray(doc["@graph"]) ? doc["@graph"] : (doc["@graph"] = []);
@@ -113,6 +128,12 @@ export function withLcAdminMetadata(document: any, facts: AdminFacts, base = "ht
   }
   set("bf:assigner", { "@type": "bf:Organization", "rdfs:label": "Moon" });
   set("bflc:metadataLicensor", { "@type": "bf:Organization", "rdfs:label": "Moon" });
+  // When it was catalogued (BIG's shapes require bf:creationDate and bf:assigner on every bf:AdminMetadata).
+  const dayOf = (d?: string) => (d && !isNaN(new Date(d).getTime()) ? new Date(d).toISOString().slice(0, 10) : undefined);
+  const created = dayOf(facts.createdAt) || dayOf(facts.saved);
+  if (created) set("bf:creationDate", { "@value": created, "@type": XSD_DATE });
+  const changed = dayOf(facts.saved);
+  if (changed && changed !== created) set("bf:changeDate", { "@value": changed, "@type": XSD_DATE });
 
   // Events in the record's history, on the Work (as LC's converter writes them): created, then corrected.
   const target = work || instance;
@@ -126,9 +147,25 @@ export function withLcAdminMetadata(document: any, facts: AdminFacts, base = "ht
       "@type": "bf:AdminMetadata",
       "bf:status": { "@id": `${MSTATUS}${status}` },
       "bf:date": { "@value": d, "@type": "http://www.w3.org/2001/XMLSchema#dateTime" },
+      // BIG: every bf:AdminMetadata names its date ("cataloged or updated/changed") and its institution.
+      "bf:creationDate": { "@value": d.slice(0, 10), "@type": XSD_DATE },
+      "bf:assigner": { "@type": "bf:Organization", "rdfs:label": "Moon" },
       ...(who ? { "bf:agent": { "@type": "bf:Agent", "rdfs:label": who } } : {}),
     });
   };
+  // Admin nodes that came with the record (an import's own cataloguing source, history from an earlier save): the
+  // same two facts. The date is the node's own, else the record's; the institution is the source the node names
+  // (an imported record's cataloguing agency), else Moon.
+  const carried = [work, instance].filter(Boolean).flatMap((n) => list(n["bf:adminMetadata"] ?? n["adminMetadata"]))
+    .filter((l) => l && typeof l === "object" && !l["@id"]);
+  for (const l of carried) {
+    const when = textOfDate(get(l, "date"))?.slice(0, 10) || created;
+    if (when && get(l, "creationDate") === undefined) l["bf:creationDate"] = { "@value": when, "@type": XSD_DATE };
+    if (get(l, "assigner") === undefined) {
+      const label = get(l, "status") ? "" : textOfLabel(l["rdfs:label"] ?? l["label"]);
+      l["bf:assigner"] = { "@type": "bf:Organization", "rdfs:label": label || "Moon" };
+    }
+  }
   if (!alreadyHasEvents) {
     event("n", facts.createdAt, facts.cataloger);
     if (facts.saved && facts.createdAt && new Date(facts.saved).getTime() - new Date(facts.createdAt).getTime() > 1000) {
