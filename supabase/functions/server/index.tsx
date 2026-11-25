@@ -33,6 +33,7 @@ import acquisitionsRoutes from "./acquisitionsRoutes.tsx";
 import listsRoutes from "./listsRoutes.tsx";
 import lcWorksRoutes from "./lcWorksRoutes.tsx";
 import * as bfArabic from "./bibframeArabic.tsx";
+import * as libraryRules from "./libraryRules.tsx";
 import readerRoutes from "./readerRoutes.tsx";
 import manuscriptsRoutes from "./manuscriptsRoutes.tsx";
 import accountRoutes, { getSession, isAdminSession, canReview, isReviewer, SUPER_ADMIN_USERNAME, libraryOf } from "./accountRoutes.tsx";
@@ -831,7 +832,10 @@ app.post("/make-server-49c0e13c/records/save", async (c) => {
     // Everyone else's saves (new records and edits) wait for approval.
     const isAdmin = session.role === 'admin';
     // A record missing a required field is still saved, but not published: it waits until it is complete.
-    const missing = missingForPublish(document);
+    // The library's own rules (H10) add their required fields and blocking checks; their warnings go back too.
+    const rules = await libraryRuleResult(await libraryOf(session.username), id, document).catch((e) => { console.error('Library rules:', e); return null; });
+    const missing = [...missingForPublish(document), ...(rules ? libraryRules.blockers(rules) : [])];
+    const ruleWarnings = rules ? rules.problems.filter((p) => p.severity === 'warn').map(({ en, ar }) => ({ en, ar })) : [];
     const status = isAdmin && requestedStatus !== 'pending-review' && missing.length === 0
       ? 'complete'
       : 'pending-review';
@@ -904,6 +908,8 @@ app.post("/make-server-49c0e13c/records/save", async (c) => {
       publishedVersion: status === 'complete' ? version : existing?.publishedVersion,
       // The Super Admin's save that could not be published, and why.
       ...(publishBlocked ? { publishBlocked } : {}),
+      // The library's rules that only warn (libraryRules.tsx): saved and publishable, but worth a look.
+      ...(ruleWarnings.length ? { ruleWarnings } : {}),
       // How many names and subjects were linked to the authority file in this save.
       authoritiesLinked,
       nodeCount: document['@graph'].length,
@@ -1616,6 +1622,31 @@ app.get("/make-server-49c0e13c/resource/names.json", async (c) => {
     return c.json({ error: 'Could not list the name forms' }, 500);
   }
 });
+// Each library's own rules at save (libraryRules.tsx, plan step H10), on top of the publish gate.
+const RULES_KEY = (library: string) => `moon:library-rules:${library}`;
+const libraryRulesOf = async (library: string) => libraryRules.parseRules(await kv.get(RULES_KEY(library)).catch(() => null));
+/** The library's rules on a record: fields it lacks and checks that failed (duplicates looked up when a check needs them). */
+async function libraryRuleResult(library: string, id: string | null, document: any) {
+  const rules = await libraryRulesOf(library);
+  const wantDup = rules.checks.duplicateIsbn !== "off" || rules.checks.duplicateLccn !== "off";
+  const dups = wantDup ? await recordStore.findDuplicates(id, document).catch(() => []) : [];
+  return libraryRules.checkRules(document, rules, dups as any);
+}
+app.get("/make-server-49c0e13c/library-rules", async (c) => {
+  const s = await getSession(c);
+  if (!s) return c.json({ error: "Sign in" }, 401);
+  const library = await libraryOf(s.username);
+  return c.json({ library, rules: await libraryRulesOf(library), fields: libraryRules.RULE_FIELDS, checks: libraryRules.CHECK_NAMES, canEdit: canReview(s) });
+});
+app.put("/make-server-49c0e13c/library-rules", async (c) => {
+  const s = await getSession(c);
+  if (!s || !canReview(s)) return c.json({ error: "A reviewer or the Super Admin sets the library's rules" }, 403);
+  const library = await libraryOf(s.username);
+  const rules = libraryRules.parseRules(await c.req.json().catch(() => ({})));
+  await kv.set(RULES_KEY(library), rules);
+  return c.json({ library, rules });
+});
+
 // BIBFRAME in Arabic (bibframeArabic.tsx, plan step E1): the Arabic labels for the terms Moon uses, reviewed by the
 // Super Admin. Public as Turtle (open RDF, CC0) and as JSON for the page bibframe-ar.html.
 const BF_AR_REVIEWS = "moon:bibframe-ar:reviews";
@@ -2699,7 +2730,9 @@ async function reviewRecord(c: any, decision: 'complete' | 'needs-review') {
     const { reason } = await c.req.json().catch(() => ({}));
     if (decision === 'complete') {
       const current = await recordStore.getRecord(id);
-      const missing = current ? missingForPublish(current.document) : [];
+      // The gate, and the rules of the cataloguer's library (H10).
+      const rules = current ? await libraryRuleResult(await libraryOf(current.cataloger || admin.username), id, current.document).catch(() => null) : null;
+      const missing = current ? [...missingForPublish(current.document), ...(rules ? libraryRules.blockers(rules) : [])] : [];
       if (missing.length) {
         return c.json({ success: false, error: 'This record is missing required fields and cannot be published yet', missing }, 422);
       }

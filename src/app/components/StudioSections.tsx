@@ -10,7 +10,7 @@ import { motion } from 'motion/react';
 import {
   ShoppingCart, BookMarked, Repeat, Search, FilePlus, FileCode, Library, Users, UserSearch, History,
   Building2, Receipt, FileText, Newspaper, PackageCheck, Database, IdCard, ArrowLeftRight, CalendarClock,
-  Coins, Globe, ClipboardCheck, BarChart3, GraduationCap, Gauge, ChevronDown, ExternalLink, ListFilter, Link2,
+  Coins, Globe, ClipboardCheck, BarChart3, GraduationCap, Gauge, ChevronDown, ExternalLink, ListFilter, Link2, ShieldCheck,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
@@ -209,6 +209,7 @@ export const SECTIONS: Section[] = [
       { id: 'search', icon: Search, ar: 'البحث في التسجيلات', en: 'Search records', arNote: 'البحث في كل التسجيلات، المنشورة والمسودات', enNote: 'Search all records, published and drafts', action: { kind: 'view', view: 'search' } },
       { id: 'authorities', icon: Users, ar: 'الملف الاستنادي', en: 'Authority file', arNote: 'الأسماء والموضوعات والأماكن، وإنشاء تسجيلات استنادية', enNote: 'Names, subjects and places; new authority records', action: { kind: 'view', view: 'entities' }, stat: 'entities' },
       { id: 'lc-works', icon: Link2, ar: 'ربط الأعمال بمكتبة الكونغرس', en: 'Link works to LC', arNote: 'روابط مقترحة إلى أعمال LC ومجمّعاتها، يقرّها مفهرس', enNote: 'Suggested links to LC Works and Hubs, each accepted by a cataloguer', action: { kind: 'view', view: 'lc-works' } },
+      { id: 'library-rules', icon: ShieldCheck, ar: 'قواعد المكتبة عند الحفظ', en: 'Library rules at save', arNote: 'حقول تطلبها المكتبة، وفحص الردمك وLCCN والمكرر', enNote: 'Fields the library requires; ISBN, LCCN and duplicate checks', action: { kind: 'view', view: 'library-rules' } },
       { id: 'authors', icon: UserSearch, ar: 'البحث عن المؤلفين', en: 'Find authors', arNote: 'البحث عن اسم في LC وVIAF وويكي بيانات', enNote: 'Look up a name in LC, VIAF and Wikidata', action: { kind: 'view', view: 'author-finder' } },
       { id: 'activity', icon: History, ar: 'سجل النشاط', en: 'Activity log', arNote: 'من غيّر ماذا ومتى', enNote: 'Who changed what, and when', action: { kind: 'view', view: 'activity-log' } },
       { id: 'lists', icon: ListFilter, ar: 'القوائم', en: 'Lists', arNote: 'قوائم بالكتب والنسخ بشروط، تُحفظ وتُحدَّث وتُصدَّر CSV', enNote: 'Lists of books and copies by conditions; saved, refreshed and exported as CSV', action: { kind: 'view', view: 'lists', tab: 'books' } },
