@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { CirculationDesk, ExternalLoanSystem } from './components/CirculationDesk';
 import { AcquisitionsDesk } from './components/AcquisitionsDesk';
 import { ListsPage } from './components/ListsPage';
+import { LcWorksPage } from './components/LcWorksPage';
 import { Toaster } from './components/ui/sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BASE_URI } from '../services/uriMintingService';
@@ -37,9 +38,9 @@ const ManuscriptsPage = React.lazy(() => import('./components/ManuscriptsPage').
 // Moon Studio (Wolf Moon) is the one editor. The tools around it: dashboard, author finder, record
 // list, search and audit log. The public OPAC is served by main.tsx / opac.html.
 type ViewMode = 'dashboard' | 'wolf-moon' | 'author-finder' | 'all-records' | 'search' | 'activity-log' | 'entities'
-  | SectionId | 'new-record' | 'desk' | 'acq' | 'manuscripts' | 'lists';
+  | SectionId | 'new-record' | 'desk' | 'acq' | 'manuscripts' | 'lists' | 'lc-works';
 const VIEW_MODES: ViewMode[] = ['dashboard', 'wolf-moon', 'author-finder', 'all-records', 'search', 'activity-log', 'entities', 'new-record',
-  'acquisitions', 'technical', 'circulation', 'catalogue', 'desk', 'acq', 'manuscripts', 'lists'];
+  'acquisitions', 'technical', 'circulation', 'catalogue', 'desk', 'acq', 'manuscripts', 'lists', 'lc-works'];
 
 // Each screen has its own address, so a refresh or a shared link opens the same screen:
 // /dashboard/, /moon/ (Moon Studio), /records/, /search/, /authors/, /activity/, /entities/.
@@ -66,6 +67,8 @@ const VIEW_PATHS: Record<ViewMode, string> = {
   'manuscripts': 'manuscripts',
   // Lists of books, copies, loans, borrowers, orders and more (?tab=the kind of row).
   'lists': 'lists',
+  // Technical services > Link works to LC (LC Works and Hubs, plan step A3).
+  'lc-works': 'lc-works',
 };
 export const ROUTED_PATHS = Object.values(VIEW_PATHS);
 
@@ -307,7 +310,7 @@ function CatalogApp() {
     marcEditor: () => chooseNewRecord(true),
   });
   const currentSection = (SECTIONS.find((sec) => sec.id === viewMode)?.id
-    ?? (['wolf-moon', 'new-record', 'all-records', 'search', 'entities', 'author-finder', 'activity-log'].includes(viewMode) ? 'technical'
+    ?? (['wolf-moon', 'new-record', 'all-records', 'search', 'entities', 'author-finder', 'activity-log', 'lc-works'].includes(viewMode) ? 'technical'
       : viewMode === 'desk' ? 'circulation' : viewMode === 'acq' ? 'acquisitions' : undefined)) as SectionId | undefined;
 
   const withNav = (content: React.ReactNode, className = '') => (
@@ -421,6 +424,14 @@ function CatalogApp() {
       screen = withNav(
         <ErrorBoundary fallbackTitle="Acquisitions" onReset={toDashboard}>
           <AcquisitionsDesk isAr={isAr} onOpenRecord={openRecordById} onNewRecord={() => chooseNewRecord(false)} />
+        </ErrorBoundary>,
+        'liquid-glass-spatial-canvas min-h-screen py-2'
+      );
+      break;
+    case 'lc-works':
+      screen = withNav(
+        <ErrorBoundary fallbackTitle="Link works to LC" onReset={toDashboard}>
+          <LcWorksPage isAr={isAr} onOpenRecord={openRecordById} />
         </ErrorBoundary>,
         'liquid-glass-spatial-canvas min-h-screen py-2'
       );
