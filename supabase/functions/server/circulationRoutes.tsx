@@ -29,7 +29,7 @@ import { makeResetCode, resetExpiry } from "./readerReset.tsx";
 import { sha256Hex } from "./signInSafety.tsx";
 import {
   parseRules, dueDate, fineFor, daysOverdue, cleanCode, readPatron, copiesIn, checkoutProblem, renewProblem,
-  renewedDue, holdExpiry, type Rules, type PatronKind, type FoundCopy, type PatronInput, roomDue,
+  renewedDue, holdExpiry, type Rules, type PatronKind, type FoundCopy, type PatronInput, roomDue, pickSlips,
 } from "./circulation.tsx";
 
 const circulationRoutes = new Hono();
@@ -419,6 +419,31 @@ circulationRoutes.get(`${P}/holds`, async (c) => {
     if (error) throw new Error(error.message);
     return c.json({ holds: data || [] });
   } catch (e) { return failed(c, "The holds", e); }
+});
+
+/**
+ * Pick slips (H9): a copy to fetch for each waiting hold, sorted by location and shelf mark. Copies on loan or
+ * already on the hold shelf are left out.
+ */
+circulationRoutes.get(`${P}/pick-slips`, async (c) => {
+  const st = await staffOf(c);
+  if (!st) return denied(c);
+  try {
+    const { data: holds, error } = await sb().from("holds").select("id, record_id, record_title, placed_at, patron:patrons(name, card)").eq("library", st.library).eq("status", "waiting").order("placed_at").limit(300);
+    if (error) throw new Error(error.message);
+    const ids = [...new Set((holds || []).map((h: any) => h.record_id))];
+    const docs = new Map<string, { title?: string; document: any }>();
+    if (ids.length) {
+      const { data: recs } = await sb().from("records").select("id, title, document").in("id", ids).is("deleted_at", null);
+      for (const r of recs || []) docs.set(r.id, { title: r.title, document: r.document });
+    }
+    const [{ data: out }, { data: ready }] = await Promise.all([
+      sb().from("loans").select("barcode").eq("library", st.library).is("returned_at", null),
+      sb().from("holds").select("barcode").eq("library", st.library).eq("status", "ready"),
+    ]);
+    const busy = new Set<string>([...(out || []), ...(ready || [])].map((x: any) => x.barcode).filter(Boolean));
+    return c.json({ library: st.library, slips: pickSlips(holds || [], docs, busy, st.library) });
+  } catch (e) { return failed(c, "The pick slips", e); }
 });
 
 circulationRoutes.post(`${P}/holds`, async (c) => {

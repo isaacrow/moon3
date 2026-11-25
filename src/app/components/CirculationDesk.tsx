@@ -8,8 +8,10 @@ import { toast } from 'sonner';
 import {
   ArrowLeftRight, IdCard, ListChecks, CalendarClock, Settings2, Search, Plus, RefreshCw, Trash2, X, BookOpen,
   LogIn, LogOut, ShieldAlert, Coins, ExternalLink, DoorOpen, DoorClosed,
+  Printer,
 } from 'lucide-react';
 import { moonFetch } from '../utils/moonApi';
+import { code128Svg } from '../utils/code128';
 import { useAuth } from '../contexts/AuthContext';
 
 export type DeskTab = 'desk' | 'patrons' | 'loans' | 'holds' | 'rules';
@@ -430,6 +432,7 @@ function Patrons({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
             <div className="sm:col-span-2 flex gap-2">
               <button className={dark}>{isAr ? 'حفظ' : 'Save'}</button>
               <button type="button" className={light} onClick={() => setForm(null)}>{isAr ? 'إلغاء' : 'Cancel'}</button>
+              {form.id && form.card && <button type="button" className={light} onClick={() => printCards([{ name: form.name, card: form.card, kind: form.kind }], isAr)}><Printer className="h-4 w-4" />{isAr ? 'اطبع البطاقة' : 'Print card'}</button>}
             </div>
           </form>
         ) : open ? (
@@ -627,6 +630,7 @@ function Holds({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
         <Field label={isAr ? 'رقم التسجيلة' : 'Record number'}><input required className={input} dir="ltr" value={recordId} onChange={(e) => setRecordId(e.target.value)} /></Field>
         <p className="text-xs text-slate-500">{isAr ? 'رقم التسجيلة في صفحة الكتاب في الفهرس العام. عند إرجاع نسخة منه، يخبرك المكتب أن تضعها على رف الحجز.' : 'The record number is on the book’s page in the public catalogue. When a copy comes back, the desk tells you to put it on the hold shelf.'}</p>
         <button className={dark}><Plus className="h-4 w-4" /> {isAr ? 'حجز' : 'Place hold'}</button>
+        <button type="button" className={light} onClick={() => printPickSlips(isAr)}><Printer className="h-4 w-4" /> {isAr ? 'قسائم السحب' : 'Pick slips'}</button>
       </form>
       <section className="p-5" style={glass}>
         {holds === null ? <p className="text-sm text-slate-500">…</p> : holds.length === 0 ? <p className="text-sm text-slate-500">{isAr ? 'لا حجوزات.' : 'No holds.'}</p> : (
@@ -790,4 +794,36 @@ export function ExternalLoanSystem({ isAr }: { isAr: boolean }) {
       )}
     </section>
   );
+}
+
+// ─── Slips and cards (plan step H9) ──────────────────────────
+
+const escHtml = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+function printPage(title: string, css: string, body: string) {
+  const w = window.open('', '_blank');
+  if (!w) { toast.error('Allow pop-ups to print'); return; }
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escHtml(title)}</title><style>body{font:13px/1.5 system-ui,Tahoma,sans-serif;color:#111;margin:1cm}${css}</style></head><body>${body}<script>window.onload=function(){window.print()}</script></body></html>`);
+  w.document.close();
+}
+
+/** Borrower cards, credit-card size, eight to an A4 page: the library, the name, the kind, the card number as a barcode. */
+async function printCards(people: Array<{ name: string; card: string; kind: Kind }>, isAr: boolean) {
+  const s = await moonFetch('/circulation/summary').catch(() => null);
+  const library = s?.ok ? s.data.library : '';
+  const cards = people.map((p) => `<div class="card"><div class="lib">${escHtml(library)}</div><div class="name" dir="auto">${escHtml(p.name)}</div><div class="kind">${escHtml(isAr ? KIND_AR[p.kind] : KIND_EN[p.kind])}</div><div class="bc">${code128Svg(p.card, 40, 1.5) || ''}</div><div class="num">${escHtml(p.card)}</div></div>`).join('');
+  printPage(isAr ? 'بطاقات المستفيدين' : 'Borrower cards',
+    '.card{display:inline-block;box-sizing:border-box;width:85.6mm;height:54mm;border:1px solid #999;border-radius:3mm;padding:4mm;margin:2mm;vertical-align:top;position:relative;page-break-inside:avoid}.lib{font-weight:700;font-size:11px;color:#555}.name{font-size:16px;font-weight:800;margin-top:2mm}.kind{font-size:11px;color:#555}.bc{position:absolute;left:4mm;right:4mm;bottom:9mm;text-align:center}.bc svg{max-width:100%;height:12mm}.num{position:absolute;left:0;right:0;bottom:4mm;text-align:center;font:12px monospace;letter-spacing:1px}',
+    cards);
+}
+
+/** Pick slips: one per waiting hold with a copy to fetch, in the order staff walk the stacks. */
+async function printPickSlips(isAr: boolean) {
+  const r = await moonFetch('/circulation/pick-slips').catch(() => null);
+  if (!r?.ok) { toast.error(say(isAr, r?.data?.error || 'Error')); return; }
+  const slips: any[] = r.data.slips || [];
+  if (!slips.length) { toast.info(isAr ? 'لا حجوزات تنتظر نسخة على الرفوف.' : 'No waiting hold has a copy on the shelves.'); return; }
+  const rows = slips.map((s) => `<div class="slip"><div class="where">${escHtml(s.location || '—')} · <b>${escHtml(s.shelfMark || '')}</b></div><div class="title" dir="auto">${escHtml(s.title)}</div><div>${isAr ? 'الباركود' : 'Barcode'}: <b>${escHtml(s.barcode)}</b></div><div class="for">${isAr ? 'محجوز لـ' : 'Held for'} ${escHtml(s.borrower)} (${escHtml(s.card)}) · ${escHtml(String(s.placedAt).slice(0, 10))}</div></div>`).join('');
+  printPage(isAr ? 'قسائم السحب' : 'Pick slips',
+    '.slip{border-bottom:1px dashed #999;padding:4mm 0;page-break-inside:avoid}.where{font-size:15px}.title{font-size:14px;font-weight:700;margin:1mm 0}.for{color:#555;font-size:12px}',
+    `<h2>${isAr ? 'قسائم السحب' : 'Pick slips'} · ${slips.length}</h2>${rows}`);
 }
