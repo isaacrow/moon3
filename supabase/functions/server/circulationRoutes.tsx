@@ -160,7 +160,13 @@ circulationRoutes.get(`${P}/patrons`, async (c) => {
 circulationRoutes.post(`${P}/patrons`, async (c) => {
   const st = await staffOf(c);
   if (!st) return denied(c);
-  const read = readPatron(await c.req.json().catch(() => ({})));
+  const body = await c.req.json().catch(() => ({}));
+  // No card number typed: the next one from the library's card sequence (H6), when it has one.
+  if (!String(body?.card ?? "").trim()) {
+    const { data: taken } = await sb().rpc("moon_take_numbers", { p_library: st.library, p_kind: "card", p_count: 1 });
+    if (taken?.length) body.card = taken[0];
+  }
+  const read = readPatron(body);
   if ("error" in read) return c.json({ error: read.error }, 400);
   const row = await patronRow(read.patron);
   if ("error" in row) return c.json({ error: row.error }, 400);

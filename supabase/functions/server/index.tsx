@@ -34,6 +34,8 @@ import listsRoutes from "./listsRoutes.tsx";
 import lcWorksRoutes from "./lcWorksRoutes.tsx";
 import * as bfArabic from "./bibframeArabic.tsx";
 import * as libraryRules from "./libraryRules.tsx";
+import { readSequence, formatNumber, SEQUENCE_KINDS } from "./sequences.tsx";
+import { getClient } from "./db.tsx";
 import readerRoutes from "./readerRoutes.tsx";
 import manuscriptsRoutes from "./manuscriptsRoutes.tsx";
 import accountRoutes, { getSession, isAdminSession, canReview, isReviewer, SUPER_ADMIN_USERNAME, libraryOf } from "./accountRoutes.tsx";
@@ -1645,6 +1647,34 @@ app.put("/make-server-49c0e13c/library-rules", async (c) => {
   const rules = libraryRules.parseRules(await c.req.json().catch(() => ({})));
   await kv.set(RULES_KEY(library), rules);
   return c.json({ library, rules });
+});
+
+// Number sequences (sequences.tsx, plan step H6): the library's barcode and card sequences; taking numbers is in
+// the database (moon_take_numbers), used by the loan desk and Acquisitions too.
+app.get("/make-server-49c0e13c/sequences", async (c) => {
+  const s = await getSession(c);
+  if (!s) return c.json({ error: "Sign in" }, 401);
+  const library = await libraryOf(s.username);
+  const { data, error } = await (getClient() as any).from("number_sequences").select("kind, prefix, next, width").eq("library", library);
+  if (error) return c.json({ error: "The sequences could not be read" }, 500);
+  const sequences = Object.fromEntries((data || []).map((r: any) => [r.kind, { ...r, nextValue: formatNumber(r.prefix, Number(r.next), r.width) }]));
+  return c.json({ library, kinds: SEQUENCE_KINDS, sequences, canEdit: canReview(s) });
+});
+app.put("/make-server-49c0e13c/sequences/:kind", async (c) => {
+  const s = await getSession(c);
+  if (!s || !canReview(s)) return c.json({ error: "A reviewer or the Super Admin sets the sequences" }, 403);
+  const library = await libraryOf(s.username);
+  const body = await c.req.json().catch(() => ({}));
+  if (body?.off === true) {
+    await (getClient() as any).from("number_sequences").delete().eq("library", library).eq("kind", c.req.param("kind"));
+    return c.json({ off: true });
+  }
+  const read = readSequence(c.req.param("kind"), body);
+  if ("error" in read) return c.json({ error: read.error }, 400);
+  const { kind, prefix, next, width } = read.sequence;
+  const { error } = await (getClient() as any).from("number_sequences").upsert({ library, kind, prefix, next, width, updated_by: s.username, updated_at: new Date().toISOString() });
+  if (error) return c.json({ error: "The sequence could not be saved" }, 500);
+  return c.json({ sequence: { kind, prefix, next, width, nextValue: formatNumber(prefix, next, width) } });
 });
 
 // BIBFRAME in Arabic (bibframeArabic.tsx, plan step E1): the Arabic labels for the terms Moon uses, reviewed by the
