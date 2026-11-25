@@ -3,10 +3,13 @@ main = "index.js"
 compatibility_date = "2025-10-01"
 workers_dev = false
 
-# Only record URIs and the sitemap come here; the rest of mooon.site stays on GitHub Pages.
+# Only record URIs, the sitemap and the catalogue page come here; the rest of mooon.site stays on GitHub Pages.
 routes = [
   { pattern = "mooon.site/resource/*", zone_name = "mooon.site" },
   { pattern = "mooon.site/sitemap.xml", zone_name = "mooon.site" },
+  # A book's catalogue page (opac.html?work=<id>) gets the book's own <head> for search engines; the page
+  # itself is still GitHub Pages' (opacHead.js).
+  { pattern = "mooon.site/opac.html*", zone_name = "mooon.site" },
   # Live editing rooms (WebSockets): catalogers on the same record see each other.
   { pattern = "mooon.site/live/*", zone_name = "mooon.site" },
 ]

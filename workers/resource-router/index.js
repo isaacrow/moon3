@@ -5,13 +5,56 @@
 // It also opens the live rooms at mooon.site/live/records/<id>, where catalogers on the same
 // record see each other (liveGate.js checks the ticket, liveRoom.js is the room).
 
+// And it gives each book's catalogue page (mooon.site/opac.html?work=<id>) that book's own <head> for search
+// engines (opacHead.js); the page itself still comes from GitHub Pages.
+
 import { handleLive } from './liveGate.js';
+import { workIdOf, bookHeadOf, withBookHead } from './opacHead.js';
 
 export { LiveRoom } from './liveRoom.js';
 
+/**
+ * The book's <head>, read from the server's plain page for it, kept at the edge for an hour. Null when the book is
+ * not published or the server is slow to answer (the catalogue page then goes out as it is, never held up long).
+ */
+async function bookHead(id, env, ctx) {
+  const key = new Request(`https://mooon.site/__opac-head/${encodeURIComponent(id)}`);
+  const cache = caches.default;
+  const hit = await cache.match(key);
+  if (hit) return hit.json();
+  let book = null;
+  try {
+    const r = await fetch(`${env.MOON_API}/resource/?book=${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`, apikey: env.SUPABASE_ANON_KEY },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (r.ok) book = bookHeadOf(await r.text());
+  } catch {
+    return null;
+  }
+  if (book) ctx.waitUntil(cache.put(key, new Response(JSON.stringify(book), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } })));
+  return book;
+}
+
+/** mooon.site/opac.html*: the page from GitHub Pages, with a book's own <head> when it is one book's page. */
+async function cataloguePage(request, env, ctx) {
+  const page = await fetch(request);
+  const url = new URL(request.url);
+  const id = url.pathname === '/opac.html' && request.method === 'GET' ? workIdOf(url) : '';
+  if (!id || page.status !== 200 || !(page.headers.get('Content-Type') || '').includes('text/html')) return page;
+  const book = await bookHead(id, env, ctx);
+  if (!book) return page;
+  const response = new Response(withBookHead(await page.text(), book), page);
+  response.headers.delete('Content-Length');
+  response.headers.delete('ETag');
+  return response;
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    // The catalogue page is GitHub Pages' own; it is never passed to the Moon server like the addresses below.
+    if (url.pathname.startsWith('/opac')) return cataloguePage(request, env, ctx);
     if (url.pathname.startsWith('/live/')) return handleLive(request, env);
     // The SPARQL endpoint also takes POSTed queries (and the browser's CORS preflight for them).
     const isSparql = url.pathname === '/resource/sparql';
@@ -32,6 +75,12 @@ export default {
     // https://mooon.site/sitemap.xml (every published record's page, for search engines) is built by the server.
     // The public API (see /api.html): /resource/search searches the published catalogue only, and
     // /resource/authorities searches Moon's authority file.
+    // One copy of the sitemap for everyone, whatever the query string (see the end of this function).
+    const sitemapKey = new Request('https://mooon.site/sitemap.xml');
+    if (url.pathname === '/sitemap.xml') {
+      const kept = await caches.default.match(sitemapKey);
+      if (kept) return kept;
+    }
     let path = url.pathname;
     const search = new URLSearchParams(url.search);
     if (path === '/sitemap.xml') path = '/resource/sitemap.xml';
@@ -60,6 +109,13 @@ export default {
     // is a web page, so label it as one.
     if ((url.pathname === '/resource' || url.pathname === '/resource/' || isSparql) && (response.headers.get('Content-Type') || '').startsWith('text/plain')) {
       response.headers.set('Content-Type', 'text/html; charset=utf-8');
+    }
+    // The sitemap gets the same treatment: search engines expect XML to say it is XML. It is kept at the edge
+    // for an hour (as the server asks), so a search engine reading it is never kept waiting on the server.
+    if (url.pathname === '/sitemap.xml' && response.status === 200) {
+      response.headers.set('Content-Type', 'application/xml; charset=utf-8');
+      response.headers.set('Cache-Control', 'public, max-age=3600');
+      if (request.method === 'GET') ctx.waitUntil(caches.default.put(sitemapKey, response.clone()));
     }
     return response;
   },
