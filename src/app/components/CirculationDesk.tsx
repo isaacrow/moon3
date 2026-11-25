@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   ArrowLeftRight, IdCard, ListChecks, CalendarClock, Settings2, Search, Plus, RefreshCw, Trash2, X, BookOpen,
-  LogIn, LogOut, ShieldAlert, Coins, ExternalLink,
+  LogIn, LogOut, ShieldAlert, Coins, ExternalLink, DoorOpen, DoorClosed,
 } from 'lucide-react';
 import { moonFetch } from '../utils/moonApi';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,9 +20,10 @@ interface Patron { id: string; card: string; name: string; kind: Kind; email?: s
 interface Loan {
   id: number; barcode: string; record_id?: string; record_title?: string; due_at: string; loaned_at: string; returned_at?: string | null;
   renewals: number; fine: number; fine_settled: boolean; daysOverdue: number; fineNow: number; patron?: { id: string; name: string; card: string } | null;
+  in_room?: boolean; room_state?: 'in-use' | 'on-shelf' | null;
 }
 interface Hold { id: number; record_id: string; record_title?: string; status: 'waiting' | 'ready'; barcode?: string | null; placed_at: string; expires_at?: string | null; patron?: { id: string; name: string; card: string } }
-interface Rules { loanDays: Record<Kind, number>; maxLoans: Record<Kind, number>; maxRenewals: number; fines: boolean; finePerDay: number; fineCap: number; currency: string; holdDays: number }
+interface Rules { loanDays: Record<Kind, number>; maxLoans: Record<Kind, number>; maxRenewals: number; fines: boolean; finePerDay: number; fineCap: number; currency: string; holdDays: number; roomDays: number }
 
 const KINDS: Kind[] = ['reader', 'student', 'staff'];
 const KIND_AR: Record<Kind, string> = { reader: 'قارئ', student: 'طالب', staff: 'موظف' };
@@ -178,6 +179,7 @@ function Desk({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
   const [card, setCard] = useState('');
   const [patron, setPatron] = useState<any>(null);
   const [barcode, setBarcode] = useState('');
+  const [inRoom, setInRoom] = useState(false);
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<Array<{ ok: boolean; text: string; sub?: string }>>([]);
   const date = useDate(isAr);
@@ -202,12 +204,18 @@ function Desk({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
     if (!b) return;
     setBusy(true);
     if (mode === 'out') {
-      const r = await moonFetch('/circulation/checkout', { body: { barcode: b, card: patron?.patron?.card } });
+      const r = await moonFetch('/circulation/checkout', { body: { barcode: b, card: patron?.patron?.card, inRoom } });
       if (r.ok) {
-        add({ ok: true, text: r.data.title, sub: isAr ? `أُعير إلى ${r.data.patron.name} · يُرجع في ${date(r.data.loan.due_at)}` : `Lent to ${r.data.patron.name} · due ${date(r.data.loan.due_at)}` });
+        add({ ok: true, text: r.data.title, sub: r.data.loan.in_room
+          ? (isAr ? `للقاعة فقط · مع ${r.data.patron.name} حتى الإغلاق` : `Reading room only · with ${r.data.patron.name} until closing`)
+          : (isAr ? `أُعير إلى ${r.data.patron.name} · يُرجع في ${date(r.data.loan.due_at)}` : `Lent to ${r.data.patron.name} · due ${date(r.data.loan.due_at)}`) });
         openCard(patron.patron.card);
         onChange();
-      } else add({ ok: false, text: say(isAr, r.data?.error || `Error ${r.status}`), sub: b });
+      } else {
+        add({ ok: false, text: say(isAr, r.data?.error || `Error ${r.status}`), sub: b });
+        // A reference-only copy: tick "for the reading room" so the next scan lends it there.
+        if (r.data?.readingRoomOnly) { setInRoom(true); toast.info(isAr ? 'هذه النسخة للاطلاع في القاعة فقط. اخترت «للقاعة فقط»؛ امسحها مرة أخرى.' : 'This copy is for the reading room only. “Reading room only” is now ticked; scan it again.'); }
+      }
     } else {
       const r = await moonFetch('/circulation/checkin', { body: { barcode: b } });
       if (r.ok) {
@@ -280,6 +288,13 @@ function Desk({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
               <input id="desk-barcode" ref={barcodeRef} autoFocus={mode === 'in'} className={input} dir="ltr" value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder={isAr ? 'امسح الباركود' : 'Scan the barcode'} />
               <button className={dark} disabled={busy || !barcode.trim()}>{mode === 'out' ? (isAr ? 'إعارة' : 'Lend') : (isAr ? 'إرجاع' : 'Return')}</button>
             </div>
+            {mode === 'out' && (
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer pt-1">
+                <input type="checkbox" checked={inRoom} onChange={(e) => setInRoom(e.target.checked)} />
+                <DoorOpen className="h-3.5 w-3.5" />
+                {isAr ? 'للقاعة فقط: يُطّلع عليها في قاعة الاطلاع ولا تخرج من المكتبة' : 'Reading room only: used in the reading room, never taken home'}
+              </label>
+            )}
           </form>
         )}
         <p className="text-xs text-slate-500">
@@ -482,8 +497,9 @@ export const Field = ({ label, children }: { label: string; children: React.Reac
   <label className="flex flex-col gap-1 text-xs font-bold text-slate-700">{label}{children}</label>
 );
 
-function LoanList({ isAr, loans, currency, onRenew, onSettle, showBorrower, onOpenRecord }: {
+function LoanList({ isAr, loans, currency, onRenew, onSettle, showBorrower, onOpenRecord, onRoom }: {
   isAr: boolean; loans: Loan[]; currency: string; onRenew: (id: number) => void; onSettle: (id: number) => void; showBorrower: boolean; onOpenRecord?: (id: string) => void;
+  onRoom?: (id: number, state: 'in-use' | 'on-shelf') => void;
 }) {
   const date = useDate(isAr);
   if (!loans.length) return <p className="text-sm text-slate-500">{isAr ? 'لا إعارات.' : 'No loans.'}</p>;
@@ -505,6 +521,18 @@ function LoanList({ isAr, loans, currency, onRenew, onSettle, showBorrower, onOp
               <span className="text-xs font-bold text-red-700"><Coins className="inline h-3.5 w-3.5" /> {l.fine} {currency}</span>
               <button className={`${light} py-1 px-3 text-xs`} onClick={() => onSettle(l.id)}>{isAr ? 'سُدّدت / أُعفي' : 'Paid / waived'}</button>
             </>
+          ) : l.in_room ? (
+            <>
+              <span className="text-xs font-bold text-indigo-800 inline-flex items-center gap-1">
+                <DoorOpen className="h-3.5 w-3.5" />
+                {l.room_state === 'on-shelf'
+                  ? (isAr ? `على رف الحجز حتى ${date(l.due_at)}` : `On the hold shelf until ${date(l.due_at)}`)
+                  : (isAr ? 'قيد الاطلاع في القاعة' : 'In use in the reading room')}
+              </span>
+              {onRoom && (l.room_state === 'on-shelf'
+                ? <button className={`${light} py-1 px-3 text-xs`} onClick={() => onRoom(l.id, 'in-use')}>{isAr ? 'سُلّمت للقارئ' : 'Given to the reader'}</button>
+                : <button className={`${light} py-1 px-3 text-xs`} onClick={() => onRoom(l.id, 'on-shelf')}>{isAr ? 'إلى رف الحجز' : 'To the hold shelf'}</button>)}
+            </>
           ) : (
             <>
               <span className={`text-xs ${l.daysOverdue ? 'text-red-700 font-bold' : 'text-slate-600'}`}>
@@ -523,7 +551,7 @@ function LoanList({ isAr, loans, currency, onRenew, onSettle, showBorrower, onOp
 // ─── Loans ───────────────────────────────────────────────────
 
 function Loans({ isAr, onChange, onOpenRecord }: { isAr: boolean; onChange: () => void; onOpenRecord?: (id: string) => void }) {
-  const [state, setState] = useState<'open' | 'overdue' | 'fines'>('open');
+  const [state, setState] = useState<'open' | 'overdue' | 'fines' | 'room'>('open');
   const [loans, setLoans] = useState<Loan[] | null>(null);
   const [currency, setCurrency] = useState('USD');
   const date = useDate(isAr);
@@ -538,9 +566,21 @@ function Loans({ isAr, onChange, onOpenRecord }: { isAr: boolean; onChange: () =
     if (!r.ok) toast.error(say(isAr, r.data?.error || '')); else { toast.success(isAr ? `جُدّدت حتى ${date(r.data.loan.due_at)}` : `Renewed until ${date(r.data.loan.due_at)}`); load(); }
   };
   const settle = async (id: number) => { const r = await moonFetch(`/circulation/loans/${id}/settle`, { method: 'POST', body: {} }); if (r.ok) { load(); onChange(); } };
+  const room = async (id: number, to: 'in-use' | 'on-shelf') => {
+    const r = await moonFetch(`/circulation/loans/${id}/room`, { body: { state: to } });
+    if (!r.ok) toast.error(say(isAr, r.data?.error || '')); else { load(); onChange(); }
+  };
+  const closeRoom = async () => {
+    if (!window.confirm(isAr ? 'وقت الإغلاق: كل نسخ القاعة التي قيد الاطلاع تذهب إلى رف الحجز لقرّائها؟' : 'Closing time: every reading-room copy still in use goes to the hold shelf for its reader?')) return;
+    const r = await moonFetch('/circulation/room/close', { body: {} });
+    if (!r.ok) { toast.error(say(isAr, r.data?.error || '')); return; }
+    toast.success(isAr ? `${r.data.shelved} نسخة إلى رف الحجز` : `${r.data.shelved} copies to the hold shelf`);
+    load(); onChange();
+  };
   const S = [
     { id: 'open' as const, ar: 'كل المعار', en: 'All out' },
     { id: 'overdue' as const, ar: 'المتأخرة', en: 'Overdue' },
+    { id: 'room' as const, ar: 'قاعة الاطلاع', en: 'Reading room' },
     { id: 'fines' as const, ar: 'غرامات لم تُسدّد', en: 'Unpaid fines' },
   ];
   return (
@@ -548,7 +588,13 @@ function Loans({ isAr, onChange, onOpenRecord }: { isAr: boolean; onChange: () =
       <div className="flex flex-wrap gap-1">
         {S.map((s) => <button key={s.id} onClick={() => setState(s.id)} className={`${btn} px-3 py-1.5 text-xs ${state === s.id ? 'bg-slate-900 text-white' : 'bg-white/70 text-slate-800'}`}>{isAr ? s.ar : s.en}</button>)}
       </div>
-      {loans === null ? <p className="text-sm text-slate-500">…</p> : <LoanList isAr={isAr} loans={loans} currency={currency} onRenew={renew} onSettle={settle} showBorrower onOpenRecord={onOpenRecord} />}
+      {state === 'room' && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-700">
+          <span className="flex-1 min-w-[14rem]">{isAr ? 'المخطوطات والكتب النادرة تُعار للقاعة فقط: تُسلّم للقارئ في الصباح، وعند الإغلاق تذهب إلى رف الحجز له، ولا تخرج من المكتبة.' : 'Manuscripts and rare books are lent for the reading room only: given to the reader during the day, on the hold shelf for them at closing, never taken home.'}</span>
+          <button className={dark} onClick={closeRoom}><DoorClosed className="h-4 w-4" />{isAr ? 'وقت الإغلاق' : 'Closing time'}</button>
+        </div>
+      )}
+      {loans === null ? <p className="text-sm text-slate-500">…</p> : <LoanList isAr={isAr} loans={loans} currency={currency} onRenew={renew} onSettle={settle} showBorrower onOpenRecord={onOpenRecord} onRoom={room} />}
     </section>
   );
 }
@@ -638,6 +684,7 @@ function RulesForm({ isAr, canEdit }: { isAr: boolean; canEdit: boolean }) {
         <div className="grid sm:grid-cols-3 gap-3 max-w-2xl">
           <Field label={isAr ? 'أقصى عدد للتجديد' : 'Renewals allowed'}><input type="number" min={0} max={20} className={input} value={rules.maxRenewals} onChange={(e) => setRules({ ...rules, maxRenewals: num(e.target.value) })} /></Field>
           <Field label={isAr ? 'أيام رف الحجز' : 'Days on the hold shelf'}><input type="number" min={1} max={60} className={input} value={rules.holdDays} onChange={(e) => setRules({ ...rules, holdDays: num(e.target.value) })} /></Field>
+          <Field label={isAr ? 'أيام انتظار نسخة القاعة لقارئها' : 'Days a reading-room copy waits for its reader'}><input type="number" min={1} max={30} className={input} value={rules.roomDays ?? 3} onChange={(e) => setRules({ ...rules, roomDays: num(e.target.value) })} /></Field>
         </div>
         <div className="space-y-3 max-w-2xl">
           <label className="inline-flex items-center gap-2 text-sm font-bold text-slate-800">

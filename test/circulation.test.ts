@@ -66,7 +66,7 @@ test('the desk refuses a loan for the right reason', () => {
   const p = { kind: 'reader' as const, blocked: false, openLoans: 0, overdue: 0, finesOwed: 0 };
   const free = { referenceOnly: false, onLoan: false, heldForOther: false };
   assert.equal(checkoutProblem(p, free, DEFAULT_RULES), null);
-  assert.match(checkoutProblem(p, { ...free, referenceOnly: true }, DEFAULT_RULES)!, /library only/);
+  assert.match(checkoutProblem(p, { ...free, referenceOnly: true }, DEFAULT_RULES)!, /reading room only/);
   assert.match(checkoutProblem(p, { ...free, onLoan: true }, DEFAULT_RULES)!, /already on loan/);
   assert.match(checkoutProblem(p, { ...free, heldForOther: true }, DEFAULT_RULES)!, /another borrower/);
   assert.match(checkoutProblem({ ...p, blocked: true }, free, DEFAULT_RULES)!, /blocked/);
@@ -85,4 +85,18 @@ test('renewals: a limit, nobody waiting, and the new date counted from today', (
   assert.match(renewProblem(loan, DEFAULT_RULES, 1, now)!, /waiting/);
   assert.equal(renewedDue(loan.due_at, 'reader', DEFAULT_RULES, now), '2026-12-15T23:59:59.000Z');
   assert.equal(renewedDue('2027-01-30T23:59:59.000Z', 'reader', DEFAULT_RULES, now), '2027-01-30T23:59:59.000Z', 'never earlier');
+});
+
+test('reading-room loans: the only loan of a reference-only copy, not counted, not renewed, due at closing or after the shelf days', async () => {
+  const { roomDue } = await import('../supabase/functions/server/circulation.tsx');
+  const p = { kind: 'reader' as const, blocked: false, openLoans: 5, overdue: 0, finesOwed: 0 };
+  const copy = { referenceOnly: true, onLoan: false, heldForOther: false };
+  assert.equal(checkoutProblem(p, copy, DEFAULT_RULES, true), null, 'lent for the reading room, even with the most copies out');
+  assert.match(checkoutProblem({ ...p, blocked: true }, copy, DEFAULT_RULES, true)!, /blocked/);
+  assert.match(checkoutProblem(p, { ...copy, onLoan: true }, DEFAULT_RULES, true)!, /already on loan/);
+  const now = new Date('2026-11-25T10:00:00Z');
+  assert.equal(roomDue(now, 'in-use', DEFAULT_RULES), '2026-11-25T23:59:59.000Z');
+  assert.equal(roomDue(now, 'on-shelf', DEFAULT_RULES), '2026-11-28T23:59:59.000Z', `${DEFAULT_RULES.roomDays} days on the hold shelf`);
+  assert.equal(parseRules({ roomDays: 99 }).roomDays, 30);
+  assert.match(renewProblem({ due_at: '2026-11-25T23:59:59Z', renewals: 0, in_room: true }, DEFAULT_RULES, 0, now)!, /hold shelf/);
 });

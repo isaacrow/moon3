@@ -77,7 +77,7 @@ test('dates counted from today: today, today-30, today+60; anything else refused
 });
 
 test('every ready-made list is a valid query, named in both languages', () => {
-  assert.equal(READY_LISTS.length, 6);
+  assert.equal(READY_LISTS.length, 7);
   for (const l of READY_LISTS) {
     assert.ok(l.en && l.ar && l.noteEn && l.noteAr, l.id);
     const read = readQuery(l.query);

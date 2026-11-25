@@ -30,6 +30,8 @@ export interface Rules {
   currency: string;
   /** Days a copy waits on the hold shelf for the borrower who asked for it. */
   holdDays: number;
+  /** Days a reading-room copy waits on the hold shelf for its reader between visits (plan step H7). */
+  roomDays: number;
 }
 
 export const DEFAULT_RULES: Rules = {
@@ -41,6 +43,7 @@ export const DEFAULT_RULES: Rules = {
   fineCap: 10,
   currency: "USD",
   holdDays: 7,
+  roomDays: 3,
 };
 
 const DAY = 86_400_000;
@@ -66,6 +69,7 @@ export function parseRules(raw: unknown): Rules {
     fineCap: Math.round(clamp(r.fineCap, 0, 100000, d.fineCap) * 100) / 100,
     currency: typeof r.currency === "string" && /^[A-Z]{3}$/.test(r.currency) ? r.currency : d.currency,
     holdDays: Math.round(clamp(r.holdDays, 1, 60, d.holdDays)),
+    roomDays: Math.round(clamp(r.roomDays, 1, 30, d.roomDays)),
   };
 }
 
@@ -170,12 +174,17 @@ export function copiesIn(document: any): FoundCopy[] {
 
 export interface PatronState { kind: PatronKind; blocked: boolean; openLoans: number; overdue: number; finesOwed: number }
 
-/** Why this borrower cannot take this copy now, or null when the loan can go ahead. */
-export function checkoutProblem(p: PatronState, copy: { referenceOnly: boolean; onLoan: boolean; heldForOther: boolean }, rules: Rules): string | null {
-  if (copy.referenceOnly) return "This copy is for use in the library only";
+/**
+ * Why this borrower cannot take this copy now, or null when the loan can go ahead. A reading-room loan (inRoom) is
+ * the only loan a reference-only copy has: used in the reading room, never taken home; it does not count against
+ * the borrower's number of copies.
+ */
+export function checkoutProblem(p: PatronState, copy: { referenceOnly: boolean; onLoan: boolean; heldForOther: boolean }, rules: Rules, inRoom = false): string | null {
+  if (copy.referenceOnly && !inRoom) return "This copy is for use in the reading room only: lend it for the reading room";
   if (copy.onLoan) return "This copy is already on loan; check it in first";
   if (copy.heldForOther) return "This copy is held for another borrower";
   if (p.blocked) return "This borrower is blocked";
+  if (inRoom) return null;
   if (p.overdue > 0) return `This borrower has ${p.overdue} overdue ${p.overdue === 1 ? "loan" : "loans"}`;
   if (rules.fines && p.finesOwed > 0) return `This borrower owes ${p.finesOwed.toFixed(2)} ${rules.currency}`;
   if (p.openLoans >= rules.maxLoans[p.kind]) return `This borrower already has ${p.openLoans} copies out (the most for a ${p.kind})`;
@@ -183,7 +192,8 @@ export function checkoutProblem(p: PatronState, copy: { referenceOnly: boolean; 
 }
 
 /** Why a loan cannot be renewed now, or null. */
-export function renewProblem(loan: { due_at: string; renewals: number }, rules: Rules, othersWaiting: number, now: Date): string | null {
+export function renewProblem(loan: { due_at: string; renewals: number; in_room?: boolean }, rules: Rules, othersWaiting: number, now: Date): string | null {
+  if (loan.in_room) return "A reading-room loan is not renewed: put it on the hold shelf for the reader instead";
   if (loan.renewals >= rules.maxRenewals) return `Renewed ${loan.renewals} times already (the most allowed)`;
   if (othersWaiting > 0) return "Another borrower is waiting for this book";
   if (daysOverdue(loan.due_at, now) > 0 && rules.fines) return "Overdue: return it and settle the fine first";
@@ -199,4 +209,15 @@ export function renewedDue(oldDue: string, kind: PatronKind, rules: Rules, now: 
 /** When a copy put aside for a hold stops waiting. */
 export function holdExpiry(readyAt: Date, rules: Rules): string {
   return dueDate(readyAt, "reader", { ...rules, loanDays: { ...rules.loanDays, reader: rules.holdDays } });
+}
+
+export type RoomState = "in-use" | "on-shelf";
+/**
+ * When a reading-room loan is next due (plan step H7, after FOLIO's "for use at location"): in use, at the end of
+ * today; on the hold shelf for its reader, at the end of the last day it waits there (roomDays).
+ */
+export function roomDue(now: Date, state: RoomState, rules: Rules): string {
+  const d = new Date(now.getTime() + (state === "on-shelf" ? rules.roomDays : 0) * DAY);
+  d.setUTCHours(23, 59, 59, 0);
+  return d.toISOString();
 }
