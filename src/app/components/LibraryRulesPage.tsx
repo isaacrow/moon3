@@ -75,6 +75,66 @@ export function LibraryRulesPage({ isAr }: { isAr: boolean }) {
         </div>
       </section>
       {info.canEdit && <button className={dark} disabled={busy} onClick={save}><Save className="h-4 w-4" />{L('Save the rules', 'احفظ القواعد')}</button>}
+      <Sequences isAr={isAr} />
     </div>
+  );
+}
+
+/** Number sequences (plan step H6): where new barcodes and borrower cards come from when none is typed. */
+function Sequences({ isAr }: { isAr: boolean }) {
+  const [data, setData] = useState<any>(null);
+  const [draft, setDraft] = useState<Record<string, { prefix: string; next: string; width: string }>>({});
+  const L = (en: string, ar: string) => (isAr ? ar : en);
+  const load = () => moonFetch<any>('/sequences').then((r) => {
+    if (!r.ok) return;
+    setData(r.data);
+    setDraft(Object.fromEntries(r.data.kinds.map((k: string) => {
+      const s = r.data.sequences[k];
+      return [k, s ? { prefix: s.prefix, next: String(s.next), width: String(s.width) } : { prefix: k === 'barcode' ? 'B' : 'C', next: '1', width: '6' }];
+    })));
+  });
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!data) return null;
+  const NAMES: Record<string, [string, string, string, string]> = {
+    barcode: ['Copy barcodes', 'باركودات النسخ', 'Used when copies are added from an order without barcodes.', 'تُستعمل عند إضافة نسخ طلب شراء بلا باركود.'],
+    card: ['Borrower cards', 'بطاقات المستفيدين', 'Used when a new borrower is added without a card number.', 'تُستعمل عند إضافة مستفيد جديد بلا رقم بطاقة.'],
+  };
+  const save = async (kind: string, off = false) => {
+    const d = draft[kind];
+    const r = await moonFetch<any>(`/sequences/${kind}`, { method: 'PUT', body: off ? { off: true } : { prefix: d.prefix, next: Number(d.next), width: Number(d.width) } });
+    if (!r.ok) { toast.error(r.data?.error || L('Not saved', 'لم يُحفظ')); return; }
+    toast.success(off ? L('Sequence turned off', 'أُوقف التسلسل') : L(`Next: ${r.data.sequence.nextValue}`, `التالي: ${r.data.sequence.nextValue}`));
+    load();
+  };
+  const preview = (d: { prefix: string; next: string; width: string }) => d.prefix + String(Number(d.next) || 0).padStart(Number(d.width) || 0, '0');
+  return (
+    <section className="p-5 moon-enter" style={glass}>
+      <h3 className="font-bold text-slate-900 mb-1">{L('Number sequences', 'تسلسل الأرقام')}</h3>
+      <p className="text-xs text-slate-600 mb-3">{L('Numbers are handed out by the server, so two desks never get the same one.', 'يوزّع الخادم الأرقام، فلا يأخذ مكتبان الرقم نفسه.')}</p>
+      <div className="space-y-4">
+        {data.kinds.map((k: string) => {
+          const d = draft[k]; const on = !!data.sequences[k];
+          return (
+            <div key={k}>
+              <div className="flex items-baseline justify-between gap-2">
+                <b className="text-sm text-slate-900">{isAr ? NAMES[k][1] : NAMES[k][0]}</b>
+                <span className={`text-xs font-bold ${on ? 'text-emerald-700' : 'text-slate-500'}`}>{on ? L(`On · next ${data.sequences[k].nextValue}`, `مفعّل · التالي ${data.sequences[k].nextValue}`) : L('Off', 'غير مفعّل')}</span>
+              </div>
+              <p className="text-xs text-slate-600">{isAr ? NAMES[k][3] : NAMES[k][2]}</p>
+              {data.canEdit && d && (
+                <div className="flex flex-wrap items-end gap-2 mt-1" dir="ltr">
+                  <label className="text-xs">{L('Prefix', 'البادئة')}<input className="block w-20 rounded-lg px-2 py-1 border border-slate-300 bg-white/80" value={d.prefix} onChange={(e) => setDraft({ ...draft, [k]: { ...d, prefix: e.target.value } })} /></label>
+                  <label className="text-xs">{L('Next number', 'الرقم التالي')}<input type="number" min={1} className="block w-28 rounded-lg px-2 py-1 border border-slate-300 bg-white/80" value={d.next} onChange={(e) => setDraft({ ...draft, [k]: { ...d, next: e.target.value } })} /></label>
+                  <label className="text-xs">{L('Digits', 'عدد الخانات')}<input type="number" min={0} max={12} className="block w-16 rounded-lg px-2 py-1 border border-slate-300 bg-white/80" value={d.width} onChange={(e) => setDraft({ ...draft, [k]: { ...d, width: e.target.value } })} /></label>
+                  <span className="text-xs text-slate-600 pb-1.5">→ <code>{preview(d)}</code></span>
+                  <button className={dark} onClick={() => save(k)}>{on ? L('Save', 'احفظ') : L('Turn on', 'فعّل')}</button>
+                  {on && <button className="text-xs underline pb-1.5" onClick={() => save(k, true)}>{L('Turn off', 'أوقف')}</button>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

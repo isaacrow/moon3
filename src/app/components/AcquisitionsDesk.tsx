@@ -526,7 +526,7 @@ function AddCopies({ isAr, order, onNewRecord, onDone }: { isAr: boolean; order:
         </span>
       </Field>
       <Field label={isAr ? `الباركودات (اختياري، حتى ${left})` : `Barcodes (optional, up to ${left})`}>
-        <textarea className={input} rows={2} dir="ltr" value={barcodes} onChange={(e) => setBarcodes(e.target.value)} placeholder={isAr ? 'امسحها واحدًا تلو الآخر' : 'Scan them one after another'} />
+        <textarea className={input} rows={2} dir="ltr" value={barcodes} onChange={(e) => setBarcodes(e.target.value)} placeholder={isAr ? 'امسحها واحدًا تلو الآخر، أو اتركها فارغة لتؤخذ من تسلسل الباركود' : 'Scan them one after another, or leave empty to take them from the barcode sequence'} />
       </Field>
       <Field label={isAr ? 'المكان (القاعة / الطابق)' : 'Location (room / floor)'}><input className={input} dir="auto" value={location} onChange={(e) => setLocation(e.target.value)} /></Field>
       <Field label={isAr ? 'رقم الرف' : 'Shelf mark'}><input className={input} dir="ltr" value={shelfMark} onChange={(e) => setShelfMark(e.target.value)} /></Field>

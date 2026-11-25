@@ -405,7 +405,8 @@ function Patrons({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
           <form className="grid sm:grid-cols-2 gap-3" onSubmit={(e) => { e.preventDefault(); save(); }}>
             <h2 className="sm:col-span-2 font-black text-slate-900">{form.id ? (isAr ? 'تعديل المستفيد' : 'Edit borrower') : (isAr ? 'مستفيد جديد' : 'New borrower')}</h2>
             <Field label={isAr ? 'الاسم' : 'Name'}><input required className={input} dir="auto" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
-            <Field label={isAr ? 'رقم البطاقة' : 'Card number'}><input required className={input} dir="ltr" value={form.card} onChange={(e) => setForm({ ...form, card: e.target.value })} /></Field>
+            <Field label={isAr ? 'رقم البطاقة' : 'Card number'}><input required={!!form.id} className={input} dir="ltr" value={form.card} onChange={(e) => setForm({ ...form, card: e.target.value })}
+              placeholder={form.id ? '' : (isAr ? 'فارغ: الرقم التالي من تسلسل المكتبة' : 'Empty: the next from the library’s sequence')} /></Field>
             <Field label={isAr ? 'النوع' : 'Kind'}>
               <select className={input} value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as Kind })}>
                 {KINDS.map((k) => <option key={k} value={k}>{isAr ? KIND_AR[k] : KIND_EN[k]}</option>)}

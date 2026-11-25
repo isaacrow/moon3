@@ -218,6 +218,12 @@ acquisitionsRoutes.post(`${P}/orders/:id/add-copies`, async (c) => {
     if (!recordId || !/^[A-Za-z0-9._:-]{1,120}$/.test(recordId)) return c.json({ error: "Which record? Catalogue the book first, then give its record number" }, 400);
     const read = readReceipt(body, order);
     if ("error" in read) return c.json({ error: read.error }, 400);
+    // Copies without a barcode take the next ones from the library's barcode sequence (H6), when it has one.
+    const lacking = read.input.count - read.input.barcodes.length;
+    if (lacking > 0) {
+      const { data: taken } = await sb().rpc("moon_take_numbers", { p_library: st.library, p_kind: "barcode", p_count: lacking });
+      if (taken?.length) read.input.barcodes.push(...taken);
+    }
     const rec: any = await recordStore.getRecord(recordId);
     if (!rec) return c.json({ error: "No record has this number" }, 404);
     const instance = firstInstanceId(rec.document);
