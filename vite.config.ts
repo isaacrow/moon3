@@ -34,7 +34,7 @@ function figmaAssetPlugin(): Plugin {
  * and the dev server answers those addresses with it too. Its asset links are relative (../assets/),
  * which works from any folder at the same depth.
  */
-const SCREEN_FOLDERS = ['dashboard', 'records', 'search', 'authors', 'activity', 'entities', 'acquisitions', 'technical', 'circulation', 'catalogue', 'new', 'desk', 'acq', 'manuscripts', 'lists', 'lc-works'];
+const SCREEN_FOLDERS = ['dashboard', 'records', 'search', 'authors', 'activity', 'entities', 'acquisitions', 'technical', 'circulation', 'catalogue', 'new', 'desk', 'acq', 'manuscripts', 'lists', 'lc-works', 'library-rules'];
 function screenPagesPlugin(): Plugin {
   return {
     name: 'moon-screen-pages',

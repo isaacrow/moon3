@@ -1421,6 +1421,12 @@ export default function WolfMoon({
       clearDraft();
       const initialStatus = saved.status || "complete";
       setSaveStatus("saved");
+      if (saved.ruleWarnings?.length) {
+        // The library's own checks (ISBN check digit, LCCN form, duplicates) that only warn.
+        toast.warning(language === "ar" ? "قواعد المكتبة: تنبيه" : "Library rules: worth a look", {
+          description: saved.ruleWarnings.map((w) => (language === "ar" ? w.ar : w.en)).join(" · "), duration: 12000,
+        });
+      }
       if (saved.publishBlocked?.length) {
         // The Super Admin's save went through but the record is not published until it is complete.
         const list = saved.publishBlocked.map((m) => (language === "ar" ? m.ar : m.en)).join(language === "ar" ? "، " : ", ");

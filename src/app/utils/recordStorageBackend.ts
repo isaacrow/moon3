@@ -37,6 +37,8 @@ export interface SavedRecord {
   assignedTo?: string;
   /** Set when a Super Admin save could not be published: the required fields the record still lacks. */
   publishBlocked?: Array<{ en: string; ar: string }>;
+  /** The library's rules that only warn (H10). */
+  ruleWarnings?: Array<{ en: string; ar: string }>;
   jcricket?: {
     provenanceId?: string;
     institutionCode?: string;
@@ -422,6 +424,7 @@ export async function saveRecord(record: BIBFRAMERecord, cataloger?: string, opt
     savedRecord.version = data?.version;
     savedRecord.publishedVersion = data?.publishedVersion;
     savedRecord.publishBlocked = data?.publishBlocked;
+    savedRecord.ruleWarnings = data?.ruleWarnings;
     if (data?.status) {
       savedRecord.status = normalizeStatus(data.status);
       savedRecord.record = {
