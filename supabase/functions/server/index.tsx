@@ -32,6 +32,7 @@ import circulationRoutes from "./circulationRoutes.tsx";
 import acquisitionsRoutes from "./acquisitionsRoutes.tsx";
 import listsRoutes from "./listsRoutes.tsx";
 import lcWorksRoutes from "./lcWorksRoutes.tsx";
+import * as bfArabic from "./bibframeArabic.tsx";
 import readerRoutes from "./readerRoutes.tsx";
 import manuscriptsRoutes from "./manuscriptsRoutes.tsx";
 import accountRoutes, { getSession, isAdminSession, canReview, isReviewer, SUPER_ADMIN_USERNAME, libraryOf } from "./accountRoutes.tsx";
@@ -1615,6 +1616,67 @@ app.get("/make-server-49c0e13c/resource/names.json", async (c) => {
     return c.json({ error: 'Could not list the name forms' }, 500);
   }
 });
+// BIBFRAME in Arabic (bibframeArabic.tsx, plan step E1): the Arabic labels for the terms Moon uses, reviewed by the
+// Super Admin. Public as Turtle (open RDF, CC0) and as JSON for the page bibframe-ar.html.
+const BF_AR_REVIEWS = "moon:bibframe-ar:reviews";
+const bfArabicReviews = async (): Promise<Record<string, bfArabic.Review>> => {
+  const v = await kv.get(BF_AR_REVIEWS).catch(() => null);
+  return v && typeof v === "object" ? v : {};
+};
+/** How often each bf:/bflc: term is used in the published data. */
+function termUses(nt: string): Record<string, number> {
+  const uses: Record<string, number> = {};
+  for (const line of nt.split("\n")) {
+    const m = line.match(/^\S+\s+<([^>]+)>\s+(.+?)\s*\.\s*$/);
+    if (!m) continue;
+    const add = (iri: string) => {
+      const t = iri.startsWith(bfArabic.BF) ? `bf:${iri.slice(bfArabic.BF.length)}` : iri.startsWith(bfArabic.BFLC) ? `bflc:${iri.slice(bfArabic.BFLC.length)}` : "";
+      if (t) uses[t] = (uses[t] || 0) + 1;
+    };
+    add(m[1]);
+    if (m[1].endsWith("#type") && m[2].startsWith("<")) add(m[2].slice(1, -1));
+  }
+  return uses;
+}
+app.get("/make-server-49c0e13c/resource/bibframe-ar.json", async (c) => {
+  try {
+    const [reviews, nt] = await Promise.all([bfArabicReviews(), loadPublishedNTriples().catch(() => "")]);
+    const rows = bfArabic.vocabulary(reviews, termUses(nt));
+    return c.json({ terms: rows, reviewed: rows.filter((r) => r.status === "reviewed").length, total: rows.length },
+      200, { 'Cache-Control': 'public, max-age=600', 'Access-Control-Allow-Origin': '*' });
+  } catch (e) {
+    console.error('BIBFRAME Arabic:', e);
+    return c.json({ error: 'Could not read the vocabulary' }, 500);
+  }
+});
+app.get("/make-server-49c0e13c/resource/bibframe-ar.ttl", async (c) => {
+  try {
+    const rows = bfArabic.vocabulary(await bfArabicReviews());
+    return c.body(bfArabic.toTurtle(rows, linkedData.BASE_URI.replace(/\/resource$/, "")), 200,
+      { 'Content-Type': 'text/turtle; charset=utf-8', 'Cache-Control': 'public, max-age=600', 'Access-Control-Allow-Origin': '*' });
+  } catch (e) {
+    console.error('BIBFRAME Arabic:', e);
+    return c.text('Could not read the vocabulary', 500);
+  }
+});
+/** The Super Admin accepts a label ({term, ar}) or puts a term back to its draft ({term, reset: true}). */
+app.post("/make-server-49c0e13c/bibframe-ar/review", async (c) => {
+  const s = await isAdminSession(c);
+  if (!s) return c.json({ error: "Only the Super Admin reviews the Arabic labels" }, 403);
+  const body = await c.req.json().catch(() => ({}));
+  const reviews = await bfArabicReviews();
+  if (body?.reset === true && typeof body.term === "string") {
+    delete reviews[body.term];
+  } else {
+    const read = bfArabic.readReview(body);
+    if ("error" in read) return c.json({ error: read.error }, 400);
+    reviews[read.term] = { ar: read.ar, by: s.username, at: new Date().toISOString() };
+  }
+  await kv.set(BF_AR_REVIEWS, reviews);
+  const rows = bfArabic.vocabulary(reviews);
+  return c.json({ reviewed: rows.filter((r) => r.status === "reviewed").length, term: rows.find((r) => r.term === body.term) });
+});
+
 // The public scorecard's numbers (https://mooon.site/score.html): how complete the published data is against the
 // plan's targets (scorecard.tsx), and the BIBFRAME 3.0.1 audit (ldAudit.tsx) the Super Admin's page also shows.
 // Everything counted is already public; the lists of unlinked names stay with the Super Admin.
