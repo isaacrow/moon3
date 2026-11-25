@@ -8,8 +8,9 @@
 import { t, opacLang } from './i18n';
 import { addedOrder } from './recent';
 import { readDate, hijriCenturyOf } from '../services/hijri';
+import { formatOf as formatOfInstance, categoryLabel, formatLabel, type CategoryId, type FormatId } from './category';
 
-export type FacetKey = 'avail' | 'category' | 'format' | 'lang' | 'library' | 'decade' | 'century' | 'author' | 'subject' | 'kind';
+export type FacetKey = 'avail' | 'category' | 'format' | 'genre' | 'lang' | 'library' | 'decade' | 'century' | 'author' | 'subject' | 'kind';
 export type Selection = Partial<Record<FacetKey, string[]>>;
 export type SortKey = 'relevance' | 'title-asc' | 'title-desc' | 'author-asc' | 'date-desc' | 'date-asc' | 'copies' | 'added';
 
@@ -22,11 +23,13 @@ export interface FacetWork {
   language?: string;
   languageLabel?: string;
   genreForm?: string[];
+  /** category.ts: one per Work. */
+  category?: CategoryId;
   originDate?: string;
   primaryCreator?: Person;
   contributors?: Person[];
   subjects?: Array<{ label?: string }>;
-  instances?: Array<{ publicationYear?: string; carrierType?: string; mediaType?: string; holdingStatus?: string }>;
+  instances?: Array<{ publicationYear?: string; carrierType?: string; mediaType?: string; holdingStatus?: string; format?: FormatId }>;
   holdingItems?: Array<{ synthetic?: boolean; heldBy?: string; accessUrl?: string; status?: string }>;
   expressionOfHub?: { uri: string; label: string };
   createdAt?: string;
@@ -37,6 +40,7 @@ export const FACETS: Array<{ key: FacetKey; title: string; en: string }> = [
   { key: 'avail', title: 'الإتاحة', en: 'Availability' },
   { key: 'category', title: 'الفئة', en: 'Category' },
   { key: 'format', title: 'الشكل', en: 'Format' },
+  { key: 'genre', title: 'النوع الأدبي والشكل', en: 'Genre and form' },
   { key: 'lang', title: 'اللغة', en: 'Language' },
   { key: 'library', title: 'المكتبة', en: 'Library' },
   { key: 'decade', title: 'سنة النشر', en: 'Year published' },
@@ -72,10 +76,6 @@ const LANGUAGE_NAMES_EN: Record<string, string> = {
   'اليونانية القديمة': 'Ancient Greek', 'اليونانية': 'Greek', 'متعددة اللغات': 'Multiple languages',
 };
 
-const FORMATS_EN: Record<string, string> = {
-  'مصدر إلكتروني': 'Electronic resource', 'تسجيل صوتي': 'Sound recording', 'فيديو': 'Video', 'مصغّرات': 'Microform',
-  'مخطوط': 'Manuscript', 'خريطة': 'Map', 'كتاب مطبوع': 'Printed book',
-};
 
 /** A language name (as languageName gives it) in the reader's language. */
 export function languageDisplay(name: string): string {
@@ -116,21 +116,9 @@ export function libraryOf(heldBy: string | undefined): string {
   return String(heldBy || '').split(' — ')[0].trim();
 }
 
-const CARRIERS: Array<[RegExp, string]> = [
-  [/online|electronic|computer|إلكترون|رقمي/i, 'مصدر إلكتروني'],
-  [/audio|sound|صوت/i, 'تسجيل صوتي'],
-  [/video|film|فيديو/i, 'فيديو'],
-  [/microform|ميكرو/i, 'مصغّرات'],
-  [/manuscript|مخطوط/i, 'مخطوط'],
-  [/map|cartograph|خريطة/i, 'خريطة'],
-  [/volume|unmediated|print|text|nc\b|مجلد|مطبوع/i, 'كتاب مطبوع'],
-];
-
-function formatOf(i: { carrierType?: string; mediaType?: string }): string | undefined {
-  const s = `${i.carrierType || ''} ${i.mediaType || ''}`.replace(/^.*\//, '');
-  if (!s.trim()) return undefined;
-  for (const [re, label] of CARRIERS) if (re.test(s)) return label;
-  return undefined;
+/** An edition's format (category.ts): as the record's Instance gave it, else read from its carrier and media. */
+function formatOf(i: { carrierType?: string; mediaType?: string; format?: FormatId }, category?: CategoryId): string | undefined {
+  return i.format || formatOfInstance(i, category);
 }
 
 function personLabel(p: Person | undefined): string | undefined {
@@ -148,8 +136,9 @@ export function valuesOf(w: FacetWork, key: FacetKey): string[] {
       const physical = copies.some((c) => !c.accessUrl && c.status !== 'digital_access');
       return [online ? 'online' : '', physical ? 'physical' : ''].filter(Boolean);
     }
-    case 'category': return uniq(w.genreForm || []);
-    case 'format': return uniq((w.instances || []).map(formatOf));
+    case 'category': return w.category ? [w.category] : [];
+    case 'format': return uniq((w.instances || []).map((i) => formatOf(i, w.category)));
+    case 'genre': return uniq(w.genreForm || []);
     case 'lang': return uniq([languageName(w.languageLabel, w.language)]);
     case 'library': return uniq(realCopies(w).map((c) => libraryOf(c.heldBy)));
     case 'decade': {
@@ -182,7 +171,8 @@ export function valueLabel(key: FacetKey, value: string): string {
   if (key === 'century') return t(`القرن ${value} هـ`, `${value}${ordinal(Number(value))} century AH`);
   if (key === 'kind') return value === 'translation' ? t('ترجمة', 'Translation') : value === 'hub' ? t('له طبعات وترجمات أخرى', 'Has other editions and translations') : value;
   if (key === 'lang') return languageDisplay(value);
-  if (key === 'format') return opacLang() === 'en' ? FORMATS_EN[value] || value : value;
+  if (key === 'format') return formatLabel(value, opacLang() === 'en');
+  if (key === 'category') return categoryLabel(value, opacLang() === 'en');
   return value;
 }
 

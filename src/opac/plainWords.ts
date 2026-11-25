@@ -1,6 +1,6 @@
 /**
  * The OPAC in plain words (Phase 13 S13), as Libris and the LC Primer advise:
- * - whatItIs: one line saying what a book is, "Printed book · Arabic · Poetry", never the same fact twice;
+ * - whatItIs: one line saying what a book is, "Book · Printed · Arabic · Poetry" (category.ts), never the same fact twice;
  * - formatChips: the formats a Work exists in, across its editions;
  * - editionLines: for each edition, only what is different from the others (publisher, year, language …);
  * - exactMatch: the "exact words only" switch, against the default close matches.
@@ -9,6 +9,7 @@
 import { t } from './i18n';
 import { valuesOf, valueLabel, languageName, languageDisplay, workYearOf, type FacetWork } from './facets';
 import { normalizeArabic } from '../services/wolfMoonOpacService';
+import { categoryLabel, formatLabel } from './category';
 
 const fold = (s: string) => normalizeArabic(String(s || '')).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 /** Two facts are the same when one folded text holds the other ("كتاب" in "كتاب مطبوع", "Poetry" twice). */
@@ -17,16 +18,26 @@ const sameFact = (a: string, b: string) => {
   return !!x && !!y && (x === y || ` ${x} `.includes(` ${y} `) || ` ${y} `.includes(` ${x} `));
 };
 
-/** "Printed book · Arabic · Poetry": format, language, then the categories, each fact once. */
+/** "Book · Printed · Arabic · Poetry": category, format, language, then up to two genres, each fact once. */
 export function whatItIs(w: FacetWork & { genreForm?: string[] }): string {
   const facts: string[] = [];
   const add = (s?: string) => { if (s && s.trim() && !facts.some((f) => sameFact(f, s))) facts.push(s.trim()); };
-  add(valueLabel('format', valuesOf(w, 'format')[0] || ''));
+  const category = valuesOf(w, 'category')[0] || '';
+  const format = valuesOf(w, 'format')[0] || '';
+  add(valueLabel('category', category));
+  add(valueLabel('format', format));
   add(languageDisplay(languageName(w.languageLabel, w.language)));
+  // The category and format in both languages, so a genre in the other language that says the same is left out too.
+  const said = [...facts, ...[categoryLabel, formatLabel].flatMap((label, n) => {
+    const v = n ? format : category;
+    return v ? [label(v, false), label(v, true)] : [];
+  })];
   const base = facts.length;
   for (const g of w.genreForm || []) {
     if (facts.length - base >= 2) break;
-    if (!/^(book|books|text|كتاب|كتب|نص)$/i.test(fold(g))) add(g);
+    // A genre that is the same as, or only the plural of, a fact already said ("مخطوطات" after "مخطوط") is left out.
+    const repeats = said.some((f) => { const x = fold(f), y = fold(g); return sameFact(f, g) || (x.length >= 3 && y.startsWith(x) && y.length - x.length <= 2); });
+    if (!repeats && !/^(book|books|text|كتاب|كتب|نص)$/i.test(fold(g))) add(g);
   }
   return facts.join(' · ');
 }

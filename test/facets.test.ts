@@ -16,8 +16,11 @@ test('values: availability, format, decade, kind, unknown authors left out', () 
   assert.deepEqual(valuesOf(works[0], 'avail'), ['physical']);
   assert.deepEqual(valuesOf(works[1], 'avail'), ['online']);
   assert.deepEqual(valuesOf(works[2], 'avail'), []);
-  assert.deepEqual(valuesOf(works[0], 'format'), ['كتاب مطبوع']);
-  assert.deepEqual(valuesOf(works[1], 'format'), ['مصدر إلكتروني']);
+  assert.deepEqual(valuesOf(works[0], 'format'), ['print']);
+  assert.deepEqual(valuesOf(works[1], 'format'), ['online']);
+  assert.deepEqual(valuesOf({ ...works[0], instances: [{ format: 'microform', carrierType: 'volume' }] }, 'format'), ['microform'], 'the format the record gives wins');
+  assert.deepEqual(valuesOf({ ...works[0], category: 'manuscript' }, 'category'), ['manuscript']);
+  assert.deepEqual(valuesOf(works[0], 'genre'), ['أدب']);
   assert.deepEqual(valuesOf(works[0], 'decade'), ['1990']);
   assert.deepEqual(valuesOf(works[1], 'kind'), ['translation']);
   assert.deepEqual(valuesOf(works[2], 'author'), []);
@@ -28,14 +31,14 @@ test('values: availability, format, decade, kind, unknown authors left out', () 
 
 test('facets: or within a facet, and across facets', () => {
   assert.deepEqual(applyFacets(works, { lang: ['العربية'] }).map((w) => w.id), ['a', 'c']);
-  assert.deepEqual(applyFacets(works, { category: ['أدب', 'تاريخ'] }).map((w) => w.id), ['a', 'b', 'c']);
-  assert.deepEqual(applyFacets(works, { category: ['تاريخ'], lang: ['العربية'] }).map((w) => w.id), ['c']);
+  assert.deepEqual(applyFacets(works, { genre: ['أدب', 'تاريخ'] }).map((w) => w.id), ['a', 'b', 'c']);
+  assert.deepEqual(applyFacets(works, { genre: ['تاريخ'], lang: ['العربية'] }).map((w) => w.id), ['c']);
 });
 
 test('counts take the other facets into account and keep chosen values', () => {
   const c = facetCounts(works, { lang: ['العربية'] });
   assert.deepEqual(c.lang.map((v) => [v.value, v.count]), [['العربية', 2], ['الإنجليزية', 1]]);
-  assert.deepEqual(c.category.map((v) => [v.value, v.count]), [['أدب', 1], ['تاريخ', 1]]);
+  assert.deepEqual(c.genre.map((v) => [v.value, v.count]), [['أدب', 1], ['تاريخ', 1]]);
   const none = facetCounts(works, { subject: ['شعر'], lang: ['الإنجليزية'] });
   assert.ok(none.subject.some((v) => v.value === 'شعر' && v.count === 0));
   assert.deepEqual(c.decade.map((v) => v.value), ['2010', '1990']);
