@@ -36,6 +36,7 @@ import * as bfArabic from "./bibframeArabic.tsx";
 import * as arabicGenres from "./arabicGenres.tsx";
 import * as quality from "./quality.tsx";
 import { toBlueCore } from "./blueCoreExport.tsx";
+import { folioInstanceLines, toJsonLines } from "./folioLd.tsx";
 import { workFacts } from "./lcWorks.tsx";
 import * as libraryRules from "./libraryRules.tsx";
 import { readSequence, formatNumber, SEQUENCE_KINDS } from "./sequences.tsx";
@@ -1314,7 +1315,7 @@ async function resourceDump(c: any, format: 'jsonld' | 'nt') {
 // 🗺️ Sitemap for search engines (served at https://mooon.site/sitemap.xml by the Worker): the catalogue's
 // home, the site's public pages (the editor's own page, lessons, API, MARC guides) and every published record's
 // page, with the date it last changed.
-const PUBLIC_PAGES = ['editor.html', 'learn.html', 'api.html', 'marc.html', 'round-trip.html', 'bibframe-ar.html', 'score.html'];
+const PUBLIC_PAGES = ['editor.html', 'learn.html', 'api.html', 'marc.html', 'round-trip.html', 'bibframe-ar.html', 'score.html', 'open-data.html'];
 app.get("/make-server-49c0e13c/resource/sitemap.xml", async (c) => {
   try {
     const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -1540,6 +1541,30 @@ app.get("/make-server-49c0e13c/folio/status", async (c) => {
 
 // What the record becomes in FOLIO (nothing is sent), and whether it changed since it was last sent. The
 // published document comes with it, so the browser can show and send the same record as MARC.
+// Published records as the file FOLIO's linked-data import reads (folioLd.tsx, plan step H11): JSON Lines, one
+// Instance subgraph a line, flattened and expanded JSON-LD. All open records, or one.
+async function folioLines(records: any[]): Promise<string> {
+  const lines: any[][] = [];
+  for (const r of records) lines.push(...folioInstanceLines(await linkedData.flattened(linkedData.publishedDocument(r))));
+  return toJsonLines(lines);
+}
+app.get("/make-server-49c0e13c/resource/folio-ld.jsonl", async (c) => {
+  try {
+    const records = openRecords(await recordStore.listPublishedRecords()).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    return c.body(await folioLines(records), 200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Content-Disposition': 'inline; filename="moon-for-folio.jsonl"', 'Cache-Control': 'public, max-age=3600', 'Access-Control-Allow-Origin': '*' });
+  } catch (e) {
+    console.error('FOLIO linked data:', e);
+    return c.json({ error: 'The file could not be made' }, 500);
+  }
+});
+app.get("/make-server-49c0e13c/resource/folio-ld/:id", async (c) => {
+  const id = c.req.param('id').replace(/\.jsonl$/, '');
+  if (!/^[A-Za-z0-9._:-]{1,120}$/.test(id)) return c.json({ error: 'Not a record number' }, 400);
+  const record = await recordStore.getPublishedRecord(id).catch(() => null);
+  if (!record) return c.json({ error: 'No published record has this number' }, 404);
+  return c.body(await folioLines([record]), 200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+});
+
 // A published record in Blue Core's shape (blueCoreExport.tsx, plan step A4): its Work and Instance as Blue Core's
 // API serves and takes them. Public, like the record itself.
 app.get("/make-server-49c0e13c/resource/bluecore/:id", async (c) => {
