@@ -1,9 +1,10 @@
 /**
- * Number sequences (plan step H6, after FOLIO's number generators): a library's barcodes and borrower cards can come
+ * Number sequences (plan step H6, after FOLIO's number generators): a library's barcodes, borrower cards and copies'
+ * accession numbers can come
  * from a sequence it sets: a prefix, the next number and a width ("B" + 000123). The database hands numbers out
  * (moon_take_numbers), so two desks never get the same one; this file checks a sequence and shows what comes next.
  */
-export const SEQUENCE_KINDS = ["barcode", "card"] as const;
+export const SEQUENCE_KINDS = ["barcode", "card", "accession"] as const;
 export type SequenceKind = typeof SEQUENCE_KINDS[number];
 export interface Sequence { kind: SequenceKind; prefix: string; next: number; width: number }
 
@@ -14,7 +15,7 @@ export function formatNumber(prefix: string, n: number, width: number): string {
 
 /** A sequence as sent from Studio, checked: the numbers it makes must still be valid barcodes and card numbers. */
 export function readSequence(kind: string, raw: any): { sequence: Sequence } | { error: string } {
-  if (!(SEQUENCE_KINDS as readonly string[]).includes(kind)) return { error: "Barcodes or borrower cards?" };
+  if (!(SEQUENCE_KINDS as readonly string[]).includes(kind)) return { error: "Barcodes, borrower cards or accession numbers?" };
   const prefix = String(raw?.prefix ?? "").trim();
   if (!/^[A-Za-z0-9._-]{0,12}$/.test(prefix)) return { error: "The prefix: up to 12 letters, digits, dot, dash or underscore" };
   const next = Number(raw?.next);

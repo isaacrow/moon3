@@ -12,9 +12,11 @@ export interface CopyRow {
   line: number;
   record: string; isbn: string; library: string; location: string; shelfMark: string; barcode: string;
   copyNumber: string; referenceOnly: boolean; note: string;
+  /** The accession number (bf:AccessionNumber), when the copy has one. */
+  accession?: string;
 }
 
-const COLUMNS: Record<keyof Omit<CopyRow, "line">, RegExp> = {
+const COLUMNS: Record<keyof Omit<CopyRow, "line" | "accession">, RegExp> = {
   record: /^(record|record id|id|moon id|رقم التسجيلة|التسجيلة|المعرف)$/i,
   isbn: /^(isbn|ردمك|رقم isbn|الرقم الدولي)$/i,
   library: /^(library|held by|المكتبة|الجهة)$/i,
@@ -194,7 +196,10 @@ export function withCopies(document: any, instance: string, rows: CopyRow[], sal
     if (r.library) node["bf:heldBy"] = { "@type": "bf:Organization", "rdfs:label": r.library };
     if (r.location) node["bf:sublocation"] = { "@type": "bf:Sublocation", "rdfs:label": r.location };
     if (r.shelfMark) node["bf:shelfMark"] = { "@type": "bf:ShelfMark", "rdfs:label": r.shelfMark };
-    if (r.barcode) node["bf:identifiedBy"] = [{ "@type": "bf:Barcode", "rdf:value": r.barcode }];
+    const ids: any[] = [];
+    if (r.barcode) ids.push({ "@type": "bf:Barcode", "rdf:value": r.barcode });
+    if (r.accession) ids.push({ "@type": "bf:AccessionNumber", "rdf:value": r.accession });
+    if (ids.length) node["bf:identifiedBy"] = ids;
     if (r.copyNumber) node["bf:enumerationAndChronology"] = { "@type": "bf:Enumeration", "rdfs:label": `c. ${r.copyNumber}` };
     if (r.referenceOnly) node["bf:usageAndAccessPolicy"] = { "@type": "bf:UsePolicy", "rdfs:label": "Reference only — للاطلاع فقط" };
     if (r.note) node["bf:note"] = { "@type": "bf:Note", "rdfs:label": r.note };

@@ -234,10 +234,11 @@ export function firstInstanceId(document: any): string | null {
 }
 
 /** The copies as rows for copiesImport.withCopies: the library, the order's number in the note, numbered on. */
-export function receiptRows(input: ReceiptInput, order: { number: string }, library: string, firstCopyNumber: number) {
+/** The copies an order adds, one row each; `accessions` (from the library's accession sequence) go on them in turn. */
+export function receiptRows(input: ReceiptInput, order: { number: string }, library: string, firstCopyNumber: number, accessions: string[] = []) {
   return Array.from({ length: input.count }, (_, i) => ({
     line: i + 1, record: "", isbn: "", library, location: input.location, shelfMark: input.shelfMark,
-    barcode: input.barcodes[i] || "", copyNumber: String(firstCopyNumber + i), referenceOnly: input.referenceOnly,
+    barcode: input.barcodes[i] || "", accession: accessions[i] || "", copyNumber: String(firstCopyNumber + i), referenceOnly: input.referenceOnly,
     note: `Order ${order.number}`,
   }));
 }

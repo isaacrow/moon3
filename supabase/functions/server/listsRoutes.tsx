@@ -70,7 +70,7 @@ export async function loadRows(entity: EntityId, library: string): Promise<{ row
       for (const r of got.rows) {
         for (const cp of copiesIn(r.document)) {
           if (cp.library && cp.library !== library) continue;
-          rows.push({ barcode: cp.barcode, record_id: r.id, title: r.title, location: cp.location, shelf_mark: cp.shelfMark, copy_number: cp.copyNumber, reference_only: cp.referenceOnly, on_loan: onLoan.has(cp.barcode) });
+          rows.push({ barcode: cp.barcode, accession: cp.accession, record_id: r.id, title: r.title, location: cp.location, shelf_mark: cp.shelfMark, copy_number: cp.copyNumber, reference_only: cp.referenceOnly, on_loan: onLoan.has(cp.barcode) });
         }
       }
       return { capped: got.capped, rows };

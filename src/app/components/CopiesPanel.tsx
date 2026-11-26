@@ -19,8 +19,8 @@ interface Props {
 export function CopiesPanel({ copies, instanceId, language, onChange }: Props) {
   const ar = language === 'ar';
   const L = ar
-    ? { title: 'النسخ', none: 'لا نسخ مسجلة لهذه الطبعة.', add: 'إضافة نسخة', library: 'المكتبة', location: 'المكان (القاعة / الطابق)', shelfMark: 'رقم الرف', barcode: 'الباركود', copy: 'رقم النسخة', ref: 'للاطلاع فقط', note: 'ملاحظة', remove: 'حذف النسخة' }
-    : { title: 'Copies', none: 'No copies recorded for this edition.', add: 'Add copy', library: 'Library', location: 'Location (room / floor)', shelfMark: 'Shelf mark', barcode: 'Barcode', copy: 'Copy no.', ref: 'Reference only', note: 'Note', remove: 'Remove copy' };
+    ? { title: 'النسخ', none: 'لا نسخ مسجلة لهذه الطبعة.', add: 'إضافة نسخة', library: 'المكتبة', location: 'المكان (القاعة / الطابق)', shelfMark: 'رقم الرف', barcode: 'الباركود', accession: 'رقم التزويد', copy: 'رقم النسخة', ref: 'للاطلاع فقط', note: 'ملاحظة', remove: 'حذف النسخة' }
+    : { title: 'Copies', none: 'No copies recorded for this edition.', add: 'Add copy', library: 'Library', location: 'Location (room / floor)', shelfMark: 'Shelf mark', barcode: 'Barcode', accession: 'Accession no.', copy: 'Copy no.', ref: 'Reference only', note: 'Note', remove: 'Remove copy' };
 
   const set = (i: number, patch: Partial<ItemCopy>) => onChange(copies.map((c, k) => (k === i ? { ...c, ...patch } : c)));
   const box: React.CSSProperties = { borderRadius: 16, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.25)' };
@@ -46,6 +46,7 @@ export function CopiesPanel({ copies, instanceId, language, onChange }: Props) {
           <input className={input} style={inputStyle} placeholder={L.shelfMark} value={c.shelfMark} onChange={(e) => set(i, { shelfMark: e.target.value })} dir="ltr" />
           <input className={input} style={inputStyle} placeholder={L.barcode} value={c.barcode} onChange={(e) => set(i, { barcode: e.target.value })} dir="ltr" inputMode="numeric" />
           <input className={input} style={inputStyle} placeholder={L.copy} value={c.copyNumber} onChange={(e) => set(i, { copyNumber: e.target.value })} dir="ltr" />
+          <input className={input} style={inputStyle} placeholder={L.accession} value={c.accession || ''} onChange={(e) => set(i, { accession: e.target.value })} dir="ltr" />
           <input className={`${input} md:col-span-2`} style={inputStyle} placeholder={L.note} value={c.note} onChange={(e) => set(i, { note: e.target.value })} dir="auto" />
           <div className="flex items-center justify-between gap-2">
             <label className="inline-flex items-center gap-1.5 text-xs text-white cursor-pointer">
