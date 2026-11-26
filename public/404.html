@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Not found · Moon</title>
+<script>
+  // An ontology term's address (https://mooon.site/ontology/<Term>) without a page of its own goes to its place
+  // on the ontology page.
+  (function () {
+    var m = location.pathname.match(/^\/ontology\/([A-Za-z][A-Za-z0-9]*)\/?$/);
+    if (m) location.replace('/ontology/#' + m[1]);
+  })();
+</script>
+<style>body{margin:0;font:16px/1.6 system-ui,"Segoe UI",Tahoma,sans-serif;background:#f8fafc;color:#0f172a}main{max-width:36rem;margin:15vh auto;padding:0 1rem}a{color:inherit}@media (prefers-color-scheme:dark){body{background:#0b1020;color:#e5e7eb}}</style>
+</head>
+<body>
+<main>
+  <h1>Not found</h1>
+  <p>There is no page at this address. <a href="/opac.html">The catalogue</a> · <a href="/">Moon</a></p>
+  <p dir="rtl">لا صفحة على هذا العنوان. <a href="/opac.html">الفهرس</a> · <a href="/">مون</a></p>
+</main>
+</body>
+</html>

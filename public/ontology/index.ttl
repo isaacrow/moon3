@@ -1,0 +1,132 @@
+@prefix moonext: <https://mooon.site/ontology/> .
+@prefix bf: <http://id.loc.gov/ontologies/bibframe/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+
+<https://mooon.site/ontology/> a owl:Ontology ;
+  dct:title "Moon's extension of BIBFRAME"@en , "امتداد مون لـ BIBFRAME"@ar ;
+  dct:description "Terms Moon uses beside BIBFRAME 3.0.1 and BFLC: a few kept apart from BIBFRAME, and the events manuscripts record (ijāzah, samāʿ, reading, copying, ownership, waqf) as bf:Event. Moon's maqām and copy-action vocabularies are SKOS concept schemes at https://mooon.site/resource/vocab/maqam and https://mooon.site/resource/vocab/item-action; Arabic labels for BIBFRAME at https://mooon.site/resource/bibframe-ar.ttl; Arabic genre and form terms at https://mooon.site/resource/genres-ar.ttl. Dates: a Hijri date is kept as written beside its EDTF form (datatype http://id.loc.gov/datatypes/edtf)."@en ;
+  dct:license <https://creativecommons.org/publicdomain/zero/1.0/> ;
+  owl:imports <http://id.loc.gov/ontologies/bibframe/> ;
+  rdfs:seeAlso <https://mooon.site/resource/vocab/maqam> , <https://mooon.site/resource/vocab/item-action> , <https://mooon.site/resource/bibframe-ar.ttl> , <https://mooon.site/resource/genres-ar.ttl> .
+
+moonext:Expression a owl:Class ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "Expression"@en , "تعبير"@ar ;
+  rdfs:subClassOf bf:Work ;
+  skos:definition "A Work as one realization of a Hub (a translation, an edition of the text): what BIBFRAME 3 folds into bf:Work, kept apart where Moon's editor distinguishes it. Published as bf:Work too."@en .
+
+moonext:AccessibilityContent a owl:Class ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "Accessibility content"@en , "محتوى الإتاحة لذوي الإعاقة"@ar ;
+  skos:definition "What makes a resource accessible (captions, audio description, large print). BIBFRAME 3.0.1 has the property but Moon keeps its value as its own class."@en .
+
+moonext:accessibilityContent a owl:ObjectProperty ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "accessibility content"@en , "محتوى الإتاحة"@ar ;
+  rdfs:range moonext:AccessibilityContent ;
+  skos:definition "The accessibility content of a resource, as Moon's editor records it."@en .
+
+moonext:GovernmentPublication a owl:Class ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "Government publication"@en , "منشور حكومي"@ar ;
+  skos:definition "The kind of government body that issued a resource (national, local, international)."@en .
+
+moonext:governmentPublication a owl:ObjectProperty ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "government publication"@en , "منشور حكومي"@ar ;
+  rdfs:range moonext:GovernmentPublication ;
+  skos:definition "That a resource was issued by a government body, and which kind."@en .
+
+moonext:projectedProvisionDate a owl:DatatypeProperty ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "projected publication date"@en , "تاريخ النشر المتوقع"@ar ;
+  rdfs:domain bf:Instance ;
+  skos:definition "When a resource not yet published is expected to appear (as bflc:projectedProvisionDate)."@en .
+
+moonext:TransmissionEvent a owl:Class ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "Transmission event"@en , "حدث نقل"@ar ;
+  rdfs:subClassOf bf:Event ;
+  skos:editorialNote "Used in Moon's editor; not yet in Moon's published data."@en ;
+  skos:definition "An event recorded in a manuscript about how its text was taught, read, copied or held: an ijāzah, a samāʿ, a reading, a colophon, an ownership or a waqf note. A bf:Event (plan step F2), with its people as bf:Contribution, its place as bf:place and its date as bf:date (the Hijri date as written, and EDTF)."@en .
+
+moonext:Ijazah a owl:Class ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "Ijāzah (licence)"@en , "إجازة"@ar ;
+  rdfs:subClassOf moonext:TransmissionEvent ;
+  skos:editorialNote "Used in Moon's editor; not yet in Moon's published data."@en ;
+  skos:definition "A transmission event of the kind Ijāzah (licence), recorded in a manuscript."@en .
+
+moonext:Sama a owl:Class ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "Samāʿ (audition)"@en , "سماع"@ar ;
+  rdfs:subClassOf moonext:TransmissionEvent ;
+  skos:editorialNote "Used in Moon's editor; not yet in Moon's published data."@en ;
+  skos:definition "A transmission event of the kind Samāʿ (audition), recorded in a manuscript."@en .
+
+moonext:Qiraa a owl:Class ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "Qirāʾa (reading, collation)"@en , "قراءة ومقابلة"@ar ;
+  rdfs:subClassOf moonext:TransmissionEvent ;
+  skos:editorialNote "Used in Moon's editor; not yet in Moon's published data."@en ;
+  skos:definition "A transmission event of the kind Qirāʾa (reading, collation), recorded in a manuscript."@en .
+
+moonext:Copying a owl:Class ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "Copying (colophon)"@en , "نسخ"@ar ;
+  rdfs:subClassOf moonext:TransmissionEvent ;
+  skos:editorialNote "Used in Moon's editor; not yet in Moon's published data."@en ;
+  skos:definition "A transmission event of the kind Copying (colophon), recorded in a manuscript."@en .
+
+moonext:Ownership a owl:Class ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "Ownership"@en , "تملّك"@ar ;
+  rdfs:subClassOf moonext:TransmissionEvent ;
+  skos:editorialNote "Used in Moon's editor; not yet in Moon's published data."@en ;
+  skos:definition "A transmission event of the kind Ownership, recorded in a manuscript."@en .
+
+moonext:Waqf a owl:Class ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "Waqf (endowment)"@en , "وقف"@ar ;
+  rdfs:subClassOf moonext:TransmissionEvent ;
+  skos:editorialNote "Used in Moon's editor; not yet in Moon's published data."@en ;
+  skos:definition "A transmission event of the kind Waqf (endowment), recorded in a manuscript."@en .
+
+moonext:transmission a owl:ObjectProperty ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "transmission event"@en , "حدث نقل"@ar ;
+  rdfs:domain bf:Item ;
+  rdfs:range moonext:TransmissionEvent ;
+  skos:editorialNote "Used in Moon's editor; not yet in Moon's published data."@en ;
+  skos:definition "A transmission event recorded in this copy of a manuscript."@en .
+
+moonext:participant a owl:ObjectProperty ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "participant"@en , "مشارك"@ar ;
+  rdfs:domain moonext:TransmissionEvent ;
+  rdfs:range bf:Contribution ;
+  skos:editorialNote "Used in Moon's editor; not yet in Moon's published data."@en ;
+  skos:definition "A person in the event, with the role as an LC relator (tch teacher, scr scribe, fmo former owner, dnr donor, wit witness, asn for the roles LC has no term for) and the role in the event (moonext:roleInEvent)."@en .
+
+moonext:roleInEvent a owl:DatatypeProperty ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "role in the event"@en , "الدور في الحدث"@ar ;
+  skos:editorialNote "Used in Moon's editor; not yet in Moon's published data."@en ;
+  skos:definition "The person's role as the manuscript says it: teacher (الشيخ (المُجيز / المُسمِع)), student (الطالب (المُجاز)), reader (القارئ), listener (السامع), scribe (الناسخ), owner (المالك), endower (الواقف), beneficiary (الموقوف عليه), witness (الشاهد), annotator (صاحب التعليق)."@en .
+
+moonext:locator a owl:DatatypeProperty ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "where in the manuscript"@en , "الموضع في المخطوط"@ar ;
+  rdfs:domain moonext:TransmissionEvent ;
+  skos:editorialNote "Used in Moon's editor; not yet in Moon's published data."@en ;
+  skos:definition "Where the note is in the manuscript (f. 120b, الورقة 3أ)."@en .
+
+moonext:transcription a owl:DatatypeProperty ;
+  rdfs:isDefinedBy <https://mooon.site/ontology/> ;
+  rdfs:label "transcription"@en , "نص القيد"@ar ;
+  rdfs:domain moonext:TransmissionEvent ;
+  skos:editorialNote "Used in Moon's editor; not yet in Moon's published data."@en ;
+  skos:definition "The note's own words, as written in the manuscript."@en .
