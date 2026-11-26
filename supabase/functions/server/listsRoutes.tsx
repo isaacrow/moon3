@@ -22,7 +22,7 @@ import { getSession, libraryOf } from "./accountRoutes.tsx";
 import { copiesIn } from "./circulation.tsx";
 import * as recordStore from "./recordStore.tsx";
 import { readBulk, planChanges, withCopyChange, bulkFieldOf, MAX_CHANGES, type BulkField, type Change } from "./bulkEdit.tsx";
-import { readQuery, runQuery, toCsv, subjectsIn, scriptsOf, READY_LISTS, type EntityId, type ListQuery, type Row } from "./lists.tsx";
+import { readQuery, runQuery, type SearchFinder, toCsv, subjectsIn, scriptsOf, READY_LISTS, type EntityId, type ListQuery, type Row } from "./lists.tsx";
 
 const listsRoutes = new Hono();
 const sb = (): any => getClient();
@@ -129,9 +129,25 @@ export async function loadRows(entity: EntityId, library: string): Promise<{ row
   }
 }
 
+/**
+ * What Studio's record search finds for each "Record search finds …" condition (plan step H4): the same database
+ * search (moon_search_records over every working copy), so a list made from a search holds exactly what the
+ * search found, and their counts agree.
+ */
+async function searchFinder(q: ListQuery): Promise<SearchFinder | undefined> {
+  const queries = [...new Set(q.conditions.filter((c) => c.field === "search").map((c) => String(c.value ?? "")))];
+  if (!queries.length) return undefined;
+  const found = new Map<string, Set<string>>();
+  for (const query of queries) {
+    const r = await recordStore.searchRecords({ query, published: false, limit: ROW_CAP, offset: 0 });
+    found.set(query, new Set((r.records || []).map((x: any) => String(x.id))));
+  }
+  return (query) => found.get(query) || new Set();
+}
+
 async function run(q: ListQuery, library: string) {
-  const { rows, capped } = await loadRows(q.entity, library);
-  return { rows: runQuery(rows, q), capped };
+  const [{ rows, capped }, search] = await Promise.all([loadRows(q.entity, library), searchFinder(q)]);
+  return { rows: runQuery(rows, q, new Date(), search), capped };
 }
 
 listsRoutes.post("/lists/run", async (c) => {
