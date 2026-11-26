@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>تعلّم مون — Learn Moon</title>
-<meta name="description" content="دروس قصيرة (دقيقتان أو ثلاث) في فهرسة BIBFRAME في مون، بمثال واحد: كليلة ودمنة. ومسرد بالعربية والإنجليزية.">
+<meta name="description" content="عشرة دروس قصيرة (دقيقتان أو ثلاث) مع تمارين وشهادة إتمام في فهرسة BIBFRAME في مون، بمثال واحد: كليلة ودمنة. ومسرد بالعربية والإنجليزية.">
 <link rel="icon" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,6 +36,12 @@ dl.gl dd{margin:0;color:var(--ink-2);font-size:15px}
 .gl-search{width:100%;font:inherit;border:1px solid #fff;background:rgba(255,255,255,.85);border-radius:12px;padding:8px 12px;margin:8px 0}
 .draft{font-size:13px;color:var(--ink-3)}
 footer{margin:28px 0 40px;padding:14px 18px;color:var(--ink-2);font-size:14px}
+.qz{margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid #fff}
+.qz p{margin:6px 0}
+.qz button,.pill{display:block;width:100%;text-align:start;font:inherit;font-size:15px;margin:6px 0;padding:8px 12px;border-radius:10px;border:1px solid var(--hair);background:rgba(255,255,255,.8);cursor:pointer}
+.pill{display:inline-block;width:auto}
+.qz button.ok{border-color:#047857;background:#ecfdf5}.qz button.no{border-color:#b91c1c;background:#fef2f2}
+.why{font-size:15px;color:var(--ink-2)}
 @media (max-width:640px){dl.gl{grid-template-columns:1fr}section.lesson{padding:18px 16px}}
 </style>
 </head>
@@ -48,7 +54,14 @@ footer{margin:28px 0 40px;padding:14px 18px;color:var(--ink-2);font-size:14px}
   <h1 id="h1"></h1>
   <p class="lede" id="lede"></p>
   <nav class="toc" id="toc" aria-label="Lessons"></nav>
+  <p class="time" id="prog" aria-live="polite"></p>
   <main id="lessons"></main>
+  <section class="lesson glass" id="cert" hidden>
+    <h2 id="certh"></h2>
+    <p id="certp"></p>
+    <input class="gl-search" id="certname" autocomplete="name" maxlength="80">
+    <button type="button" id="certprint" class="pill"></button> <button type="button" id="certreset" class="pill"></button>
+  </section>
   <section class="lesson glass" id="glossary">
     <h2 id="glh"></h2>
     <input class="gl-search" id="glq" type="search" autocomplete="off">
@@ -62,8 +75,10 @@ footer{margin:28px 0 40px;padding:14px 18px;color:var(--ink-2);font-size:14px}
   var glossary = [];
   var L = {
     ar: {
+      qz: {"wemi": {"q": "مكتبتان عندهما نسختان من طبعة بيروت 1990 من «كليلة ودمنة». كم تسجيلة «طبعة» (Instance) تلزم؟", "o": ["واحدة، ولكل مكتبة نسختها (Item)", "اثنتان، واحدة لكل مكتبة", "لا شيء، يكفي العمل"], "a": 0, "why": "الطبعة واحدة؛ ما يختلف هو النسخة على رف كل مكتبة."}, "hub": {"q": "ترجمة إنجليزية لـ«كليلة ودمنة»: ما علاقتها بالنص العربي؟", "o": ["طبعة أخرى منه", "عمل قائم بنفسه، «ترجمة لـ» الأصل", "نسخة منه"], "a": 1, "why": "للترجمة مترجمها ولغتها، فهي عمل، وتُربط بالأصل وبالمحور."}, "names": {"q": "أين يُسجَّل «ابن المقفع» و Ibn al-Muqaffaʿ معاً؟", "o": ["في كل تسجيلة بالشكل الذي يحبه المفهرس", "في كيان واحد له شكل مفضل لكل خط", "في الملاحظات"], "a": 1, "why": "كيان واحد يجمع كتبه كلها مهما اختلفت الأشكال."}, "scripts": {"q": "العنوان «كليلة ودمنة» في تسجيلة عربية، كيف يُسجَّل؟", "o": ["بالعربية فقط", "بالكتابة اللاتينية فقط", "بالصيغتين: العربية وKalīlah wa-Dimnah"], "a": 2, "why": "القارئ العربي يبحث بالعربية، والفهارس العالمية باللاتينية."}, "subjects": {"q": "دراسة عن «كليلة ودمنة»: «كليلة ودمنة» فيها…", "o": ["موضوع", "نوع وشكل", "عنوان"], "a": 0, "why": "الدراسة تتحدث عن الكتاب، فهو موضوعها؛ أما نوعها فدراسة."}, "manuscripts": {"q": "إجازة مكتوبة على ظهر نسخة مخطوطة، أين تُسجَّل؟", "o": ["في العمل", "حدثاً على النسخة بأشخاصه وأدوارهم", "في عنوان الطبعة"], "a": 1, "why": "الإجازة على هذه النسخة بعينها، فهي حدث عليها."}, "marc": {"q": "حقل مارك 300 (الوصف المادي) يصير في BIBFRAME…", "o": ["امتداد الطبعة (extent)", "موضوع العمل", "مساهمة"], "a": 0, "why": "عدد الصفحات والإيضاحيات وصف للطبعة."}, "category": {"q": "ديوان المتنبي مطبوع: ما فئته وما شكله في الفهرس؟", "o": ["فئة: كتاب، شكل: مطبوع، والنوع: ديوان", "فئة: شعر، شكل: ديوان", "فئة: مطبوع، شكل: كتاب"], "a": 0, "why": "الفئة والشكل قليلان ثابتان؛ والنوع (ديوان، شعر) وجه آخر للبحث."}, "lcworks": {"q": "يقترح مون أن عملك هو «Kitāb al-ʻibar. Muqaddimah» في مكتبة الكونغرس بدرجة 98. ما الذي تفعله؟", "o": ["يُربط تلقائياً", "تتحقق من المؤلف والعنوان ثم تضغط «اربط» أو «ليس هذا»", "تنسخ التسجيلة"], "a": 1, "why": "لا يُربط شيء دون إنسان؛ الدرجة اقتراح."}, "check": {"q": "حفظتَ تسجيلة ينقصها «نوع المحتوى». ماذا يحدث؟", "o": ["لا تُحفظ", "تُحفظ لكنها لا تُنشر حتى تكتمل", "تُنشر وتظهر ناقصة"], "a": 1, "why": "الحفظ متاح دائماً، والنشر ينتظر الحقول المطلوبة."}},
+      w: {"q": "تمرين", "right": "صحيح.", "wrong": "ليس هذا.", "done": "من 10 دروس أُنجزت", "cert": "الشهادة", "certp": "أنجزت الدروس العشرة. اكتب اسمك كما تريده على الشهادة؛ لا يُرسل إلى أي مكان.", "name": "اسمك", "print": "اطبع الشهادة", "reset": "ابدأ من جديد"},
       h1: 'تعلّم مون', btn: 'English', glh: 'المسرد', glq: 'ابحث عن كلمة (طبعة، URI، Instance)…', min: 'دقائق',
-      lede: 'دروس قصيرة، كل منها دقيقتان أو ثلاث، في الفهرسة بـ BIBFRAME كما يعملها مون. كلها بمثال واحد يعرفه الجميع: «كليلة ودمنة»، الكتاب الذي نقله ابن المقفع إلى العربية في القرن الثاني الهجري، وله اليوم مئات الطبعات والترجمات والمخطوطات.',
+      lede: 'عشرة دروس قصيرة، كل منها دقيقتان أو ثلاث وتمرين، ثم شهادة إتمام، في الفهرسة بـ BIBFRAME كما يعملها مون. كلها بمثال واحد يعرفه الجميع: «كليلة ودمنة»، الكتاب الذي نقله ابن المقفع إلى العربية في القرن الثاني الهجري، وله اليوم مئات الطبعات والترجمات والمخطوطات.',
       foot: '<a href="/moon/?practice=1"><b>تمرّن على نسخة من تسجيلة حقيقية</b></a>: ما تحفظه يبقى في متصفحك ولا يصل إلى الفهرس. وفي المحرر زر «مبسّط» يُظهر الحقول الأساسية وحدها.<br>النص العربي مسودة تنتظر المراجعة. في محرر مون، علامة «؟» بجانب كل حقل تفتح شرحه من هذا المسرد، وصفحة <a href="/marc.html">أين حقل مارك؟</a> تبيّن أين يذهب كل حقل من مارك.',
       lessons: [
         { id: 'wemi', t: 'كتاب واحد، طبعات كثيرة', m: 3,
@@ -94,11 +109,25 @@ footer{margin:28px 0 40px;padding:14px 18px;color:var(--ink-2);font-size:14px}
           body: '<p>إن كنت تعرف مارك فأنت تعرف أكثر مما تظن: الحقل 245 صار عنوان الطبعة، و100 صار المساهمة الرئيسة في العمل، و650 صار الموضوع، و300 صار الامتداد.</p><p>ما لا يحوّله مون بعد لا يضيع: يُحفظ كما هو ويعود عند التصدير إلى مارك.</p>',
           ex: '245 $a ← Instance › title › mainTitle',
           moon: 'في مون: صفحة <a href="/marc.html">أين حقل مارك؟</a> لكل حقل وحقل فرعي، ومحرر مارك داخل مون يحوّل فوراً إلى BIBFRAME.' },
+        { id: "category", t: "الفئة والشكل والنوع", m: 2,
+          body: "<p>يرى القارئ لكل كتاب <b>فئة</b> واحدة (كتاب، مخطوط، دورية، خريطة…) و<b>شكلاً</b> لكل طبعة (مطبوع، مخطوط باليد، على الإنترنت…). يستخرجهما مون مما في التسجيلة: نوع المحتوى ونوع الوسيط والحامل.</p><p>أما <b>النوع والشكل</b> (رواية، ديوان، شرح، فتاوى) فمن قائمة مون العربية المربوطة بمصطلحات مكتبة الكونغرس، فيرى القارئ العربي «رواية» حيث كُتب Novels.</p>",
+          ex: "كتاب · مطبوع · العربية · شعر",
+          moon: "في مون: سطر واحد تحت كل نتيجة، ووجها «الفئة» و«الشكل» في الفهرس، وقائمة <a href=\"/resource/genres-ar.ttl\">النوع والشكل العربية</a>." },
+        { id: "lcworks", t: "الربط بأعمال مكتبة الكونغرس", m: 2,
+          body: "<p>مكتبة الكونغرس تنشر أعمالها ومحاورها (Works وHubs) بعناوين دائمة. ربط عملك بها يجعل فهرسك جزءاً من شبكة واحدة.</p><p>يبحث مون عن كل عمل ويقيّم ما يجده: <b>المؤلف أثقل من العنوان</b>، ورقم LCCN نفسه يحسم. وأنت تقرر كل ربط.</p>",
+          ex: "«المقدمة» لابن خلدون ← محور «Kitāb al-ʻibar. Muqaddimah» في مكتبة الكونغرس، والترجمة الإنجليزية أدنى منه.",
+          moon: "في مون: العمليات الفنية ‹ ربط الأعمال بمكتبة الكونغرس. المحور يصير «تعبيراً عن»، والعمل «هو نفسه»." },
+        { id: "check", t: "قبل النشر", m: 3,
+          body: "<p>تُحفظ التسجيلة دائماً، لكنها لا تُنشر حتى تكتمل الحقول التي تطلبها مكتبة الكونغرس، وما تطلبه مكتبتك فوقها (قواعد المكتبة: ردمك صحيح، LCCN بصيغته، لا تكرار).</p><p>وبعد النشر يُفحص كل يوم بأشكال مجموعة BIG التي تتبادل بها أنظمة BIBFRAME البيانات، وتُعرض النتيجة للعموم.</p>",
+          ex: "ينقص «نوع المحتوى» ← حُفظت، ولم تُنشر بعد.",
+          moon: "في مون: رسالة «حُفظت لكنها لم تُنشر بعد»، وشاشة «قواعد المكتبة عند الحفظ»، و<a href=\"/score.html\">لوحة الجودة</a>." },
       ],
     },
     en: {
+      qz: {"wemi": {"q": "Two libraries each hold a copy of the 1990 Beirut edition of Kalīlah wa-Dimnah. How many Instances?", "o": ["One, each library with its own Item", "Two, one per library", "None, the Work is enough"], "a": 0, "why": "The edition is one; what differs is the copy on each shelf."}, "hub": {"q": "An English translation of Kalīlah wa-Dimnah: how does it relate to the Arabic text?", "o": ["Another edition of it", "A work of its own, a \"translation of\" the original", "A copy of it"], "a": 1, "why": "A translation has its translator and language, so it is a work, linked to the original and the hub."}, "names": {"q": "Where do «ابن المقفع» and Ibn al-Muqaffaʿ go together?", "o": ["In each record, in the cataloguer's favourite form", "In one entity with a preferred form for each script", "In a note"], "a": 1, "why": "One entity gathers all his books, whatever the form."}, "scripts": {"q": "The title كليلة ودمنة in an Arabic record is recorded…", "o": ["In Arabic only", "Romanized only", "In both: Arabic and Kalīlah wa-Dimnah"], "a": 2, "why": "Arabic readers search in Arabic, world catalogues in Latin letters."}, "subjects": {"q": "In a study of Kalīlah wa-Dimnah, \"Kalīlah wa-Dimnah\" is its…", "o": ["Subject", "Genre/form", "Title"], "a": 0, "why": "The study is about the book, so it is its subject; its genre is a study."}, "manuscripts": {"q": "An ijāzah written on the back of a manuscript copy goes…", "o": ["In the Work", "As an event on the copy, with its people and roles", "In the edition's title"], "a": 1, "why": "The ijāzah is on this very copy, so it is an event on it."}, "marc": {"q": "MARC 300 (physical description) becomes in BIBFRAME…", "o": ["The Instance's extent", "The Work's subject", "A contribution"], "a": 0, "why": "Pages and illustrations describe the edition."}, "category": {"q": "A printed dīwān of al-Mutanabbī: its category and format in the catalogue?", "o": ["Category Book, format Printed; genre: dīwān", "Category Poetry, format Dīwān", "Category Printed, format Book"], "a": 0, "why": "Category and format are few and fixed; genre (dīwān, poetry) is another way in."}, "lcworks": {"q": "Moon suggests your work is LC's \"Kitāb al-ʻibar. Muqaddimah\" at 98. What do you do?", "o": ["It links by itself", "Check the author and title, then Link or Not this", "Copy the record"], "a": 1, "why": "Nothing is linked without a person; the score is a suggestion."}, "check": {"q": "You save a record without its content type. What happens?", "o": ["It is not saved", "It is saved, but not published until complete", "It is published, incomplete"], "a": 1, "why": "Saving always works; publishing waits for the required fields."}},
+      w: {"q": "Practice", "right": "Right.", "wrong": "Not this one.", "done": "of 10 lessons done", "cert": "Certificate", "certp": "You have done all ten lessons. Write your name as you want it on the certificate; it is sent nowhere.", "name": "Your name", "print": "Print the certificate", "reset": "Start again"},
       h1: 'Learn Moon', btn: 'العربية', glh: 'Glossary', glq: 'Find a word (Instance, URI, edition)…', min: 'min',
-      lede: "Short lessons, two or three minutes each, on cataloguing in BIBFRAME the way Moon does it. All with one book everyone knows: Kalīlah wa-Dimnah, which Ibn al-Muqaffaʿ brought into Arabic in the 8th century, and which has hundreds of editions, translations and manuscripts today.",
+      lede: "Ten short lessons, two or three minutes each with a practice question, then a certificate of completion, on cataloguing in BIBFRAME the way Moon does it. All with one book everyone knows: Kalīlah wa-Dimnah, which Ibn al-Muqaffaʿ brought into Arabic in the 8th century, and which has hundreds of editions, translations and manuscripts today.",
       foot: '<a href="/moon/?practice=1"><b>Practise on a copy of a real record</b></a>: what you save stays in your browser and never reaches the catalogue. In the editor, the "Simple" button shows the main fields only.<br>The Arabic text is a draft awaiting review. In the Moon editor, the "?" beside each field opens its entry from this glossary, and <a href="/marc.html">Where is my MARC field?</a> shows where each MARC field goes.',
       lessons: [
         { id: 'wemi', t: 'One book, many editions', m: 3,
@@ -129,6 +158,18 @@ footer{margin:28px 0 40px;padding:14px 18px;color:var(--ink-2);font-size:14px}
           body: '<p>If you know MARC you know more than you think: 245 became the Instance\'s title, 100 the Work\'s primary contribution, 650 the subject, 300 the extent.</p><p>What Moon does not map yet is not lost: it is kept as it is and written back on MARC export.</p>',
           ex: '245 $a → Instance › title › mainTitle',
           moon: 'In Moon: <a href="/marc.html">Where is my MARC field?</a> for every field and subfield, and the MARC editor inside Moon that converts to BIBFRAME as you type.' },
+        { id: "category", t: "Category, format and genre", m: 2,
+          body: "<p>Readers see one <b>category</b> for each book (Book, Manuscript, Periodical, Map…) and a <b>format</b> for each edition (Printed, Handwritten, Online…). Moon works them out from what the record says: content type, media type and carrier.</p><p><b>Genre and form</b> (novel, dīwān, commentary, fatwas) come from Moon's Arabic scheme, linked to LC's terms, so an Arabic reader sees «رواية» where the record says Novels.</p>",
+          ex: "Book · Printed · Arabic · Poetry",
+          moon: "In Moon: one line under each result, the Category and Format facets in the catalogue, and the <a href=\"/resource/genres-ar.ttl\">Arabic genre and form terms</a>." },
+        { id: "lcworks", t: "Linking to LC's Works", m: 2,
+          body: "<p>The Library of Congress publishes its Works and Hubs at permanent addresses. Linking your work to them makes your catalogue part of one web.</p><p>Moon searches for each work and scores what it finds: <b>the author counts more than the title</b>, and the same LCCN settles it. You decide each link.</p>",
+          ex: "Ibn Khaldūn's al-Muqaddimah → LC's Hub \"Kitāb al-ʻibar. Muqaddimah\", with the English translation below it.",
+          moon: "In Moon: Technical services › Link works to LC. A Hub becomes \"expression of\", an LC Work \"same as\"." },
+        { id: "check", t: "Before publishing", m: 3,
+          body: "<p>A record is always saved, but not published until it has the fields LC requires, and what your library requires on top (library rules: a right ISBN, the LCCN in its form, no duplicate).</p><p>Once published, it is checked every day against the BIBFRAME Interoperability Group's shapes, which BIBFRAME systems exchange data by, and the result is public.</p>",
+          ex: "No content type → saved, not yet published.",
+          moon: "In Moon: the \"Saved, but not published yet\" message, the Library rules at save screen, and the <a href=\"/score.html\">scorecard</a>." },
       ],
     },
   };
@@ -141,6 +182,42 @@ footer{margin:28px 0 40px;padding:14px 18px;color:var(--ink-2);font-size:14px}
       return '<dt>' + esc(lang === 'ar' ? g.ar : g.en) + ' <span class="draft">' + esc(lang === 'ar' ? g.en : g.ar) + '</span></dt><dd>' + esc(lang === 'ar' ? g.defAr : g.defEn) + '</dd>';
     }).join('');
   }
+  // Practice: one question a lesson; what is answered right is kept in this browser only (moon-learn-done).
+  var done = (function () { try { return JSON.parse(localStorage.getItem('moon-learn-done') || '{}') || {}; } catch (e) { return {}; } })();
+  function save() { try { localStorage.setItem('moon-learn-done', JSON.stringify(done)); } catch (e) {} }
+  function quiz(id, t) {
+    var q = t.qz[id]; if (!q) return '';
+    return '<div class="qz" data-q="' + id + '"><b>' + esc(t.w.q) + (done[id] ? ' ✓' : '') + '</b><p>' + esc(q.q) + '</p>'
+      + q.o.map(function (o, i) { return '<button type="button" data-o="' + i + '">' + esc(o) + '</button>'; }).join('') + '<p class="why" hidden></p></div>';
+  }
+  function progress() {
+    var t = L[lang], n = t.lessons.filter(function (l) { return done[l.id]; }).length;
+    $('prog').textContent = n + ' ' + t.w.done;
+    $('cert').hidden = n < t.lessons.length;
+    $('certh').textContent = t.w.cert; $('certp').textContent = t.w.certp; $('certname').placeholder = t.w.name;
+    $('certprint').textContent = t.w.print; $('certreset').textContent = t.w.reset;
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.qz button'); if (!b) return;
+    var box = b.closest('.qz'), id = box.getAttribute('data-q'), t = L[lang], q = t.qz[id], i = Number(b.getAttribute('data-o'));
+    var ok = i === q.a, why = box.querySelector('.why');
+    why.hidden = false; why.textContent = (ok ? t.w.right + ' ' : t.w.wrong + ' ') + (ok ? q.why : '');
+    box.querySelectorAll('button').forEach(function (x) { x.classList.remove('ok', 'no'); });
+    b.classList.add(ok ? 'ok' : 'no');
+    if (ok && !done[id]) { done[id] = true; save(); box.querySelector('b').textContent = t.w.q + ' ✓'; progress(); }
+  });
+  function printCertificate() {
+    var name = $('certname').value.trim(); if (!name) { $('certname').focus(); return; }
+    var w = window.open('', '_blank'); if (!w) return;
+    var day = new Date().toISOString().slice(0, 10);
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Moon certificate</title><style>body{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;text-align:center;padding:12mm}.c{border:3px double #1d1d1f;padding:16mm 12mm;min-height:150mm}h1{font-family:"Noto Naskh Arabic",serif;font-size:34px;margin:0 0 6mm}.n{font-size:30px;font-weight:700;margin:10mm 0}.s{color:#4a4a4f}</style></head><body><div class="c">'
+      + '<img src="/opac-logo.png" alt="" style="height:60px"><h1>شهادة إتمام · Certificate of completion</h1>'
+      + '<p dir="rtl">أتمّ الدروس العشرة في الفهرسة بـ BIBFRAME في مون، وأجاب عن تمارينها.</p><div class="n" dir="auto">' + esc(name) + '</div>'
+      + '<p>has completed the ten lessons in BIBFRAME cataloguing in Moon, with their practice questions.</p>'
+      + '<p class="s">' + day + ' · mooon.site/learn.html</p><p class="s" style="font-size:12px">A self-paced course; this certificate shows completion, not an assessment by an institution. · دورة ذاتية؛ تشهد هذه الشهادة بالإتمام، لا بتقييم من مؤسسة.</p>'
+      + '</div><script>window.onload=function(){window.print()}<\/script></body></html>');
+    w.document.close();
+  }
   function render() {
     var t = L[lang];
     document.documentElement.lang = lang; document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
@@ -149,12 +226,15 @@ footer{margin:28px 0 40px;padding:14px 18px;color:var(--ink-2);font-size:14px}
     $('toc').innerHTML = t.lessons.map(function (l, i) { return '<a href="#' + l.id + '">' + (i + 1) + '. ' + esc(l.t) + '</a>'; }).join('') + '<a href="#glossary">' + t.glh + '</a>';
     $('lessons').innerHTML = t.lessons.map(function (l, i) {
       return '<section class="lesson glass" id="' + l.id + '"><h2>' + (i + 1) + '. ' + esc(l.t) + '</h2><div class="time">' + (lang === 'ar' ? (l.m === 2 ? 'دقيقتان' : l.m + ' دقائق') : l.m + ' min') + '</div>' + l.body
-        + '<div class="ex">' + esc(l.ex) + '</div><p class="inmoon">' + l.moon + '</p></section>';
+        + '<div class="ex">' + esc(l.ex) + '</div><p class="inmoon">' + l.moon + '</p>' + quiz(l.id, t) + '</section>';
     }).join('');
+    progress();
     renderGlossary();
   }
   $('lang').addEventListener('click', function () { lang = lang === 'ar' ? 'en' : 'ar'; try { localStorage.setItem('moon-learn-lang', lang); } catch (e) {} render(); });
   $('glq').addEventListener('input', renderGlossary);
+  $('certprint').addEventListener('click', printCertificate);
+  $('certreset').addEventListener('click', function () { done = {}; save(); render(); });
   fetch('/glossary.json').then(function (r) { return r.json(); }).then(function (g) { glossary = g; renderGlossary(); }).catch(function () {});
   render();
 })();
