@@ -64,6 +64,7 @@ export function resolveWorkCover(work: { coverUrl?: string; title?: string; id?:
 
 import { allWordsIn, entityNamesOf, matchWork, wordsFound, fuzzyMatchWork } from '../opac/searchIndex';
 import { isSameRecord } from '../opac/sameRecord';
+import { catalogueWorks, searchHits, settleHoldings, partialMatches as sharedPartialMatches } from '../../supabase/functions/server/opacResults.tsx';
 
 /** Language facet: MARC language code -> count of works, labelled as the works label their language. */
 function languageFacets(works: { language?: string; languageLabel?: string }[]): { value: string; label: string; count: number }[] {
@@ -526,18 +527,8 @@ class WolfMoonOpacService {
     }
 
     // 5. An instance with copies is available; one without copies shows "no copies recorded".
-    //    Copies are never made up: no invented shelf marks or barcodes.
-    for (const w of gatheredWorks) {
-      for (const inst of w.instances) {
-        const hasCopies = (inst.items && inst.items.length > 0) ||
-          (w.holdingItems || []).some(it => !it.instanceId || it.instanceId === inst.id);
-        if (!hasCopies) {
-          inst.holdingStatus = 'not_connected';
-        } else if (!inst.holdingStatus || inst.holdingStatus === 'not_connected') {
-          inst.holdingStatus = 'available';
-        }
-      }
-    }
+    //    Copies are never made up: no invented shelf marks or barcodes (opacResults.tsx, as the server does).
+    settleHoldings(gatheredWorks);
 
     // 6. Index all entities & resolve bidirectional relations
     this.works = gatheredWorks;
@@ -566,6 +557,11 @@ class WolfMoonOpacService {
    * Published records (as the server's search returns them) read into the catalogue's works, the same way the
    * whole catalogue is read: for the first page of results shown before the catalogue has arrived (plan step B3).
    */
+  /** Records as GET /records lists them (the server's catalogue results send these) read into works as the catalogue reads them. */
+  public catalogueWorksFrom(entries: any[]): OpacWorkEntity[] {
+    return catalogueWorks(Array.isArray(entries) ? entries : [], getCatalogBaseUri());
+  }
+
   public worksFromRecords(records: any[]): OpacWorkEntity[] {
     return (Array.isArray(records) ? records : []).map((r) => this.parseBibframeDocumentToOpacWork(r)).filter((w): w is OpacWorkEntity => !!w);
   }
@@ -825,24 +821,13 @@ class WolfMoonOpacService {
 
     if (qNorm) {
       // Every word, in any field and order, ignoring accents and spelling variants (see ../opac/searchIndex.ts).
-      const candidates = filtered;
-      filtered = candidates.filter(w => {
-        const m = matchWork(w, parsedQuery.freeText || rawQ);
-        if (!m) return false;
-        w.matchReason = m.reason;
-        (w as any)._matchScore = m.score;
-        return true;
+      // Nothing at all: the same words with one typing slip each ("Bagdad", "Gilgamesch"). The same code as the
+      // server's catalogue results (opacResults.tsx).
+      filtered = searchHits(filtered, parsedQuery.freeText || rawQ).map(h => {
+        h.work.matchReason = h.reason;
+        (h.work as any)._matchScore = h.score;
+        return h.work;
       });
-      // Nothing at all: the same words with one typing slip each ("Bagdad", "Gilgamesch").
-      if (!filtered.length) {
-        filtered = candidates.filter(w => {
-          const m = fuzzyMatchWork(w, parsedQuery.freeText || rawQ);
-          if (!m) return false;
-          w.matchReason = m.reason;
-          (w as any)._matchScore = m.score;
-          return true;
-        });
-      }
     } else if (parsedQuery.clauses.length === 0) {
       // Clear matchReason when no query is typed
       filtered.forEach(w => {
@@ -982,12 +967,7 @@ class WolfMoonOpacService {
    * or more words (one word that matches nothing has no partial match).
    */
   public partialMatches(query: string, limit: number = 6): OpacWorkEntity[] {
-    return this.works
-      .map(w => ({ w, ...wordsFound(w, query) }))
-      .filter(x => x.total >= 2 && x.found >= 1 && x.found < x.total)
-      .sort((a, b) => b.found - a.found)
-      .slice(0, limit)
-      .map(x => x.w);
+    return sharedPartialMatches(this.works, query, limit);
   }
 
   /**
