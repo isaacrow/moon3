@@ -6,11 +6,13 @@
  * The open manuscript and the search are kept in the address (?id=…&q=…), so a refresh or a link opens the same view.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollText, Search, ShieldAlert, ExternalLink, Download, X, ChevronLeft, ChevronRight, Loader2, FileCode2, List } from 'lucide-react';
+import { ScrollText, Search, ShieldAlert, ExternalLink, Download, X, ChevronLeft, ChevronRight, Loader2, FileCode2, List, BarChart3, Sparkles } from 'lucide-react';
 import { moonFetch } from '../utils/moonApi';
 import { useAuth } from '../contexts/AuthContext';
 import { buildMarcRecord, toIso2709, toMrk } from '../utils/manuscriptMarc.js';
 import { glass, input, btn, dark, light } from './CirculationDesk';
+
+const ALQAMAR_URL = 'https://alqamar-manuscripts.onrender.com';
 
 interface Facet { value: string; count: number }
 interface Facets { total: number; libraries: Facet[]; subjects: Facet[]; languages: Facet[] }
@@ -57,6 +59,8 @@ export function ManuscriptsPage({ isAr }: { isAr: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [denied, setDenied] = useState(false);
+  const [suiteTab, setSuiteTab] = useState<'alqamar' | 'insights' | 'quick'>(() => (state.id || state.q ? 'quick' : 'alqamar'));
+  const [iframeLoaded, setIframeLoaded] = useState(false);
   const n = useCallback((v: number) => v.toLocaleString(isAr ? 'ar-EG' : 'en-GB'), [isAr]);
 
   const update = (patch: Partial<ReturnType<typeof readUrl>>) => setState((s) => {
@@ -127,6 +131,93 @@ export function ManuscriptsPage({ isAr }: { isAr: boolean }) {
     </label>
   );
 
+  const activeExternalUrl = suiteTab === 'insights' ? `${ALQAMAR_URL}/insights` : ALQAMAR_URL;
+
+  const switchTab = (next: 'alqamar' | 'insights' | 'quick') => {
+    if (next !== suiteTab) {
+      if (next !== 'quick') setIframeLoaded(false);
+      setSuiteTab(next);
+    }
+  };
+
+  if (suiteTab !== 'quick') {
+    return (
+      <main className="max-w-[1600px] mx-auto px-3 sm:px-5 py-3" dir={isAr ? 'rtl' : 'ltr'}>
+        <header className="flex flex-wrap items-center justify-between gap-2 mb-3 px-4 py-2.5" style={glass}>
+          <div className="flex items-center gap-2">
+            <ScrollText className="h-5 w-5 text-slate-900" />
+            <h1 className="text-base sm:text-lg font-black text-slate-900">
+              {isAr ? 'منظومة القمر للمخطوطات (Al-Qamar)' : 'Al-Qamar Manuscripts Suite'}
+            </h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => switchTab('alqamar')}
+              className={`${suiteTab === 'alqamar' ? dark : light} px-3 py-1.5 text-xs`}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {isAr ? 'القمر الكامل (الفهرسة)' : 'Full Al-Qamar'}
+            </button>
+            <button
+              type="button"
+              onClick={() => switchTab('insights')}
+              className={`${suiteTab === 'insights' ? dark : light} px-3 py-1.5 text-xs`}
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              {isAr ? 'التحليلات والخرائط 3D' : '3D Insights & Map'}
+            </button>
+            <button
+              type="button"
+              onClick={() => switchTab('quick')}
+              className={`${light} px-3 py-1.5 text-xs`}
+            >
+              <Search className="h-3.5 w-3.5" />
+              {isAr ? 'البحث السريع' : 'Quick Search'}
+            </button>
+            <a
+              href={activeExternalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${light} px-3 py-1.5 text-xs`}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              {isAr ? 'ملء الشاشة' : 'New Tab'}
+            </a>
+          </div>
+        </header>
+
+        <div className="relative w-full h-[calc(100vh-145px)] min-h-[680px] rounded-2xl overflow-hidden border border-white/60 shadow-xl bg-slate-950/5">
+          {!iframeLoaded && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 p-6 text-center bg-white/85 backdrop-blur-md">
+              <Loader2 className="h-8 w-8 animate-spin text-slate-800" />
+              <p className="font-bold text-slate-900">
+                {isAr ? 'جاري تشغيل منظومة القمر الكاملة (107,149 مخطوطة)...' : 'Waking up the full Al-Qamar suite (107,149 manuscripts)...'}
+              </p>
+              <p className="text-xs text-slate-600 max-w-md">
+                {isAr
+                  ? 'قد يستغرق التشغيل الأول نحو 30–50 ثانية على الخادم السحابي المجاني، وبعدها يعمل بسرعة فائقة.'
+                  : 'First load on the free cloud host can take 30–50s to wake up; subsequent loads are instant.'}
+              </p>
+              <button type="button" onClick={() => switchTab('quick')} className={`${light} px-3 py-1.5 text-xs mt-1`}>
+                <Search className="h-3.5 w-3.5" />
+                {isAr ? 'استخدم البحث السريع أثناء التحميل' : 'Use Quick Search while loading'}
+              </button>
+            </div>
+          )}
+          <iframe
+            key={activeExternalUrl}
+            src={activeExternalUrl}
+            title={isAr ? 'منظومة القمر للمخطوطات' : 'Al-Qamar Manuscripts Suite'}
+            className="w-full h-full border-0"
+            allow="fullscreen; clipboard-write"
+            onLoad={() => setIframeLoaded(true)}
+          />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6" dir={isAr ? 'rtl' : 'ltr'}>
       <header className="flex flex-wrap items-end justify-between gap-3 mb-4">
@@ -139,6 +230,16 @@ export function ManuscriptsPage({ isAr }: { isAr: boolean }) {
               ? `فهرس القمر: ${facets ? n(facets.total) : '…'} مخطوطة عربية وفارسية وعثمانية · MARC 21 / RDA`
               : `The Al-Qamar catalogue: ${facets ? n(facets.total) : '…'} Arabic, Persian and Ottoman manuscripts · MARC 21 / RDA`}
           </p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <button type="button" onClick={() => switchTab('alqamar')} className={`${dark} px-3 py-1.5 text-xs`}>
+            <Sparkles className="h-3.5 w-3.5" />
+            {isAr ? 'فتح القمر الكامل' : 'Open Full Al-Qamar'}
+          </button>
+          <button type="button" onClick={() => switchTab('insights')} className={`${light} px-3 py-1.5 text-xs`}>
+            <BarChart3 className="h-3.5 w-3.5" />
+            {isAr ? 'التحليلات والخرائط 3D' : '3D Insights & Map'}
+          </button>
         </div>
       </header>
 
