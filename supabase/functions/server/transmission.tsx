@@ -10,7 +10,7 @@
  * and waqf are also summed up in BIBFRAME's own bf:custodialHistory. MARC: 561 (ownership and custodial
  * history), 500 (the other notes), 700 for each person with $e and $4.
  */
-import { readDate, bothCalendars } from './hijri';
+import { readDate, bothCalendars } from './hijri.tsx';
 
 export type EventKind = 'ijazah' | 'sama' | 'qiraa' | 'copying' | 'ownership' | 'waqf';
 export type RoleKey = 'teacher' | 'student' | 'reader' | 'listener' | 'scribe' | 'owner' | 'endower' | 'beneficiary' | 'witness' | 'annotator';

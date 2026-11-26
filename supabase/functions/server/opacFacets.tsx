@@ -4,12 +4,19 @@
  * it (and); each facet's counts are taken with the other facets applied, so a count never promises
  * results that are not there. The choice lives in the address (?f_lang=…&sort=…), so a filtered list
  * can be shared or bookmarked.
+ *
+ * Pure and free of the browser, so the server counts and sorts exactly as the catalogue page does. Labels (and the
+ * order of values with equal counts) depend on the reader's language, which is a parameter here; the page's
+ * src/opac/facets.ts passes its own.
  */
-import { t, opacLang } from './i18n';
-import { addedOrder } from './recent';
-import { readDate, hijriCenturyOf } from '../services/hijri';
-import { formatOf as formatOfInstance, categoryLabel, formatLabel, type CategoryId, type FormatId } from './category';
-import { termFor } from '../../supabase/functions/server/arabicGenres.tsx';
+import { addedOrder } from './opacRecent.tsx';
+import { readDate, hijriCenturyOf } from './hijri.tsx';
+import { formatOf as formatOfInstance, categoryLabel, formatLabel, type CategoryId, type FormatId } from './opacCategory.tsx';
+import { termFor } from './arabicGenres.tsx';
+
+/** The reader's language. */
+export type FacetLang = 'ar' | 'en';
+const t = (lang: FacetLang, ar: string, en: string) => (lang === 'en' ? en : ar);
 
 export type FacetKey = 'avail' | 'category' | 'format' | 'genre' | 'lang' | 'library' | 'decade' | 'century' | 'author' | 'subject' | 'kind';
 export type Selection = Partial<Record<FacetKey, string[]>>;
@@ -24,7 +31,7 @@ export interface FacetWork {
   language?: string;
   languageLabel?: string;
   genreForm?: string[];
-  /** category.ts: one per Work. */
+  /** opacCategory.tsx: one per Work. */
   category?: CategoryId;
   originDate?: string;
   primaryCreator?: Person;
@@ -79,8 +86,8 @@ const LANGUAGE_NAMES_EN: Record<string, string> = {
 
 
 /** A language name (as languageName gives it) in the reader's language. */
-export function languageDisplay(name: string): string {
-  return opacLang() === 'en' ? LANGUAGE_NAMES_EN[name] || name : name;
+export function languageDisplay(name: string, lang: FacetLang): string {
+  return lang === 'en' ? LANGUAGE_NAMES_EN[name] || name : name;
 }
 
 /** A language as readers know it: an LC language URI or code (…/languages/eng, ara) becomes its Arabic name. */
@@ -117,7 +124,7 @@ export function libraryOf(heldBy: string | undefined): string {
   return String(heldBy || '').split(' — ')[0].trim();
 }
 
-/** An edition's format (category.ts): as the record's Instance gave it, else read from its carrier and media. */
+/** An edition's format (opacCategory.tsx): as the record's Instance gave it, else read from its carrier and media. */
 function formatOf(i: { carrierType?: string; mediaType?: string; format?: FormatId }, category?: CategoryId): string | undefined {
   return i.format || formatOfInstance(i, category);
 }
@@ -166,16 +173,16 @@ export function valuesOf(w: FacetWork, key: FacetKey): string[] {
 
 const ordinal = (n: number) => (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');
 
-export function valueLabel(key: FacetKey, value: string): string {
-  if (key === 'avail') return value === 'online' ? t('متاح على الإنترنت', 'Available online') : value === 'physical' ? t('نسخة ورقية في مكتبة', 'Print copy in a library') : value;
+export function valueLabel(key: FacetKey, value: string, lang: FacetLang): string {
+  if (key === 'avail') return value === 'online' ? t(lang, 'متاح على الإنترنت', 'Available online') : value === 'physical' ? t(lang, 'نسخة ورقية في مكتبة', 'Print copy in a library') : value;
   if (key === 'decade') return `${value}–${Number(value) + 9}`;
-  if (key === 'century') return t(`القرن ${value} هـ`, `${value}${ordinal(Number(value))} century AH`);
-  if (key === 'kind') return value === 'translation' ? t('ترجمة', 'Translation') : value === 'hub' ? t('له طبعات وترجمات أخرى', 'Has other editions and translations') : value;
-  if (key === 'lang') return languageDisplay(value);
-  if (key === 'format') return formatLabel(value, opacLang() === 'en');
-  if (key === 'category') return categoryLabel(value, opacLang() === 'en');
+  if (key === 'century') return t(lang, `القرن ${value} هـ`, `${value}${ordinal(Number(value))} century AH`);
+  if (key === 'kind') return value === 'translation' ? t(lang, 'ترجمة', 'Translation') : value === 'hub' ? t(lang, 'له طبعات وترجمات أخرى', 'Has other editions and translations') : value;
+  if (key === 'lang') return languageDisplay(value, lang);
+  if (key === 'format') return formatLabel(value, lang === 'en');
+  if (key === 'category') return categoryLabel(value, lang === 'en');
   // A genre the Arabic genre scheme knows (arabicGenres.tsx, B2) is shown in the reader's language.
-  if (key === 'genre') { const t = termFor(value); return t ? (opacLang() === 'en' ? t.en.replace(/ \(.*\)$/, '') : t.ar) : value; }
+  if (key === 'genre') { const t = termFor(value); return t ? (lang === 'en' ? t.en.replace(/ \(.*\)$/, '') : t.ar) : value; }
   return value;
 }
 
@@ -193,7 +200,7 @@ export function applyFacets<T extends FacetWork>(works: T[], sel: Selection): T[
 }
 
 /** Each facet's values with their counts (other facets applied); chosen values always stay listed. */
-export function facetCounts(works: FacetWork[], sel: Selection): Record<FacetKey, FacetValue[]> {
+export function facetCounts(works: FacetWork[], sel: Selection, lang: FacetLang): Record<FacetKey, FacetValue[]> {
   const out = {} as Record<FacetKey, FacetValue[]>;
   for (const { key } of FACETS) {
     const counts = new Map<string, number>();
@@ -202,10 +209,10 @@ export function facetCounts(works: FacetWork[], sel: Selection): Record<FacetKey
       for (const v of valuesOf(w, key)) counts.set(v, (counts.get(v) || 0) + 1);
     }
     for (const v of sel[key] || []) if (!counts.has(v)) counts.set(v, 0);
-    const list = [...counts].map(([value, count]) => ({ value, label: valueLabel(key, value), count }));
+    const list = [...counts].map(([value, count]) => ({ value, label: valueLabel(key, value, lang), count }));
     list.sort(key === 'decade' || key === 'century'
       ? (a, b) => Number(b.value) - Number(a.value)
-      : (a, b) => b.count - a.count || a.label.localeCompare(b.label, opacLang()));
+      : (a, b) => b.count - a.count || a.label.localeCompare(b.label, lang));
     out[key] = list;
   }
   return out;

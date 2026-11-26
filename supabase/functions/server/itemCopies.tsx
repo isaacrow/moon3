@@ -11,8 +11,8 @@
  *   moon:transmission → the manuscript's notes as events (ijāzah, samāʿ, ownership …; see transmission.ts),
  *   with ownership and waqf summed up in bf:custodialHistory
  */
-import { type TransmissionEvent, eventToNode, nodeToEvent, custodialHistory } from './transmission';
-import { withCondition, conditionOf, isBindingNote, type CopyCondition } from './specialVocab';
+import { type TransmissionEvent, eventToNode, nodeToEvent, custodialHistory } from './transmission.tsx';
+import { withCondition, conditionOf, isBindingNote, type CopyCondition } from './specialVocab.tsx';
 
 export interface ItemCopy extends CopyCondition {
   /** The Item's URI. */
