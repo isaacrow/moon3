@@ -1,0 +1,9 @@
+{
+  "description": "Agent Skills for working with Moon (https://mooon.site), a BIBFRAME 3.0.1 catalogue strong in Arabic, through its MCP server at https://mooon.site/resource/mcp. Agents only ever save drafts; a person reviews and publishes.",
+  "mcp": "https://mooon.site/resource/mcp",
+  "skills": [
+    { "name": "moon-catalogue-from-isbn", "path": "moon-catalogue-from-isbn/SKILL.md", "tools": ["lookup_isbn", "find_entities", "validate_record", "create_draft"] },
+    { "name": "moon-validate-record", "path": "moon-validate-record/SKILL.md", "tools": ["validate_record", "search_records", "get_record", "sparql"] },
+    { "name": "moon-link-entities", "path": "moon-link-entities/SKILL.md", "tools": ["find_entities"] }
+  ]
+}
