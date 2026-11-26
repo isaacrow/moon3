@@ -1290,13 +1290,16 @@ async function resourceDump(c: any, format: 'jsonld' | 'nt') {
   }
 }
 // 🗺️ Sitemap for search engines (served at https://mooon.site/sitemap.xml by the Worker): the catalogue's
-// home and every published record's page, with the date it last changed.
+// home, the site's public pages (the editor's own page, lessons, API, MARC guides) and every published record's
+// page, with the date it last changed.
+const PUBLIC_PAGES = ['editor.html', 'learn.html', 'api.html', 'marc.html', 'round-trip.html', 'bibframe-ar.html', 'score.html'];
 app.get("/make-server-49c0e13c/resource/sitemap.xml", async (c) => {
   try {
     const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
     const records = (await recordStore.listPublishedRecords()).sort((a, b) => String(a.id).localeCompare(String(b.id)));
     const urls = [
       `<url><loc>https://mooon.site/opac.html</loc><changefreq>daily</changefreq></url>`,
+      ...PUBLIC_PAGES.map((p) => `<url><loc>https://mooon.site/${p}</loc></url>`),
       ...records.map((r) => {
         const lastmod = r.saved ? new Date(r.saved) : null;
         const when = lastmod && !isNaN(lastmod.getTime()) ? `<lastmod>${lastmod.toISOString().slice(0, 10)}</lastmod>` : '';
