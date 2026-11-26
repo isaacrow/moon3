@@ -757,6 +757,14 @@ class WolfMoonOpacService {
   /**
    * Parses raw BIBFRAME JSON-LD into unified OpacWorkEntity with full graph dereferencing
    */
+  /**
+   * Published records (as the server's search returns them) read into the catalogue's works, the same way the
+   * whole catalogue is read: for the first page of results shown before the catalogue has arrived (plan step B3).
+   */
+  public worksFromRecords(records: any[]): OpacWorkEntity[] {
+    return (Array.isArray(records) ? records : []).map((r) => this.parseBibframeDocumentToOpacWork(r)).filter((w): w is OpacWorkEntity => !!w);
+  }
+
   private parseBibframeDocumentToOpacWork(recordObj: any): OpacWorkEntity | null {
     try {
       const doc = recordObj.record || recordObj.document || recordObj.graphJson || recordObj.data || recordObj;
