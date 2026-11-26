@@ -26,7 +26,12 @@ const entityFromUrl = (): EntityId => {
 const blank = (entity: EntityId): ListQuery => ({ entity, match: 'all', conditions: [], columns: ENTITIES[entity].columns });
 
 export function ListsPage({ isAr, onOpenRecord }: { isAr: boolean; onOpenRecord?: (id: string) => void }) {
-  const [query, setQuery] = useState<ListQuery>(() => blank(entityFromUrl()));
+  // ?search=…: a list of the books Studio's record search finds for it (from Search records > Make a list).
+  const [query, setQuery] = useState<ListQuery>(() => {
+    const s = new URLSearchParams(window.location.search).get('search');
+    const q = blank(entityFromUrl());
+    return s && q.entity === 'books' ? { ...q, conditions: [{ field: 'search', op: 'finds', value: s.slice(0, 200) }] } : q;
+  });
   const [result, setResult] = useState<Result | null>(null);
   const [saved, setSaved] = useState<Saved[]>([]);
   const [current, setCurrent] = useState<Saved | null>(null);
@@ -53,6 +58,12 @@ export function ListsPage({ isAr, onOpenRecord }: { isAr: boolean; onOpenRecord?
     moonFetch<any>('/lists/ready').then((r) => { if (r.ok) setReady(r.data.lists || []); });
   }, []);
   useEffect(loadReady, [loadReady]);
+  const startedFromSearch = React.useRef(false);
+  useEffect(() => {
+    if (startedFromSearch.current || !query.conditions.some((c) => c.field === 'search')) return;
+    startedFromSearch.current = true;
+    void run(query);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // A section menu opens Lists on another kind of row (?tab=); start a new list of that kind.
   useEffect(() => {
     const onPop = () => { const id = entityFromUrl(); setQuery((q) => (q.entity === id ? q : blank(id))); setResult(null); setCurrent(null); setName(''); setReadyId(null); };
@@ -277,7 +288,7 @@ export function ListsPage({ isAr, onOpenRecord }: { isAr: boolean; onOpenRecord?
           <div className="mt-4">
             <div className="text-xs font-bold text-slate-700 mb-1">{L('Columns', 'الأعمدة')}</div>
             <div className="flex flex-wrap gap-1">
-              {entity.fields.map((f) => {
+              {entity.fields.filter((f) => f.type !== 'search').map((f) => {
                 const on = query.columns.includes(f.key);
                 return (
                   <button key={f.key} type="button" onClick={() => toggleColumn(f.key)}

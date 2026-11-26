@@ -118,3 +118,17 @@ test('subjects are counted on the Work, not on the Instance', () => {
   assert.equal(subjectsIn({ '@graph': [{ '@type': 'bf:Work' }, { '@type': 'bf:Print' , 'bf:instanceOf': {} }] }), 0);
   assert.equal(subjectsIn(null), 0);
 });
+
+test('a "Record search finds" condition keeps exactly what the search found, with NOT and with other conditions', () => {
+  const books = [{ id: 'r1', status: 'complete' }, { id: 'r2', status: 'pending-review' }, { id: 'r3', status: 'complete' }];
+  const read = readQuery({ entity: 'books', conditions: [{ field: 'search', op: 'finds', value: 'karbala' }] });
+  assert.ok('query' in read);
+  const q = (read as any).query;
+  const search = (s: string) => new Set(s === 'karbala' ? ['r1', 'r2'] : []);
+  assert.deepEqual(runQuery(books, q, NOW, search).map((r) => r.id), ['r1', 'r2']);
+  assert.deepEqual(runQuery(books, { ...q, conditions: [{ ...q.conditions[0], not: true }] }, NOW, search).map((r) => r.id), ['r3']);
+  const published = { ...q, conditions: [...q.conditions, { field: 'status', op: 'is', value: 'complete' }] };
+  assert.deepEqual(runQuery(books, published, NOW, search).map((r) => r.id), ['r1']);
+  assert.deepEqual(runQuery(books, q, NOW).map((r) => r.id), [], 'without the search, nothing is guessed');
+  assert.ok('error' in readQuery({ entity: 'books', conditions: [{ field: 'search', op: 'contains', value: 'x' }] }));
+});

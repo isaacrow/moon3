@@ -120,3 +120,17 @@ export function searchDocs<R>(
     results: hits.slice(offset, offset + limit).map((x) => ({ record: x.d.record, score: x.m!.score, reason: x.m!.reason })),
   };
 }
+
+/**
+ * Every entity's names in both scripts, by its address, for setEntityNames: so a book is found by any name of its
+ * people, subjects and places. One function for the catalogue's search and for Lists (plan step H4).
+ */
+export function entityNameForms(entities: Array<{ id: string; kind: string; label?: string; variants?: unknown; mergedInto?: string | null }>, base: string): Record<string, string[]> {
+  const forms: Record<string, string[]> = {};
+  for (const e of entities) {
+    if (e.mergedInto || !e.label) continue;
+    const names = [...new Set([e.label, ...(Array.isArray(e.variants) ? e.variants : [])].filter((n: unknown) => typeof n === "string" && n.trim()))].slice(0, 30) as string[];
+    if (names.length > 1) forms[`${base}/${e.kind}/${e.id}`] = names;
+  }
+  return forms;
+}

@@ -46,7 +46,7 @@ import accountRoutes, { getSession, isAdminSession, canReview, isReviewer, SUPER
 import { applyOwnership, withOwners, withoutOwners, blockedMessage } from "./protectedValues.tsx";
 import * as recordStore from "./recordStore.tsx";
 import * as linkedData from "./linkedData.tsx";
-import { searchableOf, searchDocs, type SearchDoc } from "./searchDocs.tsx";
+import { searchableOf, searchDocs, entityNameForms, type SearchDoc } from "./searchDocs.tsx";
 import { checkBig, lcLinkCoverage } from "./bigShapes.tsx";
 import { matchWork, fuzzyMatchWork, setEntityNames } from "./searchCore.tsx";
 import * as sparqlStore from "./sparqlEndpoint.tsx";
@@ -2584,13 +2584,7 @@ async function publishedSearchDocs(): Promise<Array<SearchDoc<any>>> {
   if (publishedIndex?.loading) return publishedIndex.loading;
   const loading = (async () => {
     const [records, entities] = await Promise.all([recordStore.listPublishedRecords(), recordStore.listAllAuthorities()]);
-    const forms: Record<string, string[]> = {};
-    for (const e of entities as any[]) {
-      if (e.mergedInto || !e.label) continue;
-      const names = [...new Set([e.label, ...(Array.isArray(e.variants) ? e.variants : [])].filter((n: unknown) => typeof n === 'string' && n.trim()))].slice(0, 30);
-      if (names.length > 1) forms[`${linkedData.BASE_URI}/${e.kind}/${e.id}`] = names;
-    }
-    setEntityNames(forms);
+    setEntityNames(entityNameForms(entities as any[], linkedData.BASE_URI));
     const docs = (records as any[]).map((record) => ({ record, work: searchableOf(record.document)! })).filter((d) => d.work);
     publishedIndex = { at: Date.now(), docs };
     return docs;

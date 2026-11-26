@@ -357,6 +357,13 @@ export function SearchPage({ onLoadRecord, onNewRecord }: SearchPageProps) {
                 {total} {t('recordsFound')}
               </span>
             </div>
+            {query.trim() && total > 0 && (
+              // The same search, as a list (plan step H4): Lists asks this very search, so the counts agree.
+              <a className="glass-panel px-4 py-2 text-sm font-bold underline" style={{ color: '#575757' }}
+                href={`../lists/?tab=books&search=${encodeURIComponent(query.trim())}`}>
+                {lang === 'ar' ? 'اجعلها قائمة' : 'Make a list'}
+              </a>
+            )}
             {(['status', 'language', 'template', 'cataloger'] as const).map((key) => {
               const options = Object.entries(facets[key] || {}).sort((a, b) => b[1] - a[1]);
               if (options.length === 0 && !filters[key]) return null;

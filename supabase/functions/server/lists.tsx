@@ -13,7 +13,7 @@
  */
 import { fold } from "./searchCore.tsx";
 
-export type FieldType = "text" | "number" | "date" | "bool" | "choice";
+export type FieldType = "text" | "number" | "date" | "bool" | "choice" | "search";
 export interface ListField { key: string; en: string; ar: string; type: FieldType; choices?: Array<{ v: string; en: string; ar: string }> }
 export type EntityId = "books" | "people" | "copies" | "loans" | "borrowers" | "holds" | "orders" | "invoices" | "subscriptions" | "vendors" | "funds";
 export interface ListEntity { id: EntityId; en: string; ar: string; fields: ListField[]; columns: string[] }
@@ -29,6 +29,8 @@ export const ENTITIES: Record<EntityId, ListEntity> = {
       t("status", "Status", "الحالة", "choice", [c("complete", "Published", "منشورة"), c("pending-review", "Waiting for review", "بانتظار المراجعة"), c("needs-review", "Returned for changes", "معادة للتعديل")]),
       t("cataloger", "Cataloguer", "المفهرس"), t("assigned_to", "Reviewer", "المراجع"),
       t("copies", "Copies", "عدد النسخ", "number"), t("subjects", "Subjects", "عدد الموضوعات", "number"),
+      // Studio's record search itself (moon_search_records), so a list and a search never disagree (plan step H4).
+      t("search", "Record search", "بحث التسجيلات", "search"),
       t("created_at", "Created", "تاريخ الإنشاء", "date"), t("updated_at", "Last changed", "آخر تعديل", "date"), t("approved_at", "Published on", "تاريخ النشر", "date"),
     ],
     columns: ["id", "title", "status", "cataloger", "copies", "updated_at"],
@@ -138,18 +140,20 @@ export const ENTITIES: Record<EntityId, ListEntity> = {
 };
 export const ENTITY_IDS = Object.keys(ENTITIES) as EntityId[];
 
-export type Op = "is" | "contains" | "starts" | "anyOf" | "empty" | "before" | "after" | "more" | "less";
+export type Op = "is" | "contains" | "starts" | "anyOf" | "empty" | "before" | "after" | "more" | "less" | "finds";
 export const OPS_BY_TYPE: Record<FieldType, Op[]> = {
   text: ["contains", "is", "starts", "anyOf", "empty"],
   choice: ["is", "anyOf", "empty"],
   number: ["is", "more", "less", "empty"],
   date: ["is", "before", "after", "empty"],
   bool: ["is"],
+  search: ["finds"],
 };
 export const OP_NAMES: Record<Op, { en: string; ar: string }> = {
   is: { en: "is", ar: "يساوي" }, contains: { en: "contains", ar: "يحتوي" }, starts: { en: "starts with", ar: "يبدأ بـ" },
   anyOf: { en: "is any of", ar: "أيٌّ من" }, empty: { en: "is empty", ar: "فارغ" },
   before: { en: "is before", ar: "قبل" }, after: { en: "is after", ar: "بعد" }, more: { en: "is more than", ar: "أكبر من" }, less: { en: "is less than", ar: "أصغر من" },
+  finds: { en: "finds", ar: "يجد" },
 };
 
 export interface Condition { field: string; op: Op; value?: string | string[]; not?: boolean }
@@ -236,10 +240,25 @@ function holds(row: Row, cond: Condition, type: FieldType, now: Date): boolean {
   }
 }
 
+/**
+ * What Studio's record search finds, by row id: given by the server (listsRoutes.tsx asks the same database search
+ * Studio's Search records screen uses), so a "Record search finds …" condition keeps exactly the records that
+ * search finds, never an imitation of it.
+ */
+export type SearchFinder = (query: string) => Set<string>;
+
 /** The rows the query keeps, sorted. */
-export function runQuery(rows: Row[], q: ListQuery, now = new Date()): Row[] {
+export function runQuery(rows: Row[], q: ListQuery, now = new Date(), search?: SearchFinder): Row[] {
   const types = new Map(ENTITIES[q.entity].fields.map((f) => [f.key, f.type]));
-  const test = (r: Row, cond: Condition) => holds(r, cond, types.get(cond.field) || "text", now) !== !!cond.not;
+  const found = new Map<string, Set<string>>();
+  const finds = (r: Row, query: string) => {
+    if (!search) return false;
+    if (!found.has(query)) found.set(query, search(query));
+    return found.get(query)!.has(String(r.id));
+  };
+  const test = (r: Row, cond: Condition) => (types.get(cond.field) === "search"
+    ? finds(r, String(cond.value ?? ""))
+    : holds(r, cond, types.get(cond.field) || "text", now)) !== !!cond.not;
   const kept = q.conditions.length
     ? rows.filter((r) => (q.match === "any" ? q.conditions.some((x) => test(r, x)) : q.conditions.every((x) => test(r, x))))
     : rows.slice();
