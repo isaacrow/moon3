@@ -36,7 +36,7 @@ import * as bfArabic from "./bibframeArabic.tsx";
 import * as arabicGenres from "./arabicGenres.tsx";
 import * as libraryRules from "./libraryRules.tsx";
 import { readSequence, formatNumber, SEQUENCE_KINDS } from "./sequences.tsx";
-import { getClient } from "./db.tsx";
+import { getClient, withActorStore } from "./db.tsx";
 import readerRoutes from "./readerRoutes.tsx";
 import manuscriptsRoutes from "./manuscriptsRoutes.tsx";
 import accountRoutes, { getSession, isAdminSession, canReview, isReviewer, SUPER_ADMIN_USERNAME, libraryOf } from "./accountRoutes.tsx";
@@ -186,6 +186,8 @@ bootMoonEngine().catch(err => {
 });
 
 // Enable logger
+// Each request in its own store, so getSession can name who is asking for the history trigger (db.tsx, H5).
+app.use('*', (_c, next) => withActorStore(() => next()));
 app.use('*', logger(console.log));
 
 // Enable CORS for all routes and methods
@@ -1651,6 +1653,24 @@ app.put("/make-server-49c0e13c/library-rules", async (c) => {
   const rules = libraryRules.parseRules(await c.req.json().catch(() => ({})));
   await kv.set(RULES_KEY(library), rules);
   return c.json({ library, rules });
+});
+
+// Version history (plan step H5): who changed what and when, written by the database's trigger (change_history).
+// Library staff read their own library's entries.
+const HISTORY_TABLES: Record<string, string> = {
+  vendors: "acq_vendors", funds: "acq_funds", orders: "acq_orders", invoices: "acq_invoices", subscriptions: "acq_subscriptions", borrowers: "patrons",
+};
+app.get("/make-server-49c0e13c/history/:entity/:id", async (c) => {
+  const s = await getSession(c);
+  if (!s || !["admin", "reviewer", "cataloger"].includes(s.role)) return c.json({ error: "Library staff only" }, 403);
+  const table = HISTORY_TABLES[c.req.param("entity")];
+  const id = c.req.param("id");
+  if (!table || !/^[\w-]{1,64}$/.test(id)) return c.json({ error: "Not an entry" }, 400);
+  const library = await libraryOf(s.username);
+  const { data, error } = await (getClient() as any).from("change_history").select("id, action, at, actor, changed, before, after")
+    .eq("entity", table).eq("row_id", id).eq("library", library).order("at", { ascending: false }).limit(200);
+  if (error) return c.json({ error: "The history could not be read" }, 500);
+  return c.json({ history: data || [] });
 });
 
 // Number sequences (sequences.tsx, plan step H6): the library's barcode and card sequences; taking numbers is in

@@ -15,6 +15,7 @@
  * The Super Admin is not stored as an account; its password comes from the
  * MOON_ADMIN_PASSWORD secret.
  */
+import { setActor } from "./db.tsx";
 import { Hono } from "npm:hono";
 import * as kv from "./kv_store.tsx";
 import {
@@ -165,6 +166,7 @@ export async function getSession(c: any): Promise<Session | null> {
     await kv.del(key).catch(() => {});
     return null;
   }
+  setActor(session.username);
   if (session.role !== "admin") {
     // A tester who was later rejected or deleted loses access immediately.
     const account = await getAccount(session.username);

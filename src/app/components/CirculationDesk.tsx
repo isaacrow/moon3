@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { moonFetch } from '../utils/moonApi';
 import { code128Svg } from '../utils/code128';
+import { ChangeHistory } from './ChangeHistory';
 import { useAuth } from '../contexts/AuthContext';
 
 export type DeskTab = 'desk' | 'patrons' | 'loans' | 'holds' | 'rules';
@@ -434,6 +435,7 @@ function Patrons({ isAr, onChange }: { isAr: boolean; onChange: () => void }) {
               <button type="button" className={light} onClick={() => setForm(null)}>{isAr ? 'إلغاء' : 'Cancel'}</button>
               {form.id && form.card && <button type="button" className={light} onClick={() => printCards([{ name: form.name, card: form.card, kind: form.kind }], isAr)}><Printer className="h-4 w-4" />{isAr ? 'اطبع البطاقة' : 'Print card'}</button>}
             </div>
+            {form.id && <ChangeHistory entity="borrowers" id={form.id} isAr={isAr} />}
           </form>
         ) : open ? (
           <div className="space-y-4">

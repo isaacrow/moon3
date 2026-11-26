@@ -13,6 +13,7 @@ import {
 import { moonFetch } from '../utils/moonApi';
 import { useAuth } from '../contexts/AuthContext';
 import { glass, input, btn, dark, light, Field } from './CirculationDesk';
+import { ChangeHistory } from './ChangeHistory';
 
 export type AcqTab = 'overview' | 'orders' | 'claims' | 'vendors' | 'funds' | 'invoices' | 'subscriptions';
 export const ACQ_TABS: AcqTab[] = ['overview', 'orders', 'claims', 'vendors', 'funds', 'invoices', 'subscriptions'];
@@ -430,6 +431,7 @@ function Entries({ kind, isAr, refs, onChange, canEdit, canBudget, onOpenRecord,
               <button type="button" className={light} onClick={() => setForm(null)}>{isAr ? 'إلغاء' : 'Cancel'}</button>
               {form.id && (kind !== 'invoices' || canBudget) && <button type="button" className={`${light} ms-auto`} onClick={remove} aria-label={isAr ? 'حذف' : 'Remove'}><Trash2 className="h-4 w-4" /></button>}
             </div>
+            {form.id && <ChangeHistory entity={kind} id={form.id} isAr={isAr} labels={Object.fromEntries(FIELDS[kind].map((f) => [f.key, isAr ? f.ar : f.en]))} />}
           </form>
         ) : (
           <p className="text-sm text-slate-500">
