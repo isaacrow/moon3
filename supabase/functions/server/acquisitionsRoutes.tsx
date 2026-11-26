@@ -21,6 +21,7 @@ import { getSession, libraryOf } from "./accountRoutes.tsx";
 import { ACQ_KINDS, readEntry, nextOrderNumber, fundStatus, lateIssues, endingSoon, readReceipt, firstInstanceId, receiptRows, lateOrders, type AcqKind } from "./acquisitions.tsx";
 import * as recordStore from "./recordStore.tsx";
 import { withCopies } from "./copiesImport.tsx";
+import { callNumbersWanted, giveCallNumbers } from "./sequences.tsx";
 import { copiesIn } from "./circulation.tsx";
 
 const acquisitionsRoutes = new Hono();
@@ -236,6 +237,19 @@ acquisitionsRoutes.post(`${P}/orders/:id/add-copies`, async (c) => {
     // Each copy takes an accession number from the library's accession sequence (H6), when it has one.
     const { data: accessions } = await sb().rpc("moon_take_numbers", { p_library: st.library, p_kind: "accession", p_count: read.input.count });
     const rows = receiptRows(read.input, order, st.library, already + 1, accessions || []);
+    // No call number typed: the edition's own, or the next local call number (H6) when the sequence is set to.
+    if (!read.input.shelfMark.trim()) {
+      const { data: callSeq } = await sb().from("number_sequences").select("for_new_copies").eq("library", st.library).eq("kind", "callno").maybeSingle();
+      if (callSeq?.for_new_copies === true) {
+        const groups = [{ instance, rows }];
+        let numbers: string[] = [];
+        if (callNumbersWanted(rec.document, groups)) {
+          const { data: taken } = await sb().rpc("moon_take_numbers", { p_library: st.library, p_kind: "callno", p_count: 1 });
+          numbers = (taken || []).map(String);
+        }
+        giveCallNumbers(rec.document, groups, numbers);
+      }
+    }
     const document = withCopies(rec.document, instance, rows as any, Date.now().toString(36));
     await recordStore.saveRecord({ ...rec, document, saved: new Date().toISOString() }, st.username, `acquisitions: ${order.number} received`,
       Number.isInteger(rec.version) ? rec.version : undefined);

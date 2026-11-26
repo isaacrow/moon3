@@ -80,16 +80,17 @@ export function LibraryRulesPage({ isAr }: { isAr: boolean }) {
   );
 }
 
-/** Number sequences (plan step H6): where new barcodes, borrower cards and copies' accession numbers come from. */
+/** Number sequences (plan step H6): where new barcodes, borrower cards, copies' accession numbers and local call numbers come from. */
 function Sequences({ isAr }: { isAr: boolean }) {
   const [data, setData] = useState<any>(null);
-  const [draft, setDraft] = useState<Record<string, { prefix: string; next: string; width: string }>>({});
+  const [draft, setDraft] = useState<Record<string, { prefix: string; next: string; width: string; forNewCopies?: boolean }>>({});
   const L = (en: string, ar: string) => (isAr ? ar : en);
   const load = () => moonFetch<any>('/sequences').then((r) => {
     if (!r.ok) return;
     setData(r.data);
     setDraft(Object.fromEntries(r.data.kinds.map((k: string) => {
       const s = r.data.sequences[k];
+      if (k === 'callno') return [k, s ? { prefix: s.prefix, next: String(s.next), width: String(s.width), forNewCopies: !!s.forNewCopies } : { prefix: 'MS ', next: '1', width: '4', forNewCopies: false }];
       return [k, s ? { prefix: s.prefix, next: String(s.next), width: String(s.width) } : { prefix: k === 'barcode' ? 'B' : k === 'accession' ? 'A' : 'C', next: '1', width: '6' }];
     })));
   });
@@ -98,11 +99,12 @@ function Sequences({ isAr }: { isAr: boolean }) {
   const NAMES: Record<string, [string, string, string, string]> = {
     barcode: ['Copy barcodes', 'باركودات النسخ', 'Used when copies are added from an order without barcodes.', 'تُستعمل عند إضافة نسخ طلب شراء بلا باركود.'],
     accession: ['Accession numbers', 'أرقام التزويد', 'Each copy added from an order takes the next one.', 'تأخذ كل نسخة تُضاف من طلب شراء الرقم التالي.'],
+    callno: ['Local shelf marks', 'أرقام الرف المحلية', 'Running numbers such as MS 0001, not LC or Dewey. The cataloguer takes one for a copy in the editor.', 'أرقام متسلسلة مثل MS 0001، لا تصنيف مكتبة الكونغرس أو ديوي. يأخذ المفهرس رقماً للنسخة من المحرر.'],
     card: ['Borrower cards', 'بطاقات المستفيدين', 'Used when a new borrower is added without a card number.', 'تُستعمل عند إضافة مستفيد جديد بلا رقم بطاقة.'],
   };
   const save = async (kind: string, off = false) => {
     const d = draft[kind];
-    const r = await moonFetch<any>(`/sequences/${kind}`, { method: 'PUT', body: off ? { off: true } : { prefix: d.prefix, next: Number(d.next), width: Number(d.width) } });
+    const r = await moonFetch<any>(`/sequences/${kind}`, { method: 'PUT', body: off ? { off: true } : { prefix: d.prefix, next: Number(d.next), width: Number(d.width), ...(kind === 'callno' ? { forNewCopies: !!d.forNewCopies } : {}) } });
     if (!r.ok) { toast.error(r.data?.error || L('Not saved', 'لم يُحفظ')); return; }
     toast.success(off ? L('Sequence turned off', 'أُوقف التسلسل') : L(`Next: ${r.data.sequence.nextValue}`, `التالي: ${r.data.sequence.nextValue}`));
     load();
@@ -128,6 +130,12 @@ function Sequences({ isAr }: { isAr: boolean }) {
                   <label className="text-xs">{L('Next number', 'الرقم التالي')}<input type="number" min={1} className="block w-28 rounded-lg px-2 py-1 border border-slate-300 bg-white/80" value={d.next} onChange={(e) => setDraft({ ...draft, [k]: { ...d, next: e.target.value } })} /></label>
                   <label className="text-xs">{L('Digits', 'عدد الخانات')}<input type="number" min={0} max={12} className="block w-16 rounded-lg px-2 py-1 border border-slate-300 bg-white/80" value={d.width} onChange={(e) => setDraft({ ...draft, [k]: { ...d, width: e.target.value } })} /></label>
                   <span className="text-xs text-slate-600 pb-1.5">→ <code>{preview(d)}</code></span>
+                  {k === 'callno' && (
+                    <label className="text-xs inline-flex items-center gap-1 pb-1.5" dir={isAr ? 'rtl' : 'ltr'}>
+                      <input type="checkbox" checked={!!d.forNewCopies} onChange={(e) => setDraft({ ...draft, [k]: { ...d, forNewCopies: e.target.checked } })} />
+                      {L('Copies from orders and imports without one take one too', 'تأخذ نسخ طلبات الشراء والاستيراد التي بلا رقم رقماً منه أيضاً')}
+                    </label>
+                  )}
                   <button className={dark} onClick={() => save(k)}>{on ? L('Save', 'احفظ') : L('Turn on', 'فعّل')}</button>
                   {on && <button className="text-xs underline pb-1.5" onClick={() => save(k, true)}>{L('Turn off', 'أوقف')}</button>}
                 </div>

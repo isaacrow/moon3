@@ -40,7 +40,7 @@ import { folioInstanceLines, toJsonLines } from "./folioLd.tsx";
 import { freshCache } from "./freshCache.tsx";
 import { workFacts } from "./lcWorks.tsx";
 import * as libraryRules from "./libraryRules.tsx";
-import { readSequence, formatNumber, SEQUENCE_KINDS } from "./sequences.tsx";
+import { readSequence, formatNumber, SEQUENCE_KINDS, callNumbersWanted, giveCallNumbers } from "./sequences.tsx";
 import { getClient, withActorStore } from "./db.tsx";
 import readerRoutes from "./readerRoutes.tsx";
 import manuscriptsRoutes from "./manuscriptsRoutes.tsx";
@@ -1731,15 +1731,16 @@ app.get("/make-server-49c0e13c/history/:entity/:id", async (c) => {
   return c.json({ history: data || [] });
 });
 
-// Number sequences (sequences.tsx, plan step H6): the library's barcode and card sequences; taking numbers is in
-// the database (moon_take_numbers), used by the loan desk and Acquisitions too.
+// Number sequences (sequences.tsx, plan step H6): the library's barcode, card, accession and call-number
+// sequences; taking numbers is in the database (moon_take_numbers), used by the loan desk and Acquisitions too.
 app.get("/make-server-49c0e13c/sequences", async (c) => {
   const s = await getSession(c);
   if (!s) return c.json({ error: "Sign in" }, 401);
   const library = await libraryOf(s.username);
-  const { data, error } = await (getClient() as any).from("number_sequences").select("kind, prefix, next, width").eq("library", library);
+  const { data, error } = await (getClient() as any).from("number_sequences").select("kind, prefix, next, width, for_new_copies").eq("library", library);
   if (error) return c.json({ error: "The sequences could not be read" }, 500);
-  const sequences = Object.fromEntries((data || []).map((r: any) => [r.kind, { ...r, nextValue: formatNumber(r.prefix, Number(r.next), r.width) }]));
+  const sequences = Object.fromEntries((data || []).map(({ for_new_copies, ...r }: any) =>
+    [r.kind, { ...r, forNewCopies: for_new_copies === true, nextValue: formatNumber(r.prefix, Number(r.next), r.width) }]));
   return c.json({ library, kinds: SEQUENCE_KINDS, sequences, canEdit: canReview(s) });
 });
 app.put("/make-server-49c0e13c/sequences/:kind", async (c) => {
@@ -1753,10 +1754,21 @@ app.put("/make-server-49c0e13c/sequences/:kind", async (c) => {
   }
   const read = readSequence(c.req.param("kind"), body);
   if ("error" in read) return c.json({ error: read.error }, 400);
-  const { kind, prefix, next, width } = read.sequence;
-  const { error } = await (getClient() as any).from("number_sequences").upsert({ library, kind, prefix, next, width, updated_by: s.username, updated_at: new Date().toISOString() });
+  const { kind, prefix, next, width, forNewCopies } = read.sequence;
+  const { error } = await (getClient() as any).from("number_sequences").upsert({ library, kind, prefix, next, width, for_new_copies: forNewCopies === true, updated_by: s.username, updated_at: new Date().toISOString() });
   if (error) return c.json({ error: "The sequence could not be saved" }, 500);
-  return c.json({ sequence: { kind, prefix, next, width, nextValue: formatNumber(prefix, next, width) } });
+  return c.json({ sequence: { kind, prefix, next, width, forNewCopies: forNewCopies === true, nextValue: formatNumber(prefix, next, width) } });
+});
+// The editor's copies panel takes the next local call number for a copy that has none (the cataloguer asks; the
+// panel never replaces a typed one). A number taken and not saved is simply skipped, as at a desk.
+app.post("/make-server-49c0e13c/sequences/callno/take", async (c) => {
+  const s = await getSession(c);
+  if (!s) return c.json({ error: "Sign in" }, 401);
+  const library = await libraryOf(s.username);
+  const { data, error } = await (getClient() as any).rpc("moon_take_numbers", { p_library: library, p_kind: "callno", p_count: 1 });
+  if (error) return c.json({ error: "No call number could be taken" }, 500);
+  if (!data?.length) return c.json({ error: "This library has no call-number sequence" }, 404);
+  return c.json({ number: String(data[0]) });
 });
 
 // Arabic genre and form terms (arabicGenres.tsx, plan step B2): the scheme as SKOS and as JSON, CC0.
@@ -2089,14 +2101,28 @@ app.post("/make-server-49c0e13c/records/copies-import", async (c) => {
     const summary = { rows: rows.length, add: count('add'), alreadyThere: count('already there'), noSuchBook: count('no such book'),
       severalBooks: count('several books'), repeated: count('repeated in the sheet') };
     const report = plan.map((p) => ({ line: p.line, status: p.status, recordId: p.recordId, title: p.title, isbn: p.row.isbn, shelfMark: p.row.shelfMark, library: p.row.library }));
-    if (body.dryRun) return c.json({ dryRun: true, summary, problems, plan: report });
     const byId = new Map((records as any[]).map((r) => [r.id, r]));
+    // Copies without a call number take one from the library's call-number sequence (H6) when it is set to,
+    // one per edition (or the edition's own, when its copies share one).
+    const groupsByRecord = byRecord(plan);
+    const library = await libraryOf(admin.username);
+    const { data: callSeq } = await (getClient() as any).from("number_sequences").select("for_new_copies").eq("library", library).eq("kind", "callno").maybeSingle();
+    const wanted = callSeq?.for_new_copies === true
+      ? [...groupsByRecord].reduce((n, [id, groups]) => n + callNumbersWanted(byId.get(id)?.document, groups), 0) : 0;
+    (summary as any).callNumbers = wanted;
+    if (body.dryRun) return c.json({ dryRun: true, summary, problems, plan: report });
+    let callNumbers: string[] = [];
+    if (wanted) {
+      const { data: taken } = await (getClient() as any).rpc("moon_take_numbers", { p_library: library, p_kind: "callno", p_count: wanted });
+      callNumbers = (taken || []).map(String);
+    }
     const salt = Date.now().toString(36);
     let saved = 0, added = 0;
     const failed: string[] = [];
-    for (const [recordId, groups] of byRecord(plan)) {
+    for (const [recordId, groups] of groupsByRecord) {
       const rec = byId.get(recordId);
       try {
+        if (callNumbers.length) callNumbers = callNumbers.slice(giveCallNumbers(rec.document, groups, callNumbers));
         let document = rec.document;
         for (const g of groups) { document = withCopies(document, g.instance, g.rows, salt); added += g.rows.length; }
         await recordStore.saveRecord({ ...rec, document, saved: new Date().toISOString() }, admin.username, 'copies import',
