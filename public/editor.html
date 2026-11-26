@@ -17,7 +17,7 @@
 <link rel="icon" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@700&display=swap" rel="stylesheet">
 <style>
 :root{--ink:#1d1d1f;--ink-2:#4a4a4f;--ink-3:#6b6b70;--hair:rgba(0,0,0,.08);--bg-top:#f5f5f6;--bg-bottom:#c9c9cc;--glass-bg:rgba(255,255,255,.6)}
 *{box-sizing:border-box}
@@ -36,7 +36,8 @@ h1{font-family:'Noto Naskh Arabic',serif;font-size:clamp(32px,5vw,48px);line-hei
 .btn{display:inline-block;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:600;border:1px solid #fff}
 .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
 .btn.secondary{background:rgba(255,255,255,.7)}
-/* Warp carousel. Plain row first (no script, or less motion); .is-warp turns on the 3D stage. */
+/* Warp carousel. Without scripts (or WebGL) the six cards are a plain grid; with them a WebGL stage draws the
+   cards bending round a lens, and the real cards stay in the page for search engines and screen readers. */
 .warp{position:relative;margin:28px 0}
 .warp-track{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
 .wcard{position:relative;display:flex;flex-direction:column;justify-content:space-between;min-height:300px;padding:20px 22px;border-radius:18px;color:#fff;
@@ -47,41 +48,16 @@ h1{font-family:'Noto Naskh Arabic',serif;font-size:clamp(32px,5vw,48px);line-hei
 .wbig{font-size:84px;line-height:1;font-weight:300;text-align:center;letter-spacing:-.02em;color:rgba(255,255,255,.92);text-shadow:0 0 40px rgba(255,255,255,.35);margin:18px 0}
 .wcard p{margin:0;font-size:14px;line-height:1.65;color:rgba(255,255,255,.86)}
 .wcard a{color:#fff}
-.warp-glow{display:none}
-/* Clipped at the sides only (the bent cards reach past the page); the glow above and below fades out freely. */
-.warp.is-warp{height:500px;perspective:1100px;overflow-x:hidden;overflow-x:clip;overflow-y:visible;margin:20px -16px;touch-action:pan-y}
-.is-warp .warp-track{display:block;position:absolute;inset:0;transform-style:preserve-3d}
-.is-warp .wcard{position:absolute;left:50%;top:50%;width:min(300px,72vw);height:360px;margin:0;cursor:pointer;
-  transform:translate(-50%,-52%) translateX(calc(var(--d) * var(--step,102%))) rotateY(calc(var(--d) * -58deg)) scale(calc(1 - var(--ad) * .06));
-  transform-origin:center;filter:saturate(calc(1 + var(--ad) * .5)) blur(calc(var(--ad) * .6px));opacity:calc(1 - var(--far) * 1);
-  transition:transform .7s cubic-bezier(.2,.8,.2,1),filter .7s,opacity .5s;z-index:calc(10 - var(--ad))}
-.is-warp .wcard[data-front]{cursor:default}
-/* The colour smear that trails each bent card, like light pulled round a corner. */
-.is-warp .wcard::before{content:"";position:absolute;inset:-6% -18%;z-index:-1;border-radius:40%;background:inherit;filter:blur(38px);opacity:calc(var(--ad) * .75);transition:opacity .7s}
-.is-warp .wcard:not([data-front]) > *{opacity:.55;transition:opacity .5s}
-.is-warp .warp-glow{display:block;position:absolute;left:50%;width:min(560px,80%);height:46px;transform:translateX(-50%);border-radius:50%;
-  background:radial-gradient(closest-side,#3fb4ec,rgba(63,180,236,.35) 60%,transparent);filter:blur(10px);pointer-events:none}
-.warp-glow.top{top:10px}.warp-glow.bottom{bottom:52px}
-.warp-nav{display:flex;justify-content:center;align-items:center;gap:14px;position:absolute;left:0;right:0;bottom:10px}
-/* Frosted glass over the bent cards and the strip above them; the card in front stays clear. Clicks go through
-   the glass to the cards beneath it. */
-.warp-veil{display:none}
-.is-warp .warp-veil{display:block;position:absolute;z-index:20;pointer-events:none;
-  background:rgba(255,255,255,.34);border-radius:16px;box-shadow:0 4px 30px rgba(0,0,0,.1);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.68)}
-.warp-veil.top{top:8px;left:16px;right:16px;height:44px}
-.warp-veil.side{top:62px;bottom:58px;width:calc(50% - min(300px,72vw) / 2 - 28px)}
-.warp-veil.side.start{left:16px}
-.warp-veil.side.end{right:16px}
-/* On a phone the side glass would be a sliver; the top strip stays. */
-@media (max-width:560px){.is-warp .warp-veil.side{display:none} .is-warp .wcard{--step:86%}}
-.warp-nav{z-index:30}
-.warp-nav[hidden]{display:none}
-.wbtn{width:36px;height:36px;border-radius:50%;border:1px solid #fff;background:rgba(255,255,255,.75);font-size:22px;line-height:1;cursor:pointer;color:var(--ink)}
-.wbtn:focus-visible,.wdots button:focus-visible,.warp-track:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
-.wdots{display:flex;gap:7px}
-.wdots button{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:rgba(0,0,0,.25);cursor:pointer}
-.wdots button[aria-selected="true"]{background:var(--ink);width:22px;border-radius:4px}
+.warp-stage,.warp-cap{display:none}
+.is-warp .warp-track{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.is-warp .warp-stage{display:block;position:relative;width:100%;aspect-ratio:5 / 4;min-height:420px;max-height:760px;border-radius:22px;overflow:hidden;background:#f0f0f0;
+  touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;outline:none;box-shadow:0 4px 30px rgba(0,0,0,.08);border:1px solid #fff}
+.is-warp .warp-stage:active{cursor:grabbing}
+.warp-stage:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.warp-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.is-warp .warp-cap{display:block;text-align:center;margin:14px auto 0;max-width:62ch;min-height:3.4em;color:var(--ink-2);font-size:15px;line-height:1.7}
+.warp-cap b{color:var(--ink)}
+@media (max-width:560px){.is-warp .warp-stage{border-radius:0;border:0;margin:0 -16px;width:calc(100% + 32px)}}
 section.card{padding:24px 26px;margin:18px 0}
 section.card h2{margin:0 0 6px;font-size:22px}
 p,li{color:var(--ink-2)}
@@ -111,11 +87,8 @@ footer{margin:32px 0 40px;padding:16px 20px;color:var(--ink-2);font-size:14px;di
        Every card is real text in the page (search engines read all six); without scripts, or for readers who
        ask for less motion, they are a plain row. -->
   <section class="warp" id="features" aria-roledescription="carousel" aria-label="ما يفعله مون · What Moon does">
-    <div class="warp-glow top" aria-hidden="true"></div>
-    <div class="warp-glow bottom" aria-hidden="true"></div>
-    <div class="warp-veil top" aria-hidden="true"></div>
-    <div class="warp-veil side start" aria-hidden="true"></div>
-    <div class="warp-veil side end" aria-hidden="true"></div>
+    <div class="warp-stage" tabindex="0" role="group" aria-label="بطاقات مون · Moon cards (اسحب أو استعمل الأسهم)"><canvas aria-hidden="true"></canvas></div>
+    <p class="warp-cap" aria-live="polite"></p>
     <div class="warp-track">
       <article class="wcard" style="--a:#2a0f5c;--b:#7b3cff;--c:#c08cff" aria-roledescription="slide">
         <div class="wtop"><h2>BIBFRAME 3.0.1</h2><span class="wtag">المعيار</span></div>
@@ -148,11 +121,6 @@ footer{margin:32px 0 40px;padding:16px 20px;color:var(--ink-2);font-size:14px;di
         <p>كل سجل يُنشر يظهر في فهرس عام يبحث فيه القرّاء عن الكتب والمؤلفين والموضوعات. <a href="/opac.html">افتح الفهرس</a></p>
       </article>
     </div>
-    <div class="warp-nav" hidden>
-      <button type="button" class="wbtn" data-step="-1" aria-label="السابق · Previous">›</button>
-      <div class="wdots" role="tablist" aria-label="البطاقات"></div>
-      <button type="button" class="wbtn" data-step="1" aria-label="التالي · Next">‹</button>
-    </div>
   </section>
 
   <section class="card glass" id="en" lang="en" dir="ltr">
@@ -170,66 +138,279 @@ footer{margin:32px 0 40px;padding:16px 20px;color:var(--ink-2);font-size:14px;di
   </section>
 
   <script>
-  // The warp carousel: one card in front, its neighbours bent away. Arrows, dots, keys, a swipe or a click on a
-  // side card bring another to the front. Left as a plain row for readers who ask for less motion.
+  // Warp carousel: a WebGL2 stage (2D canvas fallback) after the WarpCarousel by louisstudios on 21st.dev.
   (function () {
+var AR=/[\u0600-\u06FF]/;var f=function(x){return x};var vl=256,Qe=320,je=10,Ll=734.103,ct={qA:.46401,XLA:165.774,zA:35.354,psiA:1.44638,a1:1.31454,a2:1.10948,qB:.74999,XB:204.525,ZB:355.405,bB:.69311,bE:.04614,vC:203.134,aC:229.26,kB:.01087,bP:.99129,qPR:1.01828,bPL:1.0092,qPL:1.07139};function Oh(v){let m=v;Math.abs(m)<1&&(m-=ct.kB*Math.sin(Math.PI*m)**2);const S=m<0?-1:1,s=Math.abs(m),D=vl/2;if(s<=ct.qA){const B=s/ct.qA,K=-D+(ct.XLA+D)*Math.pow(B,ct.a1),gt=ct.zA*B**4,lt=ct.psiA*Math.pow(B,ct.a2);return[S*(K+D*Math.cos(lt)),gt+D*Math.sin(lt),S*lt]}const r=(ct.XLA+D)*ct.a1/ct.qA,q=ct.zA*4/ct.qA,C=ct.psiA*ct.a2/ct.qA;let H,E;if(s<=ct.qB){const B=ct.qB-ct.qA,K=(s-ct.qA)/B,gt=ct.XLA+vl*Math.cos(ct.psiA),lt=ct.zA+vl*Math.sin(ct.psiA),$=r-vl*Math.sin(ct.psiA)*C,nt=q+vl*Math.cos(ct.psiA)*C,w=2*K**3-3*K**2+1,I=K**3-2*K**2+K,G=-2*K**3+3*K**2,Z=K**3-K**2;H=w*gt+I*B*$*ct.bB+G*ct.XB+Z*B*ct.vC*ct.bE,E=w*lt+I*B*nt*ct.bB+G*ct.ZB}else{const B=s-ct.qB;H=ct.XB+ct.vC*B+ct.aC*B*B,E=ct.ZB}const N=S<0?ct.qPL:ct.qPR,k=S<0?ct.bPL:ct.bP,Q=N-ct.qA,P=Math.min(1,(s-ct.qA)/Q),ht=(2*P**3-3*P**2+1)*ct.psiA+(P**3-2*P**2+P)*Q*C*k+(-2*P**3+3*P**2)*Math.PI;return[S*(H-D*Math.cos(ht)),E-D*Math.sin(ht),S*ht]}f(Oh,"poseAt");const Ze=[0,3,6,8,10,11,12,13,14,16,18,21,25,30,36,45,55,70,88,110],Tf=[0,.02175,.12069,.22549,.35493,.43254,.51436,.5952,.6751,.83199,.9709,1.12669,1.27958,1.40975,1.53561,1.68385,1.79183,1.89191,1.95233,2],ha=.06511,Ef=81.828,Le=110,Xr=(()=>{const v=Ze.length,m=Ze.slice(1).map((r,q)=>r-Ze[q]),S=m.map((r,q)=>(Tf[q+1]-Tf[q])/r),s=new Array(v).fill(0);for(let r=1;r<v-1;r++)if(S[r-1]*S[r]<=0)s[r]=0;else{const q=2*m[r]+m[r-1],C=m[r]+2*m[r-1];s[r]=(q+C)/(q/S[r-1]+C/S[r])}const D=(S[0]+S[v-2])/2;return s[0]=D,s[v-1]=D,s})();function en(v){if(v<=0)return 0;if(v>=Le)return 1;let m=0;for(;m<Ze.length-2&&v>Ze[m+1];)m++;const S=Ze[m+1]-Ze[m],s=(v-Ze[m])/S,D=2*s**3-3*s**2+1,r=s**3-2*s**2+s,q=-2*s**3+3*s**2,C=s**3-s**2;return(D*Tf[m]+r*S*Xr[m]+q*Tf[m+1]+C*S*Xr[m+1])/2}f(en,"spin");function Vr(v,m){if(m<=Le+.5)return en(v*Le/Math.max(1,m));const S=80;return v<=S?en(v):en(S+(v-S)*(Le-S)/(m-S))}f(Vr,"spinN");const lu=(Le-Ef)/30;function Dh(v,m,S,s){if(v<lu)return m-S+ha+S*en(Ef+v*30);const D=Math.floor((v-lu)/s),r=(v-lu-D*s)*30;return m+D*S+ha+S*Vr(r,s*30)}f(Dh,"autoplayProgress");function va(v,m=[0,0,0]){const S=(v||"").trim();let s=/^#([0-9a-f]{3,8})$/i.exec(S);if(s){let D=s[1];D.length<=4&&(D=D.split("").map(q=>q+q).join(""));const r=parseInt(D.slice(0,6),16);return[r>>16&255,r>>8&255,r&255]}if(s=/^rgba?\(([^)]+)\)$/i.exec(S),s){const D=s[1].split(/[ ,/]+/).filter(Boolean).map(r=>parseFloat(r));return[D[0]||0,D[1]||0,D[2]||0]}if(typeof document<"u"&&S){const D=document.createElement("canvas");D.width=D.height=1;const r=D.getContext("2d");if(r){r.fillStyle=S,r.fillRect(0,0,1,1);const q=r.getImageData(0,0,1,1).data;return[q[0],q[1],q[2]]}}return m}f(va,"parseColor");function Vt(v,m){return`rgba(${v[0]}, ${v[1]}, ${v[2]}, ${m})`}f(Vt,"rgba");function Gr(v,m){const S=1-v;m[0]=S*S*S/6,m[1]=(3*v*v*v-6*v*v+4)/6,m[2]=(-3*v*v*v+3*v*v+3*v+1)/6,m[3]=v*v*v/6}f(Gr,"bspline");function Uh(v){const m=["#1d1d3a","#3b2f8f","#2a6fd6","#0d0d24"],s=(v&&v.length?v:m).map(r=>va(r)),D=[];for(let r=0;r<7;r++)for(let q=0;q<6;q++)if(s.length===42)D.push(s[r*6+q]);else{const C=Math.min(s.length-1,Math.round((r*6+q)/41*(s.length-1)));D.push(s[C])}return D}f(Uh,"meshGrid");function xh(v,m,S,s){const D=Uh(s),r=v.createImageData(m,S),q=r.data,C=new Float32Array(m*4),H=new Int32Array(m*4),E=[0,0,0,0];for(let Q=0;Q<m;Q++){const P=(Q+.5)/m*5,ht=Math.floor(P);Gr(P-ht,E);for(let B=0;B<4;B++)C[Q*4+B]=E[B],H[Q*4+B]=Math.min(5,Math.max(0,ht-1+B))}const N=new Float32Array(6*3);let k=1234567;for(let Q=0;Q<S;Q++){const P=(Q+.5)/S*6,ht=Math.floor(P);Gr(P-ht,E),N.fill(0);for(let B=0;B<4;B++){const K=Math.min(6,Math.max(0,ht-1+B)),gt=E[B];for(let lt=0;lt<6;lt++){const $=D[K*6+lt];N[lt*3]+=$[0]*gt,N[lt*3+1]+=$[1]*gt,N[lt*3+2]+=$[2]*gt}}for(let B=0;B<m;B++){let K=0,gt=0,lt=0;for(let w=0;w<4;w++){const I=C[B*4+w],G=H[B*4+w]*3;K+=N[G]*I,gt+=N[G+1]*I,lt+=N[G+2]*I}k=k*1103515245+12345&2147483647;const $=(k/2147483647-.5)*1.6,nt=(Q*m+B)*4;q[nt]=K+$,q[nt+1]=gt+$,q[nt+2]=lt+$,q[nt+3]=255}}v.putImageData(r,0,0)}f(xh,"paintMesh");function Pl(v,m,S){return`${v} ${m}px ${S}`}f(Pl,"fontStr");function Xi(v,m,S,s,D="0"){v.font=Pl(m,100,S);const q=v.measureText(D).actualBoundingBoxAscent||71;return s/q*100}f(Xi,"sizeForCap");function Hh(v,m,S){const s=v.width,D=v.height,r=v.getContext("2d");if(!r)return;const q=s/vl;r.setTransform(1,0,0,1,0,0),r.clearRect(0,0,s,D),xh(r,s,D,m.mesh),r.setTransform(q,0,0,q,0,0),r.textBaseline="alphabetic";const C=[255,255,255],H=va(m.accent||"#ffffff"),E=Xi(r,300,S,7.9,"H");r.font=Pl(300,E,S),r.fillStyle=Vt(C,.9),(m.title||"").split(`
+`).slice(0,2).forEach((I,G)=>{AR.test(m.title||"")?(r.textAlign="right",r.fillText(I,239,37+G*14),r.textAlign="left"):r.fillText(I,17,37+G*14)}),m.footer&&(r.fillStyle=Vt(C,.88),(AR.test(m.footer)?(r.textAlign="right",r.fillText(m.footer,239,295),r.textAlign="left"):r.fillText(m.footer,17,295)));const k=Xi(r,300,S,50),Q=k*.31;r.font=Pl(300,k,S);const P=m.value||"",ht=r.measureText(P).width;r.font=Pl(300,Q,S);const B=m.unit?r.measureText(m.unit).width+4:0,K=m.detail||"none",lt=(K==="wave"?112:K==="cross"?106:127)-(ht+B)/2+(K==="cross"?B/2:0),$=va(m.numeral&&m.numeral[0]||"#ffffff"),nt=va(m.numeral&&m.numeral[1]||"#ffffff"),w=r.createLinearGradient(lt,0,lt+ht,0);if(w.addColorStop(0,Vt($,1)),w.addColorStop(1,Vt(nt,1)),K==="ring")for(let Z=0;Z<132;Z++){const et=Z/132*Math.PI*2-Math.PI/2,it=.5+.5*Math.sin(Z*12.9898)*Math.sin(Z*4.1414+1.3),Et=.5+.5*Math.cos(et+Math.PI/2),bt=4+4.5*Math.abs(it)+2*Et,Rt=.22+.5*Et*Et;r.strokeStyle=Vt(H,Rt),r.lineWidth=1+.7*Et;const Ct=68;r.beginPath(),r.moveTo(126+Math.cos(et)*Ct,156+Math.sin(et)*Ct),r.lineTo(126+Math.cos(et)*(Ct+bt),156+Math.sin(et)*(Ct+bt)),r.stroke()}else if(K==="slider"){const I=Math.max(0,Math.min(100,parseFloat(P)||0))/100,G=24,Z=232,et=197.5,it=G+4+(Z-G-8)*I*.86,Et=r.createLinearGradient(G,0,Z,0);Et.addColorStop(0,Vt(H,.15)),Et.addColorStop(Math.max(.01,(it-G)/(Z-G)),Vt(H,.85)),Et.addColorStop(1,Vt(H,.35)),r.fillStyle=Et,r.fillRect(G,et-.6,Z-G,1.2),r.save(),r.shadowColor=Vt(H,.95),r.shadowBlur=9*q,r.fillStyle=Vt(C,1),r.beginPath(),r.arc(it,et,4.6,0,Math.PI*2),r.fill(),r.restore();const bt=m.labels||[],Rt=Xi(r,400,S,5.2,"H");r.font=Pl(400,Rt,S),r.fillStyle=Vt(C,.6),bt[0]&&r.fillText(bt[0],14,208),bt[1]&&(r.textAlign="right",r.fillText(bt[1],230,208),r.textAlign="left")}else if(K==="wave"){r.fillStyle="rgba(20, 0, 8, 0.32)",r.beginPath(),r.arc(27,157,18,0,Math.PI*2),r.fill(),r.strokeStyle=Vt(C,.75),r.lineWidth=.9;const I=f((G,Z,et)=>{r.beginPath(),r.moveTo(G-et,Z),r.lineTo(G+et,Z),r.moveTo(G,Z-et),r.lineTo(G,Z+et),r.stroke()},"plus");I(27,157,3),I(199,157,3);for(let G=0;G<56;G++){const Z=43+G*3,it=1.5+6.5*Math.abs(Math.sin(G*1.7+.4)*Math.cos(G*.53)),Et=G===23;r.fillStyle=Et?Vt(H,.95):Vt(C,.3),r.fillRect(Z,204-(Et?8:it),Et?1.4:.9,Et?16:it*2)}}else if(K==="cross"){r.fillStyle=Vt(C,.28),r.fillRect(105.5,66,.8,182),r.fillRect(12,156.5,186,.8);const I=m.labels||[];r.font=Pl(300,k*.72,S),r.fillStyle=Vt(C,.07),r.textAlign="center",r.fillText(String(Math.max(0,(parseFloat(P)||0)-8)),106,122),r.textAlign="left";const G=f((Z,et,it)=>{r.fillStyle="rgba(10, 0, 30, 0.35)",r.beginPath(),r.arc(Z,et,6.5,0,Math.PI*2),r.fill(),r.fillStyle=Vt(C,.7),r.font=Pl(500,4.2,S),r.textAlign="center",r.fillText(it,Z,et+1.5),r.textAlign="left"},"badge");if(I[1]&&G(28,137,I[1]),I[2]&&G(181,170,I[2]),I[0]){r.font=Pl(400,5.2,S);const Z=r.measureText(I[0]).width,et=AR.test(m.title||"")?17:208-Z-10;r.fillStyle=Vt(C,.1),r.beginPath(),r.roundRect(et,25,Z+10,11,3),r.fill(),r.fillStyle=Vt(C,.55),r.fillText(I[0],et+5,32.5)}}r.save(),r.shadowColor=Vt(nt,.35),r.shadowBlur=10*q,r.font=Pl(300,k,S),r.fillStyle=w,r.fillText(P,lt,186),m.unit&&(r.font=Pl(300,Q,S),r.fillStyle=Vt(nt,1),r.fillText(m.unit,lt+ht+4,136+Q*.72)),r.restore()}f(Hh,"paintCard");function Kr(v){const[m,S,s]=v,D=Math.cos(s),r=Math.sin(s);if(D<=.02)return[0,1,0];const q=m,C=Ll+S,H=C-.5*vl*Math.abs(r);let E=0,N=0,k=0;for(let B=-360;B<=360;B+=3){const K=Math.exp(-((Math.abs(B-9)/138)**4));if(K<.003)continue;const gt=B/1.8/Ll,lt=r*gt-D;if(Math.abs(lt)<1e-4)continue;const $=(q-C*gt)/lt,nt=C+$*r;if(nt<4||B/1.8/Ll*nt*r-nt*D>=0)continue;const w=(C*D-q*r)/(lt*lt),I=Math.min(Math.abs(w/Ll)*2.2,40)+.5,G=Math.max(0,Math.min(1,(vl*.5-Math.abs($))/I+.5));if(G<=0)continue;const Z=Math.min(1,Ll/nt),et=Math.exp(-((Math.max(nt-H,0)/36)**1.5)),it=G*Z*Z*et*D*K;E+=it,N+=it*B,k+=it*B*B}if(E<.5)return[0,1,0];const Q=N/E,P=Math.sqrt(Math.max(1,k/E-Q*Q)),ht=Math.max(6,P/.581);return[Q,ht,E*3/(1.813*ht)]}f(Kr,"glowShape");const Nh=`#version 300 es
+in vec2 aPos;
+void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`,qh=`#version 300 es
+precision highp float;
+precision highp sampler2DArray;
+uniform sampler2DArray uTex;
+uniform vec2 uRes;
+uniform float uUnit;
+uniform vec4 uPose[8];
+uniform vec3 uGlowCol[8];
+uniform vec3 uGlowShape[8];
+uniform vec3 uBg;
+uniform float uWarp;
+uniform float uMix;
+out vec4 outColor;
+
+const float F = ${Ll.toFixed(2)};
+const float CW = ${vl.toFixed(1)};
+const float CH = ${Qe.toFixed(1)};
+const float CR = ${je.toFixed(1)};
+
+// horizontal lens: output |u| -> source |u|. Past the start of the flare the slope collapses and then
+// turns back, so the outer flare is a hugely stretched (and folded) strip of the card just past |u| = 232
+float lensH(float a){
+  if (a <= 232.0) return a;
+  float k[9] = float[9](232.0, 238.0, 245.0, 253.0, 262.0, 275.0, 295.0, 325.0, 360.0);
+  float d[9] = float[9](1.1759, 1.0671, 1.0156, 1.0965, 0.6487, 0.2700, -0.1991, -0.4782, -0.0318);
+  float s = 232.0;
+  for (int i = 0; i < 8; i++){
+    if (a <= k[i]) break;
+    float x = min(a, k[i+1]);
+    float t = (x - k[i]) / (k[i+1] - k[i]);
+    s += (x - k[i]) * mix(1.0, mix(d[i], d[i+1], t * 0.5), uWarp);
+  }
+  if (a > 360.0) s += (a - 360.0) * mix(1.0, d[8], uWarp);
+  return s;
+}
+float lensS(float a){
+  float t = clamp((a - 262.0) / 93.0, 0.0, 2.0);
+  return 1.0 + uWarp * (0.42 * pow(t, 1.5) + 0.045 * smoothstep(320.0, 360.0, a));
+}
+
+float sdRound(vec2 p, vec2 b, float r){
+  vec2 q = abs(p) - b + r;
+  return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+}
+
+// premultiplied colour of one card along a source ray
+vec4 shadeCard(vec4 pose, vec2 ps, float fx, float fy, out float depth){
+  depth = 1e9;
+  if (pose.w < 0.0) return vec4(0.0);
+  float k = ps.x / F;
+  float c = cos(pose.z), sn = sin(pose.z);
+  float den = sn * k - c;
+  if (abs(den) < 1e-5) return vec4(0.0);
+  float A = pose.x, B = F + pose.y;
+  float s = (A - B * k) / den;
+  float t = B + s * sn;
+  if (t < 4.0) return vec4(0.0);
+  float y = t * ps.y / F;
+  float dsdk = (B * c - A * sn) / (den * den);
+  float fs = min(abs(dsdk / F) * fx, 48.0);
+  float fyc = min(t / F * fy, 48.0);
+  vec2 p = vec2(s, y);
+  float d = sdRound(p, vec2(CW, CH) * 0.5, CR);
+  vec2 q = abs(p) - vec2(CW, CH) * 0.5 + CR;
+  vec2 n = q.x > q.y ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  if (q.x > 0.0 && q.y > 0.0) n = normalize(q);
+  float fp = length(vec2(fs * n.x, fyc * n.y)) + 1e-4;
+  if (d > fp) return vec4(0.0);
+  float cov = clamp(0.5 - d / fp, 0.0, 1.0);
+  if (cov <= 0.0) return vec4(0.0);
+  vec2 uv = vec2(s / CW + 0.5, 0.5 - y / CH);
+  vec4 tex = textureGrad(uTex, vec3(uv, pose.w), vec2(fs / CW, 0.0), vec2(0.0, fyc / CH));
+  depth = t;
+  return vec4(tex.rgb, 1.0) * cov;
+}
+
+vec4 scene(vec2 ps, float fx, float fy, int base){
+  vec4 col[4];
+  float dep[4];
+  for (int i = 0; i < 4; i++) col[i] = shadeCard(uPose[base + i], ps, fx, fy, dep[i]);
+  // sort by depth (4 entries)
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      if (j < 3 - i && dep[j] > dep[j+1]) {
+        float td = dep[j]; dep[j] = dep[j+1]; dep[j+1] = td;
+        vec4 tc = col[j]; col[j] = col[j+1]; col[j+1] = tc;
+      }
+  vec4 acc = vec4(0.0);
+  for (int i = 0; i < 4; i++) acc += (1.0 - acc.a) * col[i];
+  return acc;
+}
+
+// the top and bottom glows: every card that faces the viewer lays one whole soft ellipse of its glow
+// colour (centre, half width and strength come from glowShape on the CPU), so during a turn the bands
+// slide, narrow and cross-fade colour but are never cut off
+vec4 glowAt(vec2 pu, float halfH, int base){
+  vec4 sum = vec4(0.0);
+  // the bands sit just inside the top and bottom of a 5:4 stage; taller stages keep them near the cards
+  float gH = min(halfH, 288.0);
+  float dy = min(abs((gH - 11.0) - pu.y), abs(pu.y + (gH - 12.0)));
+  if (dy > 40.0) return sum;
+  for (int i = 0; i < 4; i++){
+    vec3 sh = uGlowShape[base + i];
+    if (sh.z <= 0.0) continue;
+    float E = exp(-pow(abs(pu.x - sh.x) / sh.y, 4.0));
+    if (E < 0.002) continue;
+    float v = exp(-pow(dy / (18.5 * (0.45 + 0.55 * sqrt(E))), 3.0));
+    float w = sh.z * E * v;
+    sum += vec4(uGlowCol[base + i] * w, w);
+  }
+  return sum;
+}
+
+vec3 stage(vec2 pu, float halfH, int base){
+  vec4 g = glowAt(pu, halfH, base);
+  if (g.a <= 0.0) return uBg;
+  float I = clamp(g.a, 0.0, 1.0);
+  vec3 drop = uBg - g.rgb / g.a;
+  return uBg - drop * pow(vec3(I), vec3(0.8, 1.6, 1.0)); // ls:keep (per-channel falloff exponents, not a colour)
+}
+
+vec3 render(vec2 pu, float halfH, int base){
+  // stages wider than 5:4 simply run the outermost flare column on to the edge
+  float au = min(abs(pu.x), 360.0);
+  float px = 1.0 / uUnit;
+  vec3 bg = stage(pu, halfH, base);
+  if (au < 236.0 || uWarp <= 0.0) {
+    vec4 c = scene(pu, px, px, base);
+    return c.rgb + (1.0 - c.a) * bg;
+  }
+  // flare zone: one lens sample per channel. The smear is a widened texture footprint, so it stays smooth
+  // with no tap banding; vertically red is spread furthest and blue least, which gives the cyan then blue rim
+  float e = 0.064 * uWarp * smoothstep(275.0, 360.0, au);
+  float S0 = lensS(au);
+  float sg = pu.x < 0.0 ? -1.0 : 1.0;
+  float blur = 1.0 + 30.0 * pow(smoothstep(240.0, 340.0, au), 1.5) * uWarp;
+  float fyb = 1.0 + 15.0 * smoothstep(280.0, 352.0, au) * uWarp;
+  // the stretched outer flare reads a touch brighter, as if lit through the lens
+  float gain = 1.0 + 0.17 * smoothstep(285.0, 350.0, au) * uWarp;
+  vec3 acc;
+  for (int ch = 0; ch < 3; ch++){
+    // each channel reads a slightly different strip at the outer edge: red nearest the centre, blue furthest,
+    // so cards entering or leaving the flare split into cyan, blue and amber ghosts
+    float off = uWarp * (ch == 0 ? -20.92 : (ch == 1 ? 0.0 : 11.91));
+    float h = lensH(au) + off * smoothstep(289.8, 344.9, au);
+    float h0 = lensH(au - 0.5) + off * smoothstep(289.8, 344.9, au - 0.5);
+    float h1 = lensH(au + 0.5) + off * smoothstep(289.8, 344.9, au + 0.5);
+    float fx = px * max(abs(h1 - h0), 0.02) * blur;
+    float S = S0 * (ch == 0 ? 1.0 + e : (ch == 1 ? 1.0 : 1.0 - e));
+    vec4 c = scene(vec2(sg * h, pu.y / S), fx, px / S * fyb, base);
+    c.rgb = min(c.rgb * gain, vec3(c.a));
+    acc[ch] = (c.rgb + (1.0 - c.a) * bg)[ch];
+  }
+  return acc;
+}
+
+void main(){
+  vec2 fc = gl_FragCoord.xy;
+  vec2 pu = (fc - 0.5 * uRes) / uUnit;
+  float halfH = 0.5 * uRes.y / uUnit;
+  vec3 col = render(pu, halfH, 0);
+  if (uMix > 0.0) col = mix(col, render(pu, halfH, 4), uMix);
+  outColor = vec4(col, 1.0);
+}`;function jr(v){const m=v.getContext("webgl2",{antialias:!1,alpha:!1,premultipliedAlpha:!1,preserveDrawingBuffer:!1});if(!m)return null;const S=f((N,k)=>{const Q=m.createShader(N);return m.shaderSource(Q,k),m.compileShader(Q),m.getShaderParameter(Q,m.COMPILE_STATUS)?Q:(console.warn(m.getShaderInfoLog(Q)),null)},"sh"),s=S(m.VERTEX_SHADER,Nh),D=S(m.FRAGMENT_SHADER,qh);if(!s||!D)return null;const r=m.createProgram();if(m.attachShader(r,s),m.attachShader(r,D),m.bindAttribLocation(r,0,"aPos"),m.linkProgram(r),!m.getProgramParameter(r,m.LINK_STATUS))return console.warn(m.getProgramInfoLog(r)),null;const q=m.createBuffer();m.bindBuffer(m.ARRAY_BUFFER,q),m.bufferData(m.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),m.STATIC_DRAW),m.enableVertexAttribArray(0),m.vertexAttribPointer(0,2,m.FLOAT,!1,0,0);const C=m.createTexture(),H={};for(const N of["uTex","uRes","uUnit","uPose","uGlowCol","uGlowShape","uBg","uWarp","uMix"])H[N]=m.getUniformLocation(r,N);const E=m.getExtension("EXT_texture_filter_anisotropic");return C.aniso=E,{gl:m,prog:r,tex:C,loc:H,layers:0,texW:0}}f(jr,"createGL");function Bh(v,m){const{gl:S,tex:s}=v,D=m[0].width,r=m[0].height;S.bindTexture(S.TEXTURE_2D_ARRAY,s),S.texImage3D(S.TEXTURE_2D_ARRAY,0,S.RGBA8,D,r,m.length,0,S.RGBA,S.UNSIGNED_BYTE,null),m.forEach((C,H)=>{S.texSubImage3D(S.TEXTURE_2D_ARRAY,0,0,0,H,D,r,1,S.RGBA,S.UNSIGNED_BYTE,C)}),S.generateMipmap(S.TEXTURE_2D_ARRAY),S.texParameteri(S.TEXTURE_2D_ARRAY,S.TEXTURE_MIN_FILTER,S.LINEAR_MIPMAP_LINEAR),S.texParameteri(S.TEXTURE_2D_ARRAY,S.TEXTURE_MAG_FILTER,S.LINEAR),S.texParameteri(S.TEXTURE_2D_ARRAY,S.TEXTURE_WRAP_S,S.CLAMP_TO_EDGE),S.texParameteri(S.TEXTURE_2D_ARRAY,S.TEXTURE_WRAP_T,S.CLAMP_TO_EDGE);const q=s.aniso;q&&S.texParameterf(S.TEXTURE_2D_ARRAY,q.TEXTURE_MAX_ANISOTROPY_EXT,8),v.layers=m.length,v.texW=D}f(Bh,"uploadCards");function Qr(v,m,S,s,D,r,q,C){v.setTransform(1,0,0,1,0,0),v.fillStyle=q,v.fillRect(0,0,m,S);const H=Math.min(S/2/s,288);for(const B of D){if(B.layer<0)continue;const[K,gt,lt]=Kr(B.pose),$=Math.min(1,lt)*.9;if($<.01)continue;const nt=gt*1.35*s,w=C[B.layer]||[127,208,240],I=`${w[0]}, ${w[1]}, ${w[2]}`;for(const G of[S/2-(H-11)*s,S/2+(H-12)*s]){v.save(),v.translate(m/2+K*s,G),v.scale(1,20*s/nt);const Z=v.createRadialGradient(0,0,0,0,0,nt);Z.addColorStop(0,`rgba(${I}, ${$})`),Z.addColorStop(.55,`rgba(${I}, ${$*.55})`),Z.addColorStop(1,`rgba(${I}, 0)`),v.fillStyle=Z,v.fillRect(-nt,-nt,nt*2,nt*2),v.restore()}}const E=f((B,K,gt)=>{const lt=Ll+K;return[m/2+B*Ll/lt*s,S/2-gt*Ll/lt*s]},"proj"),N=D.filter(B=>B.layer>=0).map(B=>({...B,depth:B.pose[1]})).sort((B,K)=>K.depth-B.depth),k=32,Q=1.5/Math.max(s,.25),P=vl/2,ht=f(B=>{const K=Math.abs(B)-(P-je);return K<=0?Qe/2:Qe/2-je+Math.sqrt(Math.max(0,je*je-Math.min(K,je)**2))},"edgeY");for(const B of N){const[K,gt,lt]=B.pose,$=r[B.layer];if(!$)continue;const nt=$.width/vl,w=Math.cos(lt),I=Math.sin(lt),G=f((Z,et)=>E(K+Z*w,gt+Z*I,et),"at");for(let Z=0;Z<k;Z++){const et=-P+vl*Z/k-(Z>0?Q:0),it=-P+vl*(Z+1)/k+(Z<k-1?Q:0);if(Ll+gt+et*I<10||Ll+gt+it*I<10)continue;const Et=Math.abs(et)>P-je-1||Math.abs(it)>P-je-1?6:1;v.save(),v.beginPath();for(let qt=0;qt<=Et;qt++){const nl=Math.max(-P,Math.min(P,et+(it-et)*qt/Et)),rl=G(nl,ht(nl));qt===0?v.moveTo(rl[0],rl[1]):v.lineTo(rl[0],rl[1])}for(let qt=Et;qt>=0;qt--){const nl=Math.max(-P,Math.min(P,et+(it-et)*qt/Et)),rl=G(nl,-ht(nl));v.lineTo(rl[0],rl[1])}v.closePath(),v.clip();const bt=(et+it)/2,Rt=G(et,Qe/2),Ct=G(it,Qe/2),pt=G(bt,Qe/2),p=G(bt,-Qe/2),Y=(et+P)*nt,J=(it-et)*nt,At=1.025,d=(Ct[0]-Rt[0])/J,U=(Ct[1]-Rt[1])/J,z=(p[0]-pt[0])/$.height*At,M=(p[1]-pt[1])/$.height*At,x=(bt+P)*nt,W=(pt[0]+p[0])/2-d*x-z*($.height/2),L=(pt[1]+p[1])/2-U*x-M*($.height/2);v.setTransform(d,U,z,M,W,L);const Tt=Math.max(0,Y-1),ft=Math.min($.width,Y+J+1);v.drawImage($,Tt,0,ft-Tt,$.height,Tt,0,ft-Tt,$.height),v.restore()}}}f(Qr,"drawFallback");
+/* Moon cards for the warp stage (same order as the <article> slides). */
+var MESH_BLUE=["#022852","#031e3f","#031934","#021831","#021b36","#022246","#022345","#020e1e","#01040f","#000416","#020b31","#021c57","#01172f","#01010c","#03001d","#0a0f4c","#112383","#0b36af","#021142","#050b47","#0c2e8f","#165bd4","#1675fd","#167bff","#03288e","#0438af","#0d66e7","#107eec","#30afff","#71dcff","#0356e8","#0259ec","#0945b0","#001a49","#3f7c9d","#d4ffff","#0365ff","#0256ea","#052a87","#00001f","#1f4c7b","#9ee7ff"];
+var MESH_PURPLE=["#4c2d5f","#3b2245","#3e285b","#33204f","#381844","#572571","#644096","#4f3688","#8358f6","#8d54f3","#5e20ac","#6e24b7","#482e6d","#261b48","#825bf6","#d48cff","#d07bff","#b359ff","#2d1837","#140a1b","#2c1d66","#3a2383","#693bca","#8b42ef","#411c5b","#300753","#3b006e","#500f79","#7e31c1","#9541f3","#44245a","#3f0c69","#6f15b9","#d17cff","#e2a3ff","#a668ff","#4b2f60","#4d2172","#6819aa","#9b48dc","#965dc9","#7745c4"];
+var MESH_ORANGE=["#ff623e","#f57337","#e49435","#fba03f","#ef6b36","#f14c36","#f29a3e","#a0a92e","#a2ba36","#fffe65","#ffd852","#f2863b","#a5b12e","#46821d","#6a6127","#b88b44","#b6bd41","#c4b838","#7e9f27","#3b5a19","#412c10","#0d1700","#255b0c","#98ad28","#a5b232","#3e7c1e","#002800","#00300f","#5b9745","#c1b833","#f3983b","#b3b431","#6fa31f","#9bc976","#edd896","#fd8c3d","#ff5f3b","#ff7d47","#ffa880","#ffc1d8","#ff8d99","#ff5438"];
+var MESH_RED=["#48001c","#400119","#41011d","#4b021e","#47021a","#480019","#7e0036","#8c0033","#4b0120","#10000c","#1f010b","#390116","#e84396","#ff568c","#dc433c","#0e0705","#090004","#2f0213","#ff9fd9","#ff6f90","#a53625","#190d05","#050002","#2f0110","#ff67b5","#b11348","#000000","#11000c","#3e021b","#8a0c31","#e31771","#5d0027","#3a0021","#620030","#640627","#dc184a","#c10b5f","#920245","#ab054f","#910041","#650226","#c01240"];
+/* Two more palettes, turned round the colour wheel from the originals. */
+function hueTurn(list,deg){return list.map(function(h){var c=va(h),r=c[0]/255,g=c[1]/255,b=c[2]/255,a=deg*Math.PI/180,co=Math.cos(a),si=Math.sin(a);
+  var m=[.213+co*.787-si*.213,.715-co*.715-si*.715,.072-co*.072+si*.928,.213-co*.213+si*.143,.715+co*.285+si*.140,.072-co*.072-si*.283,.213-co*.213-si*.787,.715-co*.715+si*.715,.072+co*.928+si*.072];
+  function cl(v){return Math.max(0,Math.min(255,Math.round(v*255)))}
+  return "rgb("+cl(m[0]*r+m[1]*g+m[2]*b)+","+cl(m[3]*r+m[4]*g+m[5]*b)+","+cl(m[6]*r+m[7]*g+m[8]*b)+")";});}
+var MOON_CARDS=[
+  {title:"BIBFRAME\nالمعيار",value:"3.0",unit:".1",footer:"Work · Instance · Item",detail:"ring",numeral:["#f4eeb6","#c4c688"],accent:"#f6efc0",glow:"#dacbe9",mesh:MESH_ORANGE},
+  {title:"مارك 21\nدخولًا وخروجًا",value:"21",footer:"استيراد وتصدير MARC",detail:"cross",labels:["MARC 21","in","out"],numeral:["#e2a6ff","#fff6ff"],accent:"#d9a8ff",glow:"#62bce8",mesh:MESH_PURPLE},
+  {title:"بيانات مترابطة\nعنوان دائم لكل سجل",value:"100",unit:"%",footer:"JSON-LD · Turtle · SPARQL",detail:"slider",labels:["URI","SPARQL"],numeral:["#3ad2ff","#8cf6ff"],accent:"#7fe8ff",glow:"#12b0e8",mesh:MESH_BLUE},
+  {title:"ملف استناد\nواحد",value:"1",footer:"أشخاص · هيئات · أماكن · موضوعات",detail:"wave",numeral:["#fffdf8","#e8603f"],accent:"#ff6a3d",glow:"#6cc0ea",mesh:MESH_RED},
+  {title:"بالعربية أولًا\nتسميات مفتوحة",value:"CC0",footer:"عربي · English",detail:"ring",numeral:["#c9fff1","#7fe0c8"],accent:"#bffff0",glow:"#7fd9e8",mesh:hueTurn(MESH_BLUE,-55)},
+  {title:"فهرس عام\nيبحث فيه القرّاء",value:"24",unit:"/7",footer:"كل سجل منشور يظهر فيه",detail:"cross",labels:["OPAC","بحث","كتب"],numeral:["#eaffb0","#ffffff"],accent:"#d6ff8a",glow:"#8fd0e8",mesh:hueTurn(MESH_PURPLE,170)}
+];
+
+/* Vanilla port of the WarpCarousel controller (same timing, spring, drag, autoplay and glow). */
+function WarpCarousel(B,opt){
+  var M=B.querySelector("canvas"),cards=opt.cards,C=opt.background||"#f0f0f0",E=opt.warp==null?1:opt.warp,N=opt.font,
+      onIndex=opt.onIndexChange||function(){};
+  var lt=[];while(lt.length<4)lt.push.apply(lt,cards);
+  var realCount=cards.length,nt=lt.length,stepN=Math.max(1,Math.round(opt.step||2)),gap=Math.max(.5,opt.interval||3.6667),
+      autoplay=opt.autoplay!==false,reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var mod=function(v,m){return(v%m+m)%m};
+  var it=opt.defaultIndex||0,pt=it;
+  var j={P:it,from:it,to:it,t0:0,n:Le,v:0,mode:"rest",nextAuto:1/0,autoPending:!1,fadeFrom:it,fadeT0:0,dragX:0,dragP:0,downX:0,moved:!1,lastT:0,visible:!0,hiddenAt:0};
+  var x=jr(M),W=null;if(!x)W=M.getContext("2d");
+  if(!x&&!W)return null;
+  var L=[],Tt=0,ft=0,qt=!1;
+  var nl=va(C,[240,240,240]),Ve=lt.map(function(c){return va(c.glow||"#7fd0f0")});
+  function paintAll(sz){L=lt.map(function(c){var a=document.createElement("canvas");a.width=sz;a.height=Math.round(sz*Qe/vl);Hh(a,c,N);return a});Tt=sz;if(x)Bh(x,L)}
+  var Ul=0,Vl=0,Ke=1;
+  function resize(){var r=B.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);Ul=Math.max(2,Math.round(r.width*d));Vl=Math.max(2,Math.round(r.height*d));
+    if(M.width!==Ul)M.width=Ul;if(M.height!==Vl)M.height=Vl;Ke=Math.min(Ul/720,Vl/440);var a=Math.min(1024,Math.max(256,Math.round(vl*Ke*1.25)));if(a!==Tt)paintAll(a)}
+  function poseSet(P){return Array.from({length:nt},function(_,k){return{c:k,q:mod(k-P+nt/2,nt)-nt/2}}).sort(function(a,b){return Math.abs(a.q)-Math.abs(b.q)}).slice(0,4)
+    .map(function(o){return Math.abs(o.q)>2.05?{pose:[0,0,0],layer:-1}:{pose:Oh(o.q),layer:o.c}})}
+  function progressAt(t){
+    if(j.mode==="spin"){var a=(t-j.t0)*30;j.P=j.from+(j.to-j.from)*Vr(a,j.n);if(a>=j.n)j.mode="rest"}
+    else if(j.mode==="spring"){var dt=Math.min(.034,Math.max(0,t-j.lastT));j.lastT=t;for(var s=0;s<4;s++){var acc=-60*(j.P-j.to)-13*j.v;j.v+=acc*dt/4;j.P+=j.v*dt/4}
+      if(Math.abs(j.P-j.to)<4e-4&&Math.abs(j.v)<.003){j.P=j.to;j.v=0;j.mode="rest"}}
+    else if(j.mode==="fade"){var u=Math.min(1,(t-j.fadeT0)/.45);if(u>=1)j.mode="rest";return{P:j.P,Pb:j.fadeFrom,mix:1-u*u*(3-2*u)}}
+    return{P:j.P,Pb:0,mix:0}}
+  var Kl=new Float32Array(32),ya=new Float32Array(24),we=new Float32Array(24);
+  function fill(set,base){set.forEach(function(o,k){var i=base+k;Kl[i*4]=o.pose[0];Kl[i*4+1]=o.pose[1];Kl[i*4+2]=o.pose[2];Kl[i*4+3]=o.layer;
+    var c=o.layer>=0?Ve[o.layer]:[255,255,255];ya[i*3]=c[0]/255;ya[i*3+1]=c[1]/255;ya[i*3+2]=c[2]/255;
+    var g=o.layer>=0?Kr(o.pose):[0,1,0];we[i*3]=g[0];we[i*3+1]=g[1];we[i*3+2]=g[2]})}
+  var lastShown=-1;
+  function draw(t){if(qt)return;var p=progressAt(t),set=poseSet(p.P);
+    var shown=mod(Math.round(p.P),realCount);if(shown!==lastShown){lastShown=shown;onIndex(shown)}
+    if(x){var gl=x.gl,l=x.loc;gl.viewport(0,0,Ul,Vl);gl.useProgram(x.prog);fill(set,0);if(p.mix>0)fill(poseSet(p.Pb),4);
+      gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D_ARRAY,x.tex);gl.uniform1i(l.uTex,0);gl.uniform2f(l.uRes,Ul,Vl);gl.uniform1f(l.uUnit,Ke);
+      gl.uniform4fv(l.uPose,Kl);gl.uniform3fv(l.uGlowCol,ya);gl.uniform3fv(l.uGlowShape,we);gl.uniform3f(l.uBg,nl[0]/255,nl[1]/255,nl[2]/255);
+      gl.uniform1f(l.uWarp,Math.max(0,Math.min(1,E)));gl.uniform1f(l.uMix,p.mix);gl.drawArrays(gl.TRIANGLES,0,3)}
+    else{var bg="rgb("+nl[0]+", "+nl[1]+", "+nl[2]+")";Qr(W,Ul,Vl,Ke,set,L,bg,Ve);if(p.mix>0){W.globalAlpha=p.mix;Qr(W,Ul,Vl,Ke,poseSet(p.Pb),L,bg,Ve);W.globalAlpha=1}}}
+  function setIndex(z){var prev=pt;pt=z;if(prev===z)return;var d=z-prev,t=performance.now()/1e3,auto=j.autoPending;j.autoPending=!1;
+    if(reduced){j.fadeFrom=j.P;j.P=Math.round(j.P)+d;j.mode="fade";j.fadeT0=t}
+    else if(j.mode!=="spring"){var k=Math.round(j.P-ha)+d;j.from=j.P;j.to=k+ha;j.t0=t;j.n=auto?gap*30:Le;j.mode="spin"}
+    if(!auto)j.nextAuto=t+gap;kick()}
+  function loop(){ft=0;if(qt||!j.visible)return;var t=performance.now()/1e3;
+    if(autoplay&&j.mode!=="drag"&&j.mode!=="spring"&&t>=j.nextAuto){j.nextAuto=Math.max(j.nextAuto+gap,t+gap*.5);j.autoPending=!0;setIndex(pt+stepN)}
+    draw(t);if(j.mode!=="rest"||autoplay)ft=requestAnimationFrame(loop)}
+  function kick(){if(!ft&&!qt&&j.visible)ft=requestAnimationFrame(loop)}
+  var t0=performance.now()/1e3;
+  if(autoplay&&!reduced){j.from=it-stepN+ha;j.to=it+ha;j.t0=t0-Ef/30;j.n=Le;j.mode="spin";j.P=j.from+(j.to-j.from)*en(Ef);j.nextAuto=t0+lu}else j.nextAuto=t0+gap;
+  resize();
+  new ResizeObserver(function(){resize();draw(performance.now()/1e3)}).observe(B);
+  var inView=!0;
+  function setVisible(v){var t=performance.now()/1e3;if(v===j.visible)return;if(!v)j.hiddenAt=t;else{var a=t-j.hiddenAt;j.t0+=a;j.fadeT0+=a;j.nextAuto+=a;j.lastT=t}j.visible=v;if(v)kick()}
+  new IntersectionObserver(function(es){inView=es.some(function(e){return e.isIntersecting});setVisible(inView&&document.visibilityState==="visible")}).observe(B);
+  document.addEventListener("visibilitychange",function(){setVisible(inView&&document.visibilityState==="visible")});
+  var lost=!1;
+  M.addEventListener("webglcontextlost",function(e){e.preventDefault();lost=!0});
+  M.addEventListener("webglcontextrestored",function(){if(lost){lost=!1;x=jr(M);Tt=0;resize();kick()}});
+  if(document.fonts){document.fonts.addEventListener("loadingdone",function(){if(!qt){Tt=0;resize();draw(performance.now()/1e3)}});
+    document.fonts.ready.then(function(){Tt=0;resize();draw(performance.now()/1e3)})}
+  /* pointer: drag with a spring settle; a tap on a side card brings it to the front */
+  function unitNow(){var r=B.getBoundingClientRect();return Math.min(r.width/720,r.height/440)}
+  B.addEventListener("pointerdown",function(e){if(e.button>0)return;if(B.setPointerCapture)B.setPointerCapture(e.pointerId);
+    j.mode="drag";j.dragX=e.clientX;j.downX=e.clientX;j.dragP=j.P;j.v=0;j.moved=!1;j.lastT=performance.now()/1e3;kick()});
+  B.addEventListener("pointermove",function(e){if(j.mode!=="drag")return;var t=performance.now()/1e3,P=j.dragP-(e.clientX-j.dragX)/(unitNow()*300),dt=Math.max(1/240,t-j.lastT);
+    j.v=.6*j.v+.4*((P-j.P)/dt);j.P=P;j.lastT=t;if(Math.abs(e.clientX-j.downX)>5)j.moved=!0;draw(t)});
+  function up(e){if(j.mode!=="drag")return;var t=performance.now()/1e3;j.nextAuto=t+gap;
+    if(!j.moved){j.mode="rest";var r=B.getBoundingClientRect(),q=(e.clientX-r.left-r.width/2)/unitNow();if(q>168)setIndex(pt+1);else if(q<-168)setIndex(pt-1);return}
+    if(t-j.lastT>.08)j.v=0;var to=Math.round(j.P+j.v*.16),from=Math.round(j.dragP-ha);j.to=to;j.mode="spring";j.lastT=t;
+    var k=pt+(to-from);if(k!==pt){pt=k}kick()}
+  B.addEventListener("pointerup",up);B.addEventListener("pointercancel",up);
+  B.addEventListener("keydown",function(e){if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft")return;e.preventDefault();setIndex(pt+(e.key==="ArrowRight"?1:-1))});
+  draw(t0);kick();
+  return{go:function(i){setIndex(i)},get index(){return mod(pt,realCount)}};
+}
+
     var root = document.getElementById('features');
-    if (!root || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var cards = Array.prototype.slice.call(root.querySelectorAll('.wcard'));
-    var dots = root.querySelector('.wdots');
-    var track = root.querySelector('.warp-track');
-    var rtl = getComputedStyle(root).direction === 'rtl';
-    var n = cards.length, front = 0;
+    var stage = root.querySelector('.warp-stage'), cap = root.querySelector('.warp-cap');
+    var arts = root.querySelectorAll('.wcard');
+    function caption(i) { var a = arts[i]; if (a) cap.innerHTML = '<b>' + a.querySelector('h2').innerHTML + '</b> · ' + a.querySelector('p').innerHTML; }
     root.classList.add('is-warp');
-    root.querySelector('.warp-nav').hidden = false;
-    track.tabIndex = 0;
-    track.setAttribute('aria-live', 'polite');
-    cards.forEach(function (card, i) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.setAttribute('role', 'tab');
-      b.setAttribute('aria-label', card.querySelector('h2').textContent);
-      b.addEventListener('click', function () { show(i); });
-      dots.appendChild(b);
-      // A click on a side card brings it to the front (its links wait until it is there).
-      card.addEventListener('click', function (e) { if (i !== front) { e.preventDefault(); show(i); } });
-    });
-    function show(i) {
-      front = (i + n) % n;
-      cards.forEach(function (card, k) {
-        var d = k - front;
-        if (d > n / 2) d -= n;
-        if (d < -n / 2) d += n;
-        var ad = Math.min(Math.abs(d), 2);
-        // Next is to the reader's reading side: left in Arabic, right in English.
-        card.style.setProperty('--d', String(Math.max(-2, Math.min(2, d)) * (rtl ? -1 : 1)));
-        card.style.setProperty('--ad', String(ad));
-        card.style.setProperty('--far', ad >= 2 ? '1' : '0');
-        card.toggleAttribute('data-front', d === 0);
-        card.setAttribute('aria-hidden', d === 0 ? 'false' : 'true');
-        card.querySelectorAll('a').forEach(function (a) { a.tabIndex = d === 0 ? 0 : -1; });
-      });
-      dots.querySelectorAll('button').forEach(function (b, k) { b.setAttribute('aria-selected', String(k === front)); });
-    }
-    root.querySelectorAll('.wbtn').forEach(function (b) {
-      b.addEventListener('click', function () { show(front + Number(b.dataset.step)); });
-    });
-    track.addEventListener('keydown', function (e) {
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-      e.preventDefault();
-      var forward = (e.key === 'ArrowLeft') === rtl;
-      show(front + (forward ? 1 : -1));
-    });
-    var x0 = null;
-    track.addEventListener('pointerdown', function (e) { x0 = e.clientX; });
-    track.addEventListener('pointerup', function (e) {
-      if (x0 === null) return;
-      var dx = e.clientX - x0;
-      x0 = null;
-      if (Math.abs(dx) < 40) return;
-      show(front + ((dx < 0) === rtl ? -1 : 1));
-    });
-    show(0);
+    var w = null;
+    try { w = WarpCarousel(stage, { cards: MOON_CARDS, background: '#f0f0f0', step: 2, interval: 3.6667,
+      font: "'IBM Plex Sans Arabic', Inter, 'SF Pro Display', system-ui, sans-serif", onIndexChange: caption }); } catch (e) { console.warn(e); }
+    if (!w) { root.classList.remove('is-warp'); return; }
+    caption(0);
   })();
   </script>
 
