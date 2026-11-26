@@ -422,9 +422,11 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
       </header>
 
       <main>
-        {!ready ? <Loading /> : (
+        {/* The home page shows at once (its search box ready to type in) and stays the same element when the books
+            arrive, so what a reader has typed is kept; every other view waits for the catalogue. */}
+        {!ready && view.mode !== 'home' ? <Loading /> : (
           <div className="view" key={viewKey(view)}>
-            {view.mode === 'home' && <Home ctx={ctx} />}
+            {view.mode === 'home' && <Home ctx={ctx} loading={!ready} />}
             {view.mode === 'search' && <Results key={`${view.query}|${view.params || ''}`} ctx={ctx} query={view.query} />}
             {view.mode === 'work' && <WorkPage key={view.id} ctx={ctx} id={view.id} />}
             {view.mode === 'person' && <PersonPage key={view.key} ctx={ctx} k={view.key} />}
@@ -762,7 +764,11 @@ function AskMoon({ ctx }: { ctx: Ctx }) {
   );
 }
 
-function Home({ ctx }: { ctx: Ctx }) {
+/**
+ * The home page. While the catalogue is still arriving (loading), the search box is already there to type in; the
+ * shelves and the numbers come when the books have (plan step B3).
+ */
+function Home({ ctx, loading }: { ctx: Ctx; loading?: boolean }) {
   const works = useMemo(() => wolfMoonOpacService.getAllWorks(), [ctx.rev]);
   const recent = useMemo(() => recentShelf(works, w => !!coverUrlOf(w), 12), [works]);
   const authors = useMemo(() => wolfMoonOpacService.getAllPersons().filter(p => p.worksCount > 0).slice(0, 8), [ctx.rev]);
@@ -786,7 +792,9 @@ function Home({ ctx }: { ctx: Ctx }) {
     <>
       <section className="hero wrap">
         <h1>{t('اعثر على كتابك التالي', 'Find your next book')}</h1>
-        <p className="hero-sub">{t(`ابحث في ${works.length} كتاباً بالعنوان أو المؤلف أو الموضوع، واعرف أين تجده في المكتبة.`, `Search ${works.length} books by title, author or subject, and find where they are in the library.`)}</p>
+        <p className="hero-sub">{loading
+          ? t('ابحث في الفهرس بالعنوان أو المؤلف أو الموضوع، واعرف أين تجد الكتاب في المكتبة.', 'Search the catalogue by title, author or subject, and find where each book is in the library.')
+          : t(`ابحث في ${works.length} كتاباً بالعنوان أو المؤلف أو الموضوع، واعرف أين تجده في المكتبة.`, `Search ${works.length} books by title, author or subject, and find where they are in the library.`)}</p>
         <SearchBox ctx={ctx} />
         <AskMoon ctx={ctx} />
         {categories.length > 0 && (
@@ -801,7 +809,7 @@ function Home({ ctx }: { ctx: Ctx }) {
         )}
       </section>
 
-      <div className="wrap">
+      {loading ? <Loading /> : <div className="wrap">
         <Shelf title={t('أُضيف حديثاً', 'Recently added')} works={recent} ctx={ctx} showAdded more={{ label: t('كل الكتب', 'All books'), view: { mode: 'search', query: '', params: 'sort=date-desc' } }} />
         {featured && featured.works.length > 1 && (
           <Shelf title={t(`من أعمال ${personName(featured.person)}`, `By ${personName(featured.person)}`)} works={featured.works} ctx={ctx} more={{ label: t('صفحة المؤلف', 'Author page'), view: { mode: 'person', key: featured.person.id } }} />
@@ -866,7 +874,7 @@ function Home({ ctx }: { ctx: Ctx }) {
             </div>
           </div>
         </section>
-      </div>
+      </div>}
     </>
   );
 }
