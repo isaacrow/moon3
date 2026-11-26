@@ -14,7 +14,7 @@
  * A cataloguer's decision (same / different) always wins; "different" is how a group is taken apart.
  * No imports from the OPAC service, so the editor, the OPAC and the tests all use it.
  */
-import { foldArabic, foldLatin, sameNameScore } from './arabicNames';
+import { foldArabic, foldLatin, sameNameScore } from './arabicNames.tsx';
 
 export interface ClusterWork {
   id: string;

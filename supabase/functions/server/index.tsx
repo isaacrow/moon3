@@ -49,6 +49,9 @@ import { applyOwnership, withOwners, withoutOwners, blockedMessage } from "./pro
 import * as recordStore from "./recordStore.tsx";
 import * as linkedData from "./linkedData.tsx";
 import { searchableOf, searchDocs, entityNameForms, type SearchDoc } from "./searchDocs.tsx";
+import { catalogueList } from "./catalogueRecord.tsx";
+import { catalogueWorks, foundWorks, partialMatches, resultsPage } from "./opacResults.tsx";
+import { readState } from "./opacFacets.tsx";
 import { checkBig, lcLinkCoverage } from "./bigShapes.tsx";
 import { matchWork, fuzzyMatchWork, setEntityNames } from "./searchCore.tsx";
 import * as sparqlStore from "./sparqlEndpoint.tsx";
@@ -2666,6 +2669,20 @@ const publishedIndex = freshCache(async (): Promise<Array<SearchDoc<any>>> => {
 });
 const publishedSearchDocs = () => publishedIndex.get();
 
+// The published catalogue as the catalogue page builds it (opacResults.tsx): GET /records' list read into works, one
+// per book, with each record's list entry by id (to send the page's results). The entity names come with the index.
+const CATALOGUE_BASE = `${new URL(linkedData.BASE_URI).origin}/entity`;
+const publishedCatalogue = freshCache(async () => {
+  const [records] = await Promise.all([publishedRecords.get(), publishedIndex.get()]);
+  const t0 = performance.now();
+  const list = catalogueList(records as any[]);
+  // Read from a copy: the reader may fill in a node, and the cached records serve other routes as they are.
+  const works = catalogueWorks(JSON.parse(JSON.stringify(list)), CATALOGUE_BASE);
+  catalogueTimings.works = Math.round(performance.now() - t0);
+  return { works, entries: new Map<string, any>(list.map((e) => [e.id, e])) };
+});
+const workDecisions = freshCache(async () => parseDecisions(await kv.get(DECISIONS_KEY).catch(() => null)));
+
 /** The language code of a record's Work (…/languages/ara → ara), for the published search's language filter. */
 function languageCodeOf(document: any): string {
   const work = (document?.['@graph'] || []).find((n: any) => [].concat(n?.['@type'] || []).some((t: any) => typeof t === 'string' && /(^|[:/])Work$/.test(t)));
@@ -2678,6 +2695,37 @@ app.get("/make-server-49c0e13c/records/search", async (c) => {
   try {
     const published = c.req.query('view') === 'published' || !(await getSession(c));
     const num = (v: string | undefined, d: number) => (v && /^\d+$/.test(v) ? Number(v) : d);
+    if (published && c.req.query('results') === 'catalogue') {
+      // The catalogue page's results (opacResults.tsx), one page of them with every filter's counts:
+      // ?text=<the words, without field:value parts>&q=<as typed, for books with some of the words>&f_<filter>=…&sort=&page=&group=0&lang=en
+      const t0 = performance.now();
+      const [{ works, entries }, decisions] = await Promise.all([publishedCatalogue.get(), workDecisions.get()]);
+      c.header('Server-Timing', [`catalogue;dur=${Math.round(performance.now() - t0)}`, ...Object.entries(catalogueTimings).map(([k, v]) => `${k};dur=${v}`), `uptime;dur=${Math.round(performance.now())}`].join(', '));
+      const params = new URL(c.req.url).searchParams;
+      const { sel, sort, page } = readState(params);
+      const typed = (params.get('q') || '').slice(0, 200);
+      const text = (params.get('text') ?? typed).slice(0, 200);
+      const lang = params.get('lang') === 'en' ? 'en' : 'ar';
+      const found = foundWorks(works, text);
+      const result = resultsPage(found.works, { sel, sort, page, grouped: params.get('group') !== '0', decisions, lang });
+      const activeFilters = Object.values(sel).some((v) => v?.length);
+      const partial = !result.groupCount && !activeFilters && typed.trim() ? partialMatches(works, typed, 6) : [];
+      const shown = [...result.groups.flatMap((g) => g.members), ...partial];
+      const reasons: Record<string, string> = {};
+      for (const w of shown) if (found.reasons[w.id]) reasons[w.id] = found.reasons[w.id];
+      return c.json({
+        groupCount: result.groupCount,
+        recordCount: result.recordCount,
+        pages: result.pages,
+        groups: result.groups.map((g) => ({ key: g.key, lead: g.lead.id, members: g.members.map((m) => m.id), evidence: g.evidence || [] })),
+        partial: partial.map((w) => w.id),
+        counts: result.counts,
+        ids: result.ids,
+        order: result.order,
+        reasons,
+        records: [...new Set(shown.map((w) => w.id))].map((id) => entries.get(id)).filter(Boolean),
+      }, 200, { 'Cache-Control': 'public, max-age=60' });
+    }
     if (published) {
       // One search: the catalogue page's rules over every published record, best first, in pages (20 unless asked).
       const language = c.req.query('language');
@@ -2864,28 +2912,8 @@ app.get("/make-server-49c0e13c/records", async (c) => {
     const records = published ? await publishedRecordsCached() : await recordStore.listRecords();
     c.header('Server-Timing', `catalogue;dur=${Math.round(performance.now() - t0)}`);
 
-    const recordList = records
-      .map((record) => ({
-        id: record.id,
-        title: record.title || 'Untitled',
-        document: record.document,
-        metadata: record.metadata,
-        status: record.status,
-        cataloger: record.cataloger,
-        approvedBy: record.approvedBy,
-        approvedAt: record.approvedAt,
-        createdAt: record.createdAt || record.saved,
-        saved: record.saved,
-        version: record.version,
-        publishedVersion: record.publishedVersion,
-        assignedTo: record.assignedTo,
-        // The uploaded (or Open Library / Google Books) cover: the OPAC and the records list show it.
-        coverUrl: record.coverUrl,
-        nodeCount: record.document?.['@graph']?.length || 0,
-      }));
-
-    // Sort by saved date, newest first
-    recordList.sort((a: any, b: any) => new Date(b.saved).getTime() - new Date(a.saved).getTime());
+    // The fields the catalogue page reads, newest saved first (catalogueRecord.tsx; the server's catalogue results use it too).
+    const recordList = catalogueList(records as any[]);
     
     console.log(`[RECORDS] Listed ${recordList.length} records`);
     

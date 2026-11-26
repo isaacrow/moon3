@@ -42,6 +42,7 @@ import { findPersonQid, splitHeading, type PersonClues } from './personPhoto';
 import { groupsOf, seriesParts, worksOfGroup } from './groupPages';
 import { placeName, placesOf, worksAtPlace, wikidataQid, wikidataApiUrl, parseInfoCard, relationsOf, clusterWorks, type InfoCard as InfoCardData } from './linkedEntities';
 import type { WorkDecision } from '../services/workClustering';
+import { resultsPage, type ResultGroup } from '../../supabase/functions/server/opacResults.tsx';
 import { whatItIs, formatChips, editionLines, exactMatch, alphaIndex, letterOf, filingKey } from './plainWords';
 import { usePreferredForms } from '../app/utils/preferredNames';
 import { bookScript } from '../services/nameForms';
@@ -424,11 +425,11 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
       <main>
         {/* The home page shows at once (its search box ready to type in) and stays the same element when the books
             arrive, so what a reader has typed is kept; every other view waits for the catalogue. */}
-        {!ready && view.mode !== 'home' && !(view.mode === 'search' && quickSearchable(view.query, view.params)) ? <Loading /> : (
+        {!ready && view.mode !== 'home' && !(view.mode === 'search' && serverSearchable(view.query, view.params ?? window.location.search)) ? <Loading /> : (
           <div className="view" key={viewKey(view)}>
             {view.mode === 'home' && <Home ctx={ctx} loading={!ready} />}
-            {view.mode === 'search' && !ready && <QuickResults key={view.query} ctx={ctx} query={view.query} />}
-            {view.mode === 'search' && ready && <Results key={`${view.query}|${view.params || ''}`} ctx={ctx} query={view.query} />}
+            {/* The same element before and after the catalogue arrives: the server's results give way to the page's own. */}
+            {view.mode === 'search' && <Results key={`${view.query}|${view.params || ''}`} ctx={ctx} query={view.query} ready={ready} />}
             {view.mode === 'work' && <WorkPage key={view.id} ctx={ctx} id={view.id} />}
             {view.mode === 'person' && <PersonPage key={view.key} ctx={ctx} k={view.key} />}
             {view.mode === 'subject' && <SubjectPage key={view.key} ctx={ctx} k={view.key} />}
@@ -1107,68 +1108,79 @@ function EResourceMatches({ query }: { query: string }) {
 }
 
 /**
- * Whether a search can be answered from the server's paged search before the whole catalogue has arrived (plan
- * step B3): words alone, in every field, relevance order. Filters, a field, the advanced search, exact words or
- * another order need every book, so they wait for the catalogue.
+ * Whether the server can give a search's results before the whole catalogue has arrived (plan step B3): words (or
+ * none), with any filters, order, page and grouping. A field, the advanced search, exact words or field:value words
+ * need every book, so they wait for the catalogue.
  */
-function quickSearchable(query: string, params?: string): boolean {
-  if (!query.trim()) return false;
+function serverSearchable(query: string, params?: string): boolean {
+  if (wolfMoonOpacService.parseDeepSearchQuery(query).clauses.length) return false;
   const p = new URLSearchParams(params || '');
   for (const [k, v] of p) {
-    if (k === 'page' || k === 'group' || k === 'q') continue;
-    if (k === 'sort' && v === 'relevance') continue;
+    if (k === 'page' || k === 'group' || k === 'q' || k === 'sort' || k === 'lang' || k.startsWith('f_')) continue;
     if (k === 'in' && v === 'all') continue;
+    if (k === 'exact' && v !== '1') continue;
     return false;
   }
   return true;
 }
 
-/**
- * The first page of results from the server's search (the same rules as the catalogue page: searchDocs.tsx), shown
- * while the whole catalogue is still arriving; the full results, with their filters, take its place when it has.
- */
-function QuickResults({ ctx, query }: { ctx: Ctx; query: string }) {
-  const [state, setState] = useState<{ works: OpacWorkEntity[]; total: number } | null>(null);
-  useEffect(() => {
-    let alive = true;
-    fetch(`${MOON_API}/records/search?view=published&limit=${PAGE_SIZE}&q=${encodeURIComponent(query.trim().slice(0, 200))}`, { headers: moonHeaders() })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (alive && d) setState({ works: wolfMoonOpacService.worksFromRecords(d.records || []), total: Number(d.total) || 0 }); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, [query]);
-  return (
-    <div className="wrap">
-      <div className="page-head">
-        <Crumbs ctx={ctx} items={[{ label: t('نتائج البحث', 'Search results') }]} />
-        <h1 className="page-title">{t(`نتائج «${query}»`, `Results for “${query}”`)}</h1>
-      </div>
-      <div style={{ maxWidth: 720 }}><SearchBox ctx={ctx} initial={query} compact /></div>
-      {!state ? <Loading /> : (
-        <section aria-live="polite">
-          <div className="results-bar glass">
-            <span className="count">
-              {state.total
-                ? t(`${state.total} نتيجة · تظهر أوّلها الآن، وتأتي الفلاتر بعد لحظات`, `${state.total} results · the first are shown now; the filters follow in a moment`)
-                : t('لا نتائج بعد · ما زال الفهرس يصل', 'No results yet · the catalogue is still arriving')}
-            </span>
-          </div>
-          <div className="rows">
-            {state.works.map((w, i) => <ResultCard key={w.id} w={w} ctx={ctx} i={i} />)}
-          </div>
-        </section>
-      )}
-    </div>
-  );
+/** One page of results, as the page shows them: from the whole catalogue here, or from the server's results. */
+interface ShownResults {
+  groups: Array<ResultGroup<OpacWorkEntity>>;
+  groupCount: number;
+  recordCount: number;
+  pages: number;
+  counts: Record<FacetKey, FacetValue[]>;
+  ids: string[];
+  order: string[][];
+  partial: OpacWorkEntity[];
 }
 
-function Results({ ctx, query }: { ctx: Ctx; query: string }) {
+/**
+ * The server's results for a plain search (opacResults.tsx: the page's own code on the same records), while the whole
+ * catalogue is still arriving; null until they come, and when the server cannot give them (the page then waits).
+ */
+function useServerResults(ask: { query: string; sel: Selection; sort: SortKey; page: number; grouped: boolean; lang: OpacLang } | null): ShownResults | null {
+  const [state, setState] = useState<ShownResults | null>(null);
+  const key = ask ? JSON.stringify(ask) : '';
+  useEffect(() => {
+    if (!ask) return;
+    const p = writeState(new URLSearchParams(), { sel: ask.sel, sort: ask.sort, page: ask.page });
+    const q = ask.query.trim().slice(0, 200);
+    p.set('view', 'published');
+    p.set('results', 'catalogue');
+    p.set('q', q);
+    p.set('text', wolfMoonOpacService.parseDeepSearchQuery(q).freeText || q);
+    if (!ask.grouped) p.set('group', '0');
+    p.set('lang', ask.lang);
+    const ctrl = new AbortController();
+    fetch(`${MOON_API}/records/search?${p.toString()}`, { headers: moonHeaders(), signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d || !Array.isArray(d.groups) || !d.counts) return;
+        const works = new Map(wolfMoonOpacService.catalogueWorksFrom(d.records || []).map((w) => [w.id, w]));
+        for (const [id, reason] of Object.entries(d.reasons || {})) { const w = works.get(id); if (w) w.matchReason = String(reason); }
+        const pick = (ids: string[]) => (ids || []).map((id) => works.get(id)).filter((w): w is OpacWorkEntity => !!w);
+        const groups = (d.groups as Array<{ key: string; lead: string; members: string[]; evidence: string[] }>).flatMap((g) => {
+          const lead = works.get(g.lead);
+          return lead ? [{ key: g.key, lead, members: pick(g.members), evidence: g.evidence || [] }] : [];
+        });
+        setState({ groups, groupCount: d.groupCount, recordCount: d.recordCount, pages: d.pages, counts: d.counts, ids: d.ids || [], order: d.order || [], partial: pick(d.partial) });
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The last answer stays on screen while the next one (another filter, page or order) is on its way.
+  return ask ? state : null;
+}
+
+function Results({ ctx, query, ready }: { ctx: Ctx; query: string; ready: boolean }) {
   const initial = useMemo(() => readState(new URLSearchParams(window.location.search)), [query]);
   const adv = useMemo(() => readAdvanced(new URLSearchParams(window.location.search)), [query]);
   const advanced = hasAdvanced(adv);
   const [sel, setSel] = useState<Selection>(initial.sel);
   const [sort, setSort] = useState<SortKey>(initial.sort);
-  const partial = useMemo(() => (query.trim() ? wolfMoonOpacService.partialMatches(query, 6) : []), [query, ctx.rev]);
+  const partial = useMemo(() => (ready && query.trim() ? wolfMoonOpacService.partialMatches(query, 6) : []), [query, ctx.rev, ready]);
   const [page, setPage] = useState(initial.page);
   const [needle, setNeedle] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -1176,23 +1188,32 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
   // Every work matching the words, in order of relevance; the filters and the sort apply on top.
   const base = useMemo(
     () => {
+      if (!ready) return [];
       const found = wolfMoonOpacService.searchWorks(query, 'all', 'all', 'all', 'all', 'relevance', 1, 100000).works;
       // A search limited to one field, and the advanced search, keep only the works that answer them.
       return adv.inField !== 'all' || advanced ? applyFieldSearch(found as any[], query, adv) as typeof found : found;
     },
-    [query, ctx.rev, adv, advanced],
+    [query, ctx.rev, adv, advanced, ready],
   );
   // Close matches (a word inside another word) by default; "exact words only" keeps whole words.
   const [exact, setExact] = useState(() => new URLSearchParams(window.location.search).get('exact') === '1');
   const matched = useMemo(() => (exact && query.trim() ? base.filter(w => exactMatch(w, query)) : base), [base, exact, query]);
-  const filtered = useMemo(() => sortWorks(applyFacets(matched, sel), sort), [matched, sel, sort]);
-  const counts = useMemo(() => facetCounts(matched, sel), [matched, sel]);
   // One result per Work (Libris): editions, translations and hub members fold under the best-placed record.
   const [grouped, setGrouped] = useState(() => new URLSearchParams(window.location.search).get('group') !== '0');
   const decisions = useWorkDecisions();
-  const clusters = useMemo(() => (grouped ? clusterWorks(filtered, decisions) : filtered.map(w => ({ key: w.id, lead: w, members: [w], confidence: 1, evidence: [] as string[] }))), [filtered, grouped, decisions]);
-  const pages = Math.max(1, Math.ceil(clusters.length / PAGE_SIZE));
-  const shown = clusters.slice((Math.min(page, pages) - 1) * PAGE_SIZE, Math.min(page, pages) * PAGE_SIZE);
+  const lang = opacLang();
+  // The filters, the order, the Work groups and the page (opacResults.tsx), on the whole catalogue once it is here;
+  // until then the server's answer to the same question, made with the same code on the same records.
+  const local = useMemo(
+    () => (ready ? { ...resultsPage(matched, { sel, sort, page, grouped, decisions, lang, pageSize: PAGE_SIZE }), partial } : null),
+    [ready, matched, sel, sort, page, grouped, decisions, lang, partial],
+  );
+  // Exact words, a field and the advanced search need every book: they wait for the catalogue.
+  const remote = useServerResults(!ready && !exact && adv.inField === 'all' && !advanced && serverSearchable(query) ? { query, sel, sort, page, grouped, lang } : null);
+  const results: ShownResults | null = local || remote;
+  const counts = results?.counts;
+  const shown = results?.groups || [];
+  const pages = results?.pages || 1;
 
   // The filters live in the address, so a filtered list can be shared, bookmarked and come back with Back.
   useEffect(() => {
@@ -1201,19 +1222,19 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
     if (exact) p.set('exact', '1'); else p.delete('exact');
     const url = `${window.location.pathname}?${p.toString()}`;
     if (url !== `${window.location.pathname}${window.location.search}`) history.replaceState(history.state, '', url);
-    try { sessionStorage.setItem(RESULTS_KEY, JSON.stringify({ ids: filtered.map(w => w.id), url, query })); } catch { /* private mode */ }
-  }, [sel, sort, page, filtered, query, grouped, exact]);
+    if (results) try { sessionStorage.setItem(RESULTS_KEY, JSON.stringify({ ids: results.ids, url, query })); } catch { /* private mode */ }
+  }, [sel, sort, page, results, query, grouped, exact]);
 
   // Remember the order the reader sees (for "which result did they open"), kept in this tab only.
   useEffect(() => {
-    try { sessionStorage.setItem(ORDER_KEY, JSON.stringify(clusters.slice(0, 100).map(c => c.members.map(m => m.id)))); } catch { /* private mode */ }
-  }, [clusters]);
+    if (results) try { sessionStorage.setItem(ORDER_KEY, JSON.stringify(results.order)); } catch { /* private mode */ }
+  }, [results]);
 
   // Tell Moon (anonymously) what was searched and how many results it found, once the list has settled.
-  const resultCount = clusters.length;
+  const resultCount = results ? results.groupCount : -1;
   const filterCount = Object.values(sel).reduce((a, v) => a + v.length, 0);
   useEffect(() => {
-    if (!query.trim()) return;
+    if (!query.trim() || resultCount < 0) return;
     const timer = window.setTimeout(() => reportSearch(query, resultCount, document.documentElement.lang || 'ar', filterCount), 900);
     return () => window.clearTimeout(timer);
   }, [query, resultCount]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1244,15 +1265,15 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
             <input value={needle} onChange={e => setNeedle(e.target.value)} placeholder={t('ابحث في الفلاتر…', 'Search the filters…')} />
           </label>
           {FACETS.map(({ key, title, en }, idx) => (
-            <FacetGroup key={key} k={key} title={t(title, en)} values={counts[key]} sel={sel} onToggle={onToggle} needle={n} startOpen={idx < 4} />
+            <FacetGroup key={key} k={key} title={t(title, en)} values={counts?.[key] || []} sel={sel} onToggle={onToggle} needle={n} startOpen={idx < 4} />
           ))}
         </aside>
 
         <section aria-live="polite">
           <div className="results-bar glass">
             <span className="count">
-              {t('عدد النتائج:', 'Results:')} {clusters.length}
-              {grouped && clusters.length < filtered.length ? <span className="muted"> {t(`(${filtered.length} تسجيلة)`, `(${filtered.length} records)`)}</span> : null}
+              {t('عدد النتائج:', 'Results:')} {results ? results.groupCount : '…'}
+              {results && grouped && results.groupCount < results.recordCount ? <span className="muted"> {t(`(${results.recordCount} تسجيلة)`, `(${results.recordCount} records)`)}</span> : null}
             </span>
             <label className="sort">
               <input type="checkbox" checked={grouped} onChange={e => { setGrouped(e.target.checked); setPage(1); }} />
@@ -1287,14 +1308,14 @@ function Results({ ctx, query }: { ctx: Ctx; query: string }) {
             </div>
           )}
 
-          {shown.length === 0 ? (
+          {!results ? <Loading /> : shown.length === 0 ? (
             <div className="empty glass">
               <h3>{t('لم نجد كتباً تطابق بحثك', 'No books match your search')}</h3>
               <p>{t('تأكد من الإملاء، أو ابحث باسم المؤلف وحده، أو أزل بعض الفلاتر.', 'Check the spelling, search by the author’s name alone, or remove some filters.')}</p>
-              {!activeCount && partial.length > 0 && (
+              {!activeCount && results.partial.length > 0 && (
                 <div className="partial">
                   <h4>{t('كتب فيها بعض كلماتك', 'Books that contain some of your words')}</h4>
-                  <div className="shelf">{partial.map((w, i) => <BookCard key={w.id} work={w} ctx={ctx} i={i} />)}</div>
+                  <div className="shelf">{results.partial.map((w, i) => <BookCard key={w.id} work={w} ctx={ctx} i={i} />)}</div>
                 </div>
               )}
               {activeCount ? <button className="btn-black" onClick={clear}>{t('إزالة الفلاتر', 'Remove filters')}</button> : <button className="btn-black" onClick={() => ctx.go({ mode: 'search', query: '' })}>{t('تصفّح كل الكتب', 'Browse all books')}</button>}
