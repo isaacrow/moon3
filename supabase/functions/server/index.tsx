@@ -2624,13 +2624,19 @@ app.post("/make-server-49c0e13c/records/check-duplicates", async (c) => {
 // The published records themselves, read once a minute at most (plan step B3): the catalogue's full list and its
 // search share them, so neither rebuilds the published catalogue on every reader's visit.
 // The published records, shared by the catalogue's full list and its search.
-const publishedRecords = freshCache(async () => (await recordStore.listPublishedRecords()) as any[]);
+// How long the last build of each part took (Server-Timing, to see what a fresh server spends its time on).
+const catalogueTimings: Record<string, number> = {};
+const timed = async <T,>(name: string, job: Promise<T>): Promise<T> => { const t0 = performance.now(); try { return await job; } finally { catalogueTimings[name] = Math.round(performance.now() - t0); } };
+const publishedRecords = freshCache(async () => (await timed('records', recordStore.listPublishedRecords())) as any[]);
 const publishedRecordsCached = () => publishedRecords.get();
 
 const publishedIndex = freshCache(async (): Promise<Array<SearchDoc<any>>> => {
-  const [records, entities] = await Promise.all([publishedRecords.get(), recordStore.listAllAuthorities()]);
+  const [records, entities] = await Promise.all([publishedRecords.get(), timed('entities', recordStore.listAllAuthorities())]);
   setEntityNames(entityNameForms(entities as any[], linkedData.BASE_URI));
-  return (records as any[]).map((record) => ({ record, work: searchableOf(record.document)! })).filter((d) => d.work);
+  const t0 = performance.now();
+  const docs = (records as any[]).map((record) => ({ record, work: searchableOf(record.document)! })).filter((d) => d.work);
+  catalogueTimings.index = Math.round(performance.now() - t0);
+  return docs;
 });
 const publishedSearchDocs = () => publishedIndex.get();
 
@@ -2653,7 +2659,7 @@ app.get("/make-server-49c0e13c/records/search", async (c) => {
       const cataloger = c.req.query('cataloger');
       const t0 = performance.now();
       let docs = await publishedSearchDocs();
-      c.header('Server-Timing', `catalogue;dur=${Math.round(performance.now() - t0)}`);
+      c.header('Server-Timing', [`catalogue;dur=${Math.round(performance.now() - t0)}`, ...Object.entries(catalogueTimings).map(([k, v]) => `${k};dur=${v}`), `uptime;dur=${Math.round(performance.now())}`].join(', '));
       if (language) docs = docs.filter((d) => languageCodeOf(d.record.document) === language);
       if (template) docs = docs.filter((d) => (d.record.metadata?.templateId || '') === template);
       if (cataloger) docs = docs.filter((d) => d.record.cataloger === cataloger);
