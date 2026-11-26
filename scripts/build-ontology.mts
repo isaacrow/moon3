@@ -74,13 +74,14 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Moon's extension of BIBFRAME · امتداد مون</title>
+<meta name="description" content="The few terms Moon uses beside BIBFRAME 3.0.1 and BFLC, among them the events Arabic manuscripts record (ijāzah, samāʿ, reading, copying, ownership, waqf), with their Arabic labels; as Turtle, CC0.">
 <link rel="alternate" type="text/turtle" href="index.ttl">
 <style>:root{--bg:#f8fafc;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--card:#fff}@media (prefers-color-scheme:dark){:root{--bg:#0b1020;--ink:#e5e7eb;--muted:#94a3b8;--line:#1f2937;--card:#111827}}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,"Segoe UI",Tahoma,sans-serif}main{max-width:52rem;margin:0 auto;padding:2rem 1rem 4rem}
 .t{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.8rem 1rem;margin:.6rem 0}.t:target{outline:2px solid var(--ink)}code{font-size:.9rem}.m{color:var(--muted);font-size:.9rem}.ar{direction:rtl}a{color:inherit}</style></head>
 <body><main>
 <h1>Moon's extension of BIBFRAME</h1><p class="m ar">امتداد مون لـ BIBFRAME</p>
-<p>The few terms Moon uses beside <a href="https://id.loc.gov/ontologies/bibframe.html">BIBFRAME 3.0.1</a> and BFLC, at <code>${NS}</code>. As data: <a href="index.ttl">Turtle (OWL and SKOS, CC0)</a>. See also Moon's SKOS vocabularies, <a href="/resource/vocab/maqam">maqām</a> and <a href="/resource/vocab/item-action">copy actions</a>; <a href="/bibframe-ar.html">BIBFRAME in Arabic</a>; <a href="/resource/genres-ar.ttl">Arabic genre and form terms</a>; <a href="/open-data.html">open metadata</a>.</p>
+<p>The few terms Moon uses beside <a href="https://id.loc.gov/ontologies/bibframe.html">BIBFRAME 3.0.1</a> and BFLC, at <code>${NS}</code>. As data: <a href="index.ttl">Turtle (OWL and SKOS, CC0)</a>. See also Moon's SKOS vocabularies, <a href="/resource/vocab/maqam">maqām</a> and <a href="/resource/vocab/item-action">copy actions</a>; <a href="/bibframe-ar.html">BIBFRAME in Arabic</a>; <a href="/resource/genres-ar.ttl">Arabic genre and form terms</a>; <a href="/open-data.html">open metadata</a>; <a href="/opac.html">the catalogue</a>.</p>
 <p class="m">Hijri dates are kept as written, beside their EDTF form (<code>http://id.loc.gov/datatypes/edtf</code>).</p>
 ${TERMS.map((t) => `<div class="t" id="${t.name}"><b><code>moonext:${t.name}</code></b> · ${esc(t.en)} · <span class="ar">${esc(t.ar)}</span><div class="m">${t.kind.replace('Object', 'object ').replace('Datatype', 'datatype ').toLowerCase()}${t.sub ? ` · a kind of <code>${t.sub}</code>` : ''}${t.domain ? ` · on <code>${t.domain}</code>` : ''}${t.range ? ` · to <code>${t.range}</code>` : ''}${t.published ? '' : ' · in the editor, not yet published'}</div><p>${esc(t.def)}</p></div>`).join('\n')}
 </main></body></html>
