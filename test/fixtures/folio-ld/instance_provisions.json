@@ -1,0 +1,210 @@
+[
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/INSTANCE_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Instance"
+        ],
+        "http://id.loc.gov/ontologies/bibframe/provisionActivity": [
+            {
+                "@id": "http://test-tobe-changed.folio.com/resources/DISTRIBUTION_ID"
+            },
+            {
+                "@id": "http://test-tobe-changed.folio.com/resources/MANUFACTURE_ID"
+            },
+            {
+                "@id": "http://test-tobe-changed.folio.com/resources/PRODUCTION_ID"
+            },
+            {
+                "@id": "http://test-tobe-changed.folio.com/resources/PUBLICATION_ID"
+            }
+        ]
+    },
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/DISTRIBUTION_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/ProvisionActivity",
+            "http://id.loc.gov/ontologies/bibframe/Distribution"
+        ],
+        "http://id.loc.gov/ontologies/bibframe/date": [
+            {
+                "@value": "distribution provider date 1"
+            },
+            {
+                "@value": "distribution provider date 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bflc/simpleDate": [
+            {
+                "@value": "distribution simple date 1"
+            },
+            {
+                "@value": "distribution simple date 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bflc/simpleAgent": [
+            {
+                "@value": "distribution simple agent 1"
+            },
+            {
+                "@value": "distribution simple agent 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bflc/simplePlace": [
+            {
+                "@value": "distribution simple place 1"
+            },
+            {
+                "@value": "distribution simple place 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/place": [
+            {
+                "@id": "http://id.loc.gov/vocabulary/countries/kz"
+            },
+            {
+                "@id": "http://id.loc.gov/vocabulary/countries/ru"
+            }
+        ]
+    },
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/MANUFACTURE_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/ProvisionActivity",
+            "http://id.loc.gov/ontologies/bibframe/Manufacture"
+        ],
+        "http://id.loc.gov/ontologies/bibframe/date": [
+            {
+                "@value": "manufacture provider date 1"
+            },
+            {
+                "@value": "manufacture provider date 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bflc/simpleDate": [
+            {
+                "@value": "manufacture simple date 1"
+            },
+            {
+                "@value": "manufacture simple date 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bflc/simpleAgent": [
+            {
+                "@value": "manufacture simple agent 1"
+            },
+            {
+                "@value": "manufacture simple agent 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bflc/simplePlace": [
+            {
+                "@value": "manufacture simple place 1"
+            },
+            {
+                "@value": "manufacture simple place 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/place": [
+            {
+                "@id": "http://id.loc.gov/vocabulary/countries/kz"
+            },
+            {
+                "@id": "http://id.loc.gov/vocabulary/countries/ru"
+            }
+        ]
+    },
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/PRODUCTION_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/ProvisionActivity",
+            "http://id.loc.gov/ontologies/bibframe/Production"
+        ],
+        "http://id.loc.gov/ontologies/bibframe/date": [
+            {
+                "@value": "production provider date 1"
+            },
+            {
+                "@value": "production provider date 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bflc/simpleDate": [
+            {
+                "@value": "production simple date 1"
+            },
+            {
+                "@value": "production simple date 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bflc/simpleAgent": [
+            {
+                "@value": "production simple agent 1"
+            },
+            {
+                "@value": "production simple agent 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bflc/simplePlace": [
+            {
+                "@value": "production simple place 1"
+            },
+            {
+                "@value": "production simple place 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/place": [
+            {
+                "@id": "http://id.loc.gov/vocabulary/countries/kz"
+            },
+            {
+                "@id": "http://id.loc.gov/vocabulary/countries/ru"
+            }
+        ]
+    },
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/PUBLICATION_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/ProvisionActivity",
+            "http://id.loc.gov/ontologies/bibframe/Publication"
+        ],
+        "http://id.loc.gov/ontologies/bibframe/date": [
+            {
+                "@value": "publication provider date 1"
+            },
+            {
+                "@value": "publication provider date 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bflc/simpleDate": [
+            {
+                "@value": "publication simple date 1"
+            },
+            {
+                "@value": "publication simple date 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bflc/simpleAgent": [
+            {
+                "@value": "publication simple agent 1"
+            },
+            {
+                "@value": "publication simple agent 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bflc/simplePlace": [
+            {
+                "@value": "publication simple place 1"
+            },
+            {
+                "@value": "publication simple place 2"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/place": [
+            {
+                "@id": "http://id.loc.gov/vocabulary/countries/kz"
+            },
+            {
+                "@id": "http://id.loc.gov/vocabulary/countries/ru"
+            }
+        ]
+    }
+]

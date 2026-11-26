@@ -1,0 +1,72 @@
+[
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/INSTANCE_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Instance"
+        ],
+        "http://id.loc.gov/ontologies/bibframe/identifiedBy": [
+            {
+                "@id": "http://test-tobe-changed.folio.com/resources/EAN_ID"
+            },
+            {
+                "@id": "http://test-tobe-changed.folio.com/resources/ISBN_ID"
+            },
+            {
+                "@id": "http://test-tobe-changed.folio.com/resources/LCCN_ID"
+            }
+        ]
+    },
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/EAN_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Ean"
+        ],
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#value": [
+            {
+                "@value": "780696204364"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/qualifier": [
+            {
+                "@value": "abc"
+            }
+        ]
+    },
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/ISBN_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Isbn"
+        ],
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#value": [
+            {
+                "@value": "0850598370"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/qualifier": [
+            {
+                "@value": "pbk"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/status": [
+            {
+                "@id": "http://id.loc.gov/vocabulary/mstatus/cancinv"
+            }
+        ]
+    },
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/LCCN_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Lccn"
+        ],
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#value": [
+            {
+                "@value": "  2010470075"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/status": [
+            {
+                "@id": "http://id.loc.gov/vocabulary/mstatus/current"
+            }
+        ]
+    }
+]

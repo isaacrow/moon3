@@ -1,0 +1,101 @@
+[
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/INSTANCE_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Instance"
+        ],
+        "http://id.loc.gov/ontologies/bibframe/instanceOf": [
+            {
+                "@id": "http://test-tobe-changed.folio.com/resources/WORK_ID"
+            }
+        ]
+    },
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/WORK_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Work",
+            "http://id.loc.gov/ontologies/bibframe/Monograph"
+        ],
+        "http://id.loc.gov/ontologies/bibframe/contribution": [
+            {
+                "@id": "_:CREATOR_ID"
+            },
+            {
+                "@id": "_:CONTRIBUTOR_ID"
+            }
+        ]
+    },
+    {
+        "@id": "_:CREATOR_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Contribution",
+            "http://id.loc.gov/ontologies/bibframe/PrimaryContribution"
+        ],
+        "http://id.loc.gov/ontologies/bibframe/agent": [
+            {
+                "@id": "_:CREATOR_AGENT_ID"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/role": [
+            {
+                "@id": "http://id.loc.gov/vocabulary/relators/aut"
+            },
+            {
+                "@id": "http://id.loc.gov/vocabulary/relators/pbd"
+            }
+        ]
+    },
+    {
+        "@id": "_:CREATOR_AGENT_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Agent",
+            "http://id.loc.gov/ontologies/bibframe/Person"
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+            {
+                "@value": "Creator Agent"
+            }
+        ],
+        "http://www.loc.gov/mads/rdf/v1#authoritativeLabel": [
+            {
+                "@value": "Creator Agent"
+            }
+        ]
+    },
+    {
+        "@id": "_:CONTRIBUTOR_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Contribution"
+        ],
+        "http://id.loc.gov/ontologies/bibframe/agent": [
+            {
+                "@id": "_:CONTRIBUTOR_AGENT_ID"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/role": [
+            {
+                "@id": "http://id.loc.gov/vocabulary/relators/ill"
+            },
+            {
+                "@id": "http://id.loc.gov/vocabulary/relators/clb"
+            }
+        ]
+    },
+    {
+        "@id": "_:CONTRIBUTOR_AGENT_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Agent",
+            "http://id.loc.gov/ontologies/bibframe/Family"
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+            {
+                "@value": "Contributor Agent"
+            }
+        ],
+        "http://www.loc.gov/mads/rdf/v1#authoritativeLabel": [
+            {
+                "@value": "Contributor Agent"
+            }
+        ]
+    }
+]
