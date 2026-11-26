@@ -63,3 +63,37 @@ test('LC labels: a link that is not an LC authority gives nothing, and a failure
   assert.deepEqual(await lcLabels('https://example.org/x', fakeFetch), []);
   assert.deepEqual(await lcLabels('http://id.loc.gov/authorities/names/n00000000', fakeFetch), []);
 });
+
+test('one record both ways: Blue Core → Moon → Blue Core\'s shape → Moon, nothing lost', async () => {
+  const { importBlueCoreResources } = await import('../src/services/blueCore');
+  const { toBlueCore, BLUE_CORE_CONTEXT } = await import('../supabase/functions/server/blueCoreExport.tsx');
+  const context = JSON.parse(fixture('context.jsonld'))['@context'];
+  const uris = { work: 'https://mooon.site/resource/work/b1', instance: 'https://mooon.site/resource/instance/b1', item: 'https://mooon.site/resource/item/b1-1', expression: 'https://mooon.site/resource/expression/b1-1', admin: 'https://mooon.site/resource/admin/b1' };
+  const first = await importBlueCoreResources(context, [JSON.parse(fixture('work.json')), JSON.parse(fixture('instance.json'))]);
+  const moon = buildW3CJsonLd({ workData: first.work, instanceData: first.instance, uriSet: uris });
+
+  const out = toBlueCore(moon);
+  assert.deepEqual(out.map((r) => r.type).sort(), ['instances', 'works']);
+  const w = out.find((r) => r.type === 'works')!, i = out.find((r) => r.type === 'instances')!;
+  assert.equal(w.data['@context'], BLUE_CORE_CONTEXT);
+  assert.ok(Array.isArray(w.data.title) && !('bf:title' in w.data), 'terms without the bf: prefix, values in lists');
+  assert.ok(w.data['@type'].includes('Work'));
+  assert.deepEqual(i.data.instanceOf, [{ '@id': uris.work }], 'the Instance names its Work by address');
+  assert.ok(!JSON.stringify(out).includes('"_:'), 'blank nodes written in place');
+
+  const back = await importBlueCoreResources(context, out.map((r) => r.data));
+  const again = buildW3CJsonLd({ workData: back.work, instanceData: back.instance, uriSet: uris });
+  // What a cataloguer would check, compared both ways.
+  const facts = (doc: any) => {
+    const all = JSON.stringify(doc);
+    const texts = (re: RegExp) => [...new Set((all.match(re) || []))].sort();
+    return {
+      titles: texts(/Qabasāt min ḥayāt[^"]*|قبسات من حياة[^"]*/g),
+      lccn: texts(/"[0-9]{10}"/g),
+      links: texts(/http:\/\/id\.loc\.gov\/(?:authorities|rwo|vocabulary)\/[^"]+/g),
+      dates: texts(/"(?:19|20)\d\d"/g),
+    };
+  };
+  assert.deepEqual(facts(again), facts(moon));
+  assert.ok(facts(moon).titles.length >= 2 && facts(moon).links.length >= 3, 'the comparison has something in it');
+});
