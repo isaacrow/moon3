@@ -50,7 +50,7 @@ export function toBlueCore(document: any): BlueCoreResource[] {
     for (const [k, v] of Object.entries(n)) {
       if (k === "@context") continue;
       if (k === "@id") { if (typeof v === "string" && !v.startsWith("_:")) out["@id"] = v; continue; }
-      if (k === "@type") { out["@type"] = list(v).filter((t) => typeof t === "string").map(typeName); continue; }
+      if (k === "@type") { out["@type"] = [...new Set(list(v).filter((t) => typeof t === "string").map(typeName))]; continue; }
       if (k === "moonext:marcField") continue; // kept MARC stays in Moon
       const vals = list(value(v, depth, seen)).filter((x) => x !== undefined && x !== "");
       if (vals.length) out[termName(k)] = vals;

@@ -97,3 +97,9 @@ test('one record both ways: Blue Core → Moon → Blue Core\'s shape → Moon, 
   assert.deepEqual(facts(again), facts(moon));
   assert.ok(facts(moon).titles.length >= 2 && facts(moon).links.length >= 3, 'the comparison has something in it');
 });
+
+test('Blue Core export: a type said twice (bf:Work and Work) is written once', async () => {
+  const { toBlueCore } = await import('../supabase/functions/server/blueCoreExport.tsx');
+  const [w] = toBlueCore({ '@graph': [{ '@id': 'https://mooon.site/resource/work/x', '@type': ['bf:Work', 'Work', 'bf:Text'] }] });
+  assert.deepEqual(w.data['@type'], ['Work', 'Text']);
+});
