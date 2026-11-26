@@ -46,6 +46,9 @@ jobs:
             -H "Authorization: Bearer ${key}" -H "X-Moon-Job-Token: ${MOON_JOB_TOKEN}" -H 'Content-Type: application/json' -d '{}') || labels='{"error":"failed"}'
           echo "label cache: $(echo "$labels" | jq -c .)"
           echo "### Entity linking: ${linked} headings linked in ${changed} records" >> "$GITHUB_STEP_SUMMARY"
+          # Then the quality checker (plan step D3): flags suspect links and likely duplicates; it changes nothing.
+          quality=$(curl -fsS --retry 2 --max-time 280 -X POST "https://${project}.supabase.co/functions/v1/make-server-49c0e13c/jobs/quality"             -H "Authorization: Bearer ${key}" -H "X-Moon-Job-Token: ${MOON_JOB_TOKEN}" -H 'Content-Type: application/json' -d '{}') || quality='{"error":"failed"}'
+          echo "quality check: $(echo "$quality" | jq -c .)"
       # LC refuses the server's shared addresses, so the runner reads LC's change feed and records itself (S19).
       - name: LC names for the label cache
         env:

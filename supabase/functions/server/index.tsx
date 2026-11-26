@@ -34,6 +34,8 @@ import listsRoutes from "./listsRoutes.tsx";
 import lcWorksRoutes from "./lcWorksRoutes.tsx";
 import * as bfArabic from "./bibframeArabic.tsx";
 import * as arabicGenres from "./arabicGenres.tsx";
+import * as quality from "./quality.tsx";
+import { workFacts } from "./lcWorks.tsx";
 import * as libraryRules from "./libraryRules.tsx";
 import { readSequence, formatNumber, SEQUENCE_KINDS } from "./sequences.tsx";
 import { getClient, withActorStore } from "./db.tsx";
@@ -2080,6 +2082,44 @@ async function isJobCall(c: any): Promise<boolean> {
   const [a, b] = await Promise.all([given, expected].map((x) => crypto.subtle.digest('SHA-256', enc.encode(x))));
   return expected.length >= 32 && new Uint8Array(a).every((x, i) => x === new Uint8Array(b)[i]);
 }
+// The quality checker (quality.tsx, plan step D3): run each night by the job, or by the Super Admin on demand; it
+// reads the catalogue and keeps a report; it never changes data. Library staff read the report.
+const QUALITY_KEY = "moon:quality:report";
+async function runQualityCheck() {
+  const db: any = getClient();
+  // Page by page: the database gives at most 1,000 rows a request.
+  const recs: any[] = [];
+  for (let from = 0; from < 20000; from += 500) {
+    const { data, error } = await db.from("records").select("id, title, identifier_keys, title_key, document").is("deleted_at", null).order("id").range(from, from + 499);
+    if (error) throw new Error(error.message);
+    recs.push(...(data || []));
+    if (!data || data.length < 500) break;
+  }
+  const records = recs.map((r: any) => ({ id: r.id, title: r.title, identifier_keys: r.identifier_keys, title_key: r.title_key, first_contributor: workFacts(r.document).contributors[0] || null }));
+  const entities = (await recordStore.listAllAuthorities()) as any[];
+  const labels = await recordStore.allCachedLabels().catch(() => []);
+  const cache = new Map<string, any>(labels.map((l) => [l.uri, { uri: l.uri, labels: l.labels.map((x) => x.value).filter(Boolean), missing: !!l.missing }]));
+  const result = quality.report(records, entities.map((e) => ({ id: e.id, kind: e.kind, label: e.label, variants: e.variants, sameAs: e.sameAs, mergedInto: e.mergedInto })), cache);
+  await kv.set(QUALITY_KEY, result);
+  return result;
+}
+app.post("/make-server-49c0e13c/jobs/quality", async (c) => {
+  if (!(await isJobCall(c))) return c.json({ error: 'Job token required' }, 403);
+  try { const r = await runQualityCheck(); return c.json({ at: r.at, counts: r.counts, checked: r.checked }); }
+  catch (e: any) { console.error('Quality check:', e); return c.json({ error: 'The check failed' }, 500); }
+});
+app.post("/make-server-49c0e13c/quality/run", async (c) => {
+  if (!(await isAdminSession(c))) return c.json({ error: "Only the Super Admin runs the check by hand; it also runs each night" }, 403);
+  try { return c.json(await runQualityCheck()); }
+  catch (e: any) { console.error('Quality check:', e); return c.json({ error: 'The check failed' }, 500); }
+});
+app.get("/make-server-49c0e13c/quality", async (c) => {
+  const s = await getSession(c);
+  if (!s || !["admin", "reviewer", "cataloger"].includes(s.role)) return c.json({ error: "Library staff only" }, 403);
+  const stored = await kv.get(QUALITY_KEY).catch(() => null);
+  return c.json({ report: stored || null, canRun: s.role === "admin" });
+});
+
 // LC for the nightly runner: what Moon links to at LC and when each was last fetched; then the runner sends
 // back what it read from id.loc.gov (rows checked here: LC addresses only, LC-shaped labels).
 app.get("/make-server-49c0e13c/jobs/label-cache/lc", async (c) => {

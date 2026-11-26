@@ -15,6 +15,7 @@ import { AcquisitionsDesk } from './components/AcquisitionsDesk';
 import { ListsPage } from './components/ListsPage';
 import { LcWorksPage } from './components/LcWorksPage';
 import { LibraryRulesPage } from './components/LibraryRulesPage';
+import { QualityPage } from './components/QualityPage';
 import { Toaster } from './components/ui/sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BASE_URI } from '../services/uriMintingService';
@@ -39,9 +40,9 @@ const ManuscriptsPage = React.lazy(() => import('./components/ManuscriptsPage').
 // Moon Studio (Wolf Moon) is the one editor. The tools around it: dashboard, author finder, record
 // list, search and audit log. The public OPAC is served by main.tsx / opac.html.
 type ViewMode = 'dashboard' | 'wolf-moon' | 'author-finder' | 'all-records' | 'search' | 'activity-log' | 'entities'
-  | SectionId | 'new-record' | 'desk' | 'acq' | 'manuscripts' | 'lists' | 'lc-works' | 'library-rules';
+  | SectionId | 'new-record' | 'desk' | 'acq' | 'manuscripts' | 'lists' | 'lc-works' | 'library-rules' | 'quality';
 const VIEW_MODES: ViewMode[] = ['dashboard', 'wolf-moon', 'author-finder', 'all-records', 'search', 'activity-log', 'entities', 'new-record',
-  'acquisitions', 'technical', 'circulation', 'catalogue', 'desk', 'acq', 'manuscripts', 'lists', 'lc-works', 'library-rules'];
+  'acquisitions', 'technical', 'circulation', 'catalogue', 'desk', 'acq', 'manuscripts', 'lists', 'lc-works', 'library-rules', 'quality'];
 
 // Each screen has its own address, so a refresh or a shared link opens the same screen:
 // /dashboard/, /moon/ (Moon Studio), /records/, /search/, /authors/, /activity/, /entities/.
@@ -72,6 +73,8 @@ const VIEW_PATHS: Record<ViewMode, string> = {
   'lc-works': 'lc-works',
   // Technical services > Library rules at save (plan step H10).
   'library-rules': 'library-rules',
+  // Technical services > Quality checks (plan step D3).
+  'quality': 'quality',
 };
 export const ROUTED_PATHS = Object.values(VIEW_PATHS);
 
@@ -313,7 +316,7 @@ function CatalogApp() {
     marcEditor: () => chooseNewRecord(true),
   });
   const currentSection = (SECTIONS.find((sec) => sec.id === viewMode)?.id
-    ?? (['wolf-moon', 'new-record', 'all-records', 'search', 'entities', 'author-finder', 'activity-log', 'lc-works', 'library-rules'].includes(viewMode) ? 'technical'
+    ?? (['wolf-moon', 'new-record', 'all-records', 'search', 'entities', 'author-finder', 'activity-log', 'lc-works', 'library-rules', 'quality'].includes(viewMode) ? 'technical'
       : viewMode === 'desk' ? 'circulation' : viewMode === 'acq' ? 'acquisitions' : undefined)) as SectionId | undefined;
 
   const withNav = (content: React.ReactNode, className = '') => (
@@ -427,6 +430,14 @@ function CatalogApp() {
       screen = withNav(
         <ErrorBoundary fallbackTitle="Acquisitions" onReset={toDashboard}>
           <AcquisitionsDesk isAr={isAr} onOpenRecord={openRecordById} onNewRecord={() => chooseNewRecord(false)} />
+        </ErrorBoundary>,
+        'liquid-glass-spatial-canvas min-h-screen py-2'
+      );
+      break;
+    case 'quality':
+      screen = withNav(
+        <ErrorBoundary fallbackTitle="Quality checks" onReset={toDashboard}>
+          <QualityPage isAr={isAr} onOpenRecord={openRecordById} onOpenEntities={() => navigate('entities')} />
         </ErrorBoundary>,
         'liquid-glass-spatial-canvas min-h-screen py-2'
       );
