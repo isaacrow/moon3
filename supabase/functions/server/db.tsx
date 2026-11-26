@@ -13,6 +13,26 @@
  */
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { AsyncLocalStorage } from "node:async_hooks";
+
+// ─── Who is asking (plan step H5) ────────────────────────────
+// Each request runs in its own store (index.tsx); getSession names the signed-in person there, and every database
+// request then carries it as x-moon-actor, which the history trigger (change_history) records as who changed what.
+const actorStore = new AsyncLocalStorage<{ actor?: string }>();
+export function withActorStore<T>(fn: () => T): T {
+  return actorStore.run({}, fn);
+}
+export function setActor(username: string): void {
+  const store = actorStore.getStore();
+  if (store) store.actor = /^[\x20-\x7E]{1,120}$/.test(username) ? username : encodeURIComponent(username).slice(0, 120);
+}
+const actorFetch: typeof fetch = (input, init) => {
+  const actor = actorStore.getStore()?.actor;
+  if (!actor) return fetch(input, init);
+  const headers = new Headers(init?.headers);
+  headers.set("x-moon-actor", actor);
+  return fetch(input, { ...init, headers });
+};
 
 // ─── Singleton Client ────────────────────────────────────────
 let _client: ReturnType<typeof createClient> | null = null;
@@ -22,6 +42,7 @@ export function getClient() {
     _client = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { global: { fetch: actorFetch } },
     );
   }
   return _client;
