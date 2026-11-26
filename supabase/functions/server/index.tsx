@@ -2620,12 +2620,26 @@ app.post("/make-server-49c0e13c/records/check-duplicates", async (c) => {
 // The published catalogue, read once into the search's fields (searchDocs.tsx) and kept for a minute, with every
 // entity's names in both scripts (as names.json gives the catalogue page): the server's search of the published
 // catalogue uses the catalogue page's own rules, so both answer a question the same way.
+// The published records themselves, read once a minute at most (plan step B3): the catalogue's full list and its
+// search share them, so neither rebuilds the published catalogue on every reader's visit.
+let publishedRecordsCache: { at: number; records: any[]; loading?: Promise<any[]> } | null = null;
+async function publishedRecordsCached(): Promise<any[]> {
+  if (publishedRecordsCache && !publishedRecordsCache.loading && Date.now() - publishedRecordsCache.at < 60_000) return publishedRecordsCache.records;
+  if (publishedRecordsCache?.loading) return publishedRecordsCache.loading;
+  const loading = recordStore.listPublishedRecords().then((records) => {
+    publishedRecordsCache = { at: Date.now(), records: records as any[] };
+    return records as any[];
+  });
+  publishedRecordsCache = { at: publishedRecordsCache?.at ?? 0, records: publishedRecordsCache?.records ?? [], loading };
+  try { return await loading; } catch (e) { publishedRecordsCache = null; throw e; }
+}
+
 let publishedIndex: { at: number; docs: Array<SearchDoc<any>>; loading?: Promise<Array<SearchDoc<any>>> } | null = null;
 async function publishedSearchDocs(): Promise<Array<SearchDoc<any>>> {
   if (publishedIndex && Date.now() - publishedIndex.at < 60_000) return publishedIndex.docs;
   if (publishedIndex?.loading) return publishedIndex.loading;
   const loading = (async () => {
-    const [records, entities] = await Promise.all([recordStore.listPublishedRecords(), recordStore.listAllAuthorities()]);
+    const [records, entities] = await Promise.all([publishedRecordsCached(), recordStore.listAllAuthorities()]);
     setEntityNames(entityNameForms(entities as any[], linkedData.BASE_URI));
     const docs = (records as any[]).map((record) => ({ record, work: searchableOf(record.document)! })).filter((d) => d.work);
     publishedIndex = { at: Date.now(), docs };
@@ -2827,7 +2841,7 @@ app.get("/make-server-49c0e13c/records", async (c) => {
   try {
     // Same rule as a single record: the public and ?view=published get published versions only.
     const published = c.req.query('view') === 'published' || !(await getSession(c));
-    const records = published ? await recordStore.listPublishedRecords() : await recordStore.listRecords();
+    const records = published ? await publishedRecordsCached() : await recordStore.listRecords();
 
     const recordList = records
       .map((record) => ({
@@ -2854,7 +2868,8 @@ app.get("/make-server-49c0e13c/records", async (c) => {
     
     console.log(`[RECORDS] Listed ${recordList.length} records`);
     
-    return c.json({ records: recordList, count: recordList.length });
+    // The published list is the same for every reader: a browser may keep it for a minute.
+    return c.json({ records: recordList, count: recordList.length }, 200, published ? { 'Cache-Control': 'public, max-age=60' } : {});
   } catch (error) {
     console.error('List records error:', error);
     return c.json({ error: 'Failed to list records' }, 500);
@@ -2891,6 +2906,8 @@ async function reviewRecord(c: any, decision: 'complete' | 'needs-review') {
     if (!record) {
       return c.json({ success: false, error: 'Record not found' }, 404);
     }
+    // The published catalogue changed: the next reader gets it now, not after the minute's cache.
+    publishedRecordsCache = null; publishedIndex = null;
     console.log(`[RECORDS] ${admin.username} set record ${id} -> ${decision} (v${record.version})`);
     fireHooks(decision === 'complete' ? 'record.published' : 'record.returned', { id, title: record.title, version: record.version, status: decision });
     if (record.cataloger && record.cataloger !== admin.username) {
