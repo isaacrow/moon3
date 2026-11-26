@@ -196,10 +196,13 @@ async function callTool(name: string, args: any, deps: McpDeps, agent: string) {
       const kind = ["agent", "topic", "place"].includes(args?.kind) ? args.kind : "agent";
       if (!deps.findEntities) return text("Entity search is not available here.", true);
       const found = await deps.findEntities(name, kind);
-      return {
-        ...text(found.length ? found.map((e) => `${e.label}\t${e.uri}\t(${e.source === "moon" ? "Moon" : "LC"})`).join("\n") : "Nothing found; a new entity can be made in Moon Studio."),
-        structuredContent: { entities: found },
-      };
+      // LC often refuses requests from shared server addresses; then the agent asks LC itself, at this address.
+      const lcSearch = `https://id.loc.gov/authorities/${kind === "agent" ? "names" : "subjects"}/suggest2?q=${encodeURIComponent(name)}&searchtype=keyword`;
+      const fromLc = found.some((e) => e.source === "lc");
+      const lines = found.map((e) => `${e.label}\t${e.uri}\t(${e.source === "moon" ? "Moon" : "LC"})`);
+      if (!fromLc) lines.push(`LC was not reached from Moon's server; ask LC directly: ${lcSearch}`);
+      if (!found.length) lines.unshift("Nothing in Moon's authority file; a cataloguer can make the entity in Moon Studio.");
+      return { ...text(lines.join("\n")), structuredContent: { entities: found, ...(fromLc ? {} : { lcSearch }) } };
     }
     case "create_draft": {
       if (!deps.user) return text("Sign in first: send a Moon cataloguer's session as X-Moon-Session. Drafts are always saved under a person.", true);
