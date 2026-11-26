@@ -52,7 +52,7 @@ h1{font-family:'Noto Naskh Arabic',serif;font-size:clamp(32px,5vw,48px);line-hei
 .warp.is-warp{height:500px;perspective:1100px;overflow-x:hidden;overflow-x:clip;overflow-y:visible;margin:20px -16px;touch-action:pan-y}
 .is-warp .warp-track{display:block;position:absolute;inset:0;transform-style:preserve-3d}
 .is-warp .wcard{position:absolute;left:50%;top:50%;width:min(300px,72vw);height:360px;margin:0;cursor:pointer;
-  transform:translate(-50%,-52%) translateX(calc(var(--d) * 102%)) rotateY(calc(var(--d) * -58deg)) scale(calc(1 - var(--ad) * .06));
+  transform:translate(-50%,-52%) translateX(calc(var(--d) * var(--step,102%))) rotateY(calc(var(--d) * -58deg)) scale(calc(1 - var(--ad) * .06));
   transform-origin:center;filter:saturate(calc(1 + var(--ad) * .5)) blur(calc(var(--ad) * .6px));opacity:calc(1 - var(--far) * 1);
   transition:transform .7s cubic-bezier(.2,.8,.2,1),filter .7s,opacity .5s;z-index:calc(10 - var(--ad))}
 .is-warp .wcard[data-front]{cursor:default}
@@ -63,6 +63,19 @@ h1{font-family:'Noto Naskh Arabic',serif;font-size:clamp(32px,5vw,48px);line-hei
   background:radial-gradient(closest-side,#3fb4ec,rgba(63,180,236,.35) 60%,transparent);filter:blur(10px);pointer-events:none}
 .warp-glow.top{top:10px}.warp-glow.bottom{bottom:52px}
 .warp-nav{display:flex;justify-content:center;align-items:center;gap:14px;position:absolute;left:0;right:0;bottom:10px}
+/* Frosted glass over the bent cards and the strip above them; the card in front stays clear. Clicks go through
+   the glass to the cards beneath it. */
+.warp-veil{display:none}
+.is-warp .warp-veil{display:block;position:absolute;z-index:20;pointer-events:none;
+  background:rgba(255,255,255,.34);border-radius:16px;box-shadow:0 4px 30px rgba(0,0,0,.1);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.68)}
+.warp-veil.top{top:8px;left:16px;right:16px;height:44px}
+.warp-veil.side{top:62px;bottom:58px;width:calc(50% - min(300px,72vw) / 2 - 28px)}
+.warp-veil.side.start{left:16px}
+.warp-veil.side.end{right:16px}
+/* On a phone the side glass would be a sliver; the top strip stays. */
+@media (max-width:560px){.is-warp .warp-veil.side{display:none} .is-warp .wcard{--step:86%}}
+.warp-nav{z-index:30}
 .warp-nav[hidden]{display:none}
 .wbtn{width:36px;height:36px;border-radius:50%;border:1px solid #fff;background:rgba(255,255,255,.75);font-size:22px;line-height:1;cursor:pointer;color:var(--ink)}
 .wbtn:focus-visible,.wdots button:focus-visible,.warp-track:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
@@ -100,6 +113,9 @@ footer{margin:32px 0 40px;padding:16px 20px;color:var(--ink-2);font-size:14px;di
   <section class="warp" id="features" aria-roledescription="carousel" aria-label="ما يفعله مون · What Moon does">
     <div class="warp-glow top" aria-hidden="true"></div>
     <div class="warp-glow bottom" aria-hidden="true"></div>
+    <div class="warp-veil top" aria-hidden="true"></div>
+    <div class="warp-veil side start" aria-hidden="true"></div>
+    <div class="warp-veil side end" aria-hidden="true"></div>
     <div class="warp-track">
       <article class="wcard" style="--a:#2a0f5c;--b:#7b3cff;--c:#c08cff" aria-roledescription="slide">
         <div class="wtop"><h2>BIBFRAME 3.0.1</h2><span class="wtag">المعيار</span></div>
