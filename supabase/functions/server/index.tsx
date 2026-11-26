@@ -37,6 +37,7 @@ import * as arabicGenres from "./arabicGenres.tsx";
 import * as quality from "./quality.tsx";
 import { toBlueCore } from "./blueCoreExport.tsx";
 import { folioInstanceLines, toJsonLines } from "./folioLd.tsx";
+import { freshCache } from "./freshCache.tsx";
 import { workFacts } from "./lcWorks.tsx";
 import * as libraryRules from "./libraryRules.tsx";
 import { readSequence, formatNumber, SEQUENCE_KINDS } from "./sequences.tsx";
@@ -2622,32 +2623,16 @@ app.post("/make-server-49c0e13c/records/check-duplicates", async (c) => {
 // catalogue uses the catalogue page's own rules, so both answer a question the same way.
 // The published records themselves, read once a minute at most (plan step B3): the catalogue's full list and its
 // search share them, so neither rebuilds the published catalogue on every reader's visit.
-let publishedRecordsCache: { at: number; records: any[]; loading?: Promise<any[]> } | null = null;
-async function publishedRecordsCached(): Promise<any[]> {
-  if (publishedRecordsCache && !publishedRecordsCache.loading && Date.now() - publishedRecordsCache.at < 60_000) return publishedRecordsCache.records;
-  if (publishedRecordsCache?.loading) return publishedRecordsCache.loading;
-  const loading = recordStore.listPublishedRecords().then((records) => {
-    publishedRecordsCache = { at: Date.now(), records: records as any[] };
-    return records as any[];
-  });
-  publishedRecordsCache = { at: publishedRecordsCache?.at ?? 0, records: publishedRecordsCache?.records ?? [], loading };
-  try { return await loading; } catch (e) { publishedRecordsCache = null; throw e; }
-}
+// The published records, shared by the catalogue's full list and its search.
+const publishedRecords = freshCache(async () => (await recordStore.listPublishedRecords()) as any[]);
+const publishedRecordsCached = () => publishedRecords.get();
 
-let publishedIndex: { at: number; docs: Array<SearchDoc<any>>; loading?: Promise<Array<SearchDoc<any>>> } | null = null;
-async function publishedSearchDocs(): Promise<Array<SearchDoc<any>>> {
-  if (publishedIndex && Date.now() - publishedIndex.at < 60_000) return publishedIndex.docs;
-  if (publishedIndex?.loading) return publishedIndex.loading;
-  const loading = (async () => {
-    const [records, entities] = await Promise.all([publishedRecordsCached(), recordStore.listAllAuthorities()]);
-    setEntityNames(entityNameForms(entities as any[], linkedData.BASE_URI));
-    const docs = (records as any[]).map((record) => ({ record, work: searchableOf(record.document)! })).filter((d) => d.work);
-    publishedIndex = { at: Date.now(), docs };
-    return docs;
-  })();
-  publishedIndex = { at: publishedIndex?.at ?? 0, docs: publishedIndex?.docs ?? [], loading };
-  try { return await loading; } catch (e) { publishedIndex = null; throw e; }
-}
+const publishedIndex = freshCache(async (): Promise<Array<SearchDoc<any>>> => {
+  const [records, entities] = await Promise.all([publishedRecords.get(), recordStore.listAllAuthorities()]);
+  setEntityNames(entityNameForms(entities as any[], linkedData.BASE_URI));
+  return (records as any[]).map((record) => ({ record, work: searchableOf(record.document)! })).filter((d) => d.work);
+});
+const publishedSearchDocs = () => publishedIndex.get();
 
 /** The language code of a record's Work (…/languages/ara → ara), for the published search's language filter. */
 function languageCodeOf(document: any): string {
@@ -2666,7 +2651,9 @@ app.get("/make-server-49c0e13c/records/search", async (c) => {
       const language = c.req.query('language');
       const template = c.req.query('template');
       const cataloger = c.req.query('cataloger');
+      const t0 = performance.now();
       let docs = await publishedSearchDocs();
+      c.header('Server-Timing', `catalogue;dur=${Math.round(performance.now() - t0)}`);
       if (language) docs = docs.filter((d) => languageCodeOf(d.record.document) === language);
       if (template) docs = docs.filter((d) => (d.record.metadata?.templateId || '') === template);
       if (cataloger) docs = docs.filter((d) => d.record.cataloger === cataloger);
@@ -2841,7 +2828,9 @@ app.get("/make-server-49c0e13c/records", async (c) => {
   try {
     // Same rule as a single record: the public and ?view=published get published versions only.
     const published = c.req.query('view') === 'published' || !(await getSession(c));
+    const t0 = performance.now();
     const records = published ? await publishedRecordsCached() : await recordStore.listRecords();
+    c.header('Server-Timing', `catalogue;dur=${Math.round(performance.now() - t0)}`);
 
     const recordList = records
       .map((record) => ({
@@ -2907,7 +2896,7 @@ async function reviewRecord(c: any, decision: 'complete' | 'needs-review') {
       return c.json({ success: false, error: 'Record not found' }, 404);
     }
     // The published catalogue changed: the next reader gets it now, not after the minute's cache.
-    publishedRecordsCache = null; publishedIndex = null;
+    publishedRecords.clear(); publishedIndex.clear();
     console.log(`[RECORDS] ${admin.username} set record ${id} -> ${decision} (v${record.version})`);
     fireHooks(decision === 'complete' ? 'record.published' : 'record.returned', { id, title: record.title, version: record.version, status: decision });
     if (record.cataloger && record.cataloger !== admin.username) {
