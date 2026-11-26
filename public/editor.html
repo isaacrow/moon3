@@ -36,10 +36,39 @@ h1{font-family:'Noto Naskh Arabic',serif;font-size:clamp(32px,5vw,48px);line-hei
 .btn{display:inline-block;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:600;border:1px solid #fff}
 .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
 .btn.secondary{background:rgba(255,255,255,.7)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:18px 0}
-.grid .card{padding:18px 20px}
-.card h2{margin:0 0 4px;font-size:18px}
-.card p{margin:0;color:var(--ink-2)}
+/* Warp carousel. Plain row first (no script, or less motion); .is-warp turns on the 3D stage. */
+.warp{position:relative;margin:28px 0}
+.warp-track{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.wcard{position:relative;display:flex;flex-direction:column;justify-content:space-between;min-height:300px;padding:20px 22px;border-radius:18px;color:#fff;
+  background:radial-gradient(120% 90% at 70% 20%,var(--c) 0%,transparent 55%),linear-gradient(155deg,var(--a) 0%,var(--b) 100%);box-shadow:0 18px 50px -18px var(--b)}
+.wcard h2{margin:0;font-size:17px;line-height:1.35;font-weight:600}
+.wtop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.wtag{flex:none;font-size:11px;padding:3px 9px;border-radius:7px;background:rgba(255,255,255,.16);color:rgba(255,255,255,.9);white-space:nowrap}
+.wbig{font-size:84px;line-height:1;font-weight:300;text-align:center;letter-spacing:-.02em;color:rgba(255,255,255,.92);text-shadow:0 0 40px rgba(255,255,255,.35);margin:18px 0}
+.wcard p{margin:0;font-size:14px;line-height:1.65;color:rgba(255,255,255,.86)}
+.wcard a{color:#fff}
+.warp-glow{display:none}
+/* Clipped at the sides only (the bent cards reach past the page); the glow above and below fades out freely. */
+.warp.is-warp{height:500px;perspective:1100px;overflow-x:hidden;overflow-x:clip;overflow-y:visible;margin:20px -16px;touch-action:pan-y}
+.is-warp .warp-track{display:block;position:absolute;inset:0;transform-style:preserve-3d}
+.is-warp .wcard{position:absolute;left:50%;top:50%;width:min(300px,72vw);height:360px;margin:0;cursor:pointer;
+  transform:translate(-50%,-52%) translateX(calc(var(--d) * 102%)) rotateY(calc(var(--d) * -58deg)) scale(calc(1 - var(--ad) * .06));
+  transform-origin:center;filter:saturate(calc(1 + var(--ad) * .5)) blur(calc(var(--ad) * .6px));opacity:calc(1 - var(--far) * 1);
+  transition:transform .7s cubic-bezier(.2,.8,.2,1),filter .7s,opacity .5s;z-index:calc(10 - var(--ad))}
+.is-warp .wcard[data-front]{cursor:default}
+/* The colour smear that trails each bent card, like light pulled round a corner. */
+.is-warp .wcard::before{content:"";position:absolute;inset:-6% -18%;z-index:-1;border-radius:40%;background:inherit;filter:blur(38px);opacity:calc(var(--ad) * .75);transition:opacity .7s}
+.is-warp .wcard:not([data-front]) > *{opacity:.55;transition:opacity .5s}
+.is-warp .warp-glow{display:block;position:absolute;left:50%;width:min(560px,80%);height:46px;transform:translateX(-50%);border-radius:50%;
+  background:radial-gradient(closest-side,#3fb4ec,rgba(63,180,236,.35) 60%,transparent);filter:blur(10px);pointer-events:none}
+.warp-glow.top{top:10px}.warp-glow.bottom{bottom:52px}
+.warp-nav{display:flex;justify-content:center;align-items:center;gap:14px;position:absolute;left:0;right:0;bottom:10px}
+.warp-nav[hidden]{display:none}
+.wbtn{width:36px;height:36px;border-radius:50%;border:1px solid #fff;background:rgba(255,255,255,.75);font-size:22px;line-height:1;cursor:pointer;color:var(--ink)}
+.wbtn:focus-visible,.wdots button:focus-visible,.warp-track:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.wdots{display:flex;gap:7px}
+.wdots button{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:rgba(0,0,0,.25);cursor:pointer}
+.wdots button[aria-selected="true"]{background:var(--ink);width:22px;border-radius:4px}
 section.card{padding:24px 26px;margin:18px 0}
 section.card h2{margin:0 0 6px;font-size:22px}
 p,li{color:var(--ink-2)}
@@ -65,13 +94,50 @@ footer{margin:32px 0 40px;padding:16px 20px;color:var(--ink-2);font-size:14px;di
     <a class="btn secondary" href="/learn.html">ابدأ بالدروس</a>
   </div>
 
-  <div class="grid">
-    <div class="card glass"><h2>BIBFRAME 3.0.1</h2><p>العمل والطبعة والنسخة (Work / Instance / Item) كما يعرّفها المعيار، مع فحص البيانات المنشورة مقابله. <a href="/score.html">بطاقة القياس</a></p></div>
-    <div class="card glass"><h2>مارك 21 دخولًا وخروجًا</h2><p>استيراد سجلات MARC وتصديرها، مع جدول يبيّن أين يذهب كل حقل. <a href="/marc.html">أين حقل مارك؟</a> · <a href="/round-trip.html">رحلة الذهاب والإياب</a></p></div>
-    <div class="card glass"><h2>بيانات مترابطة</h2><p>عنوان دائم لكل عمل وشخص وموضوع، بصيغ JSON-LD وTurtle وN-Triples، ونقطة SPARQL، وتنزيل كامل. <a href="/api.html">الواجهة البرمجية</a></p></div>
-    <div class="card glass"><h2>ملف استناد</h2><p>أسماء الأشخاص والهيئات والأماكن والموضوعات في ملف استناد واحد، يُبحث فيه من المحرر ومن الواجهة البرمجية.</p></div>
-    <div class="card glass"><h2>بالعربية أولًا</h2><p>واجهة عربية وإنجليزية، وتسميات عربية لمصطلحات BIBFRAME منشورة بترخيص مفتوح (CC0). <a href="/bibframe-ar.html">BIBFRAME بالعربية</a></p></div>
-  </div>
+  <!-- Moon's features as a warp carousel: the card in front is flat, its neighbours bend away into the page.
+       Every card is real text in the page (search engines read all six); without scripts, or for readers who
+       ask for less motion, they are a plain row. -->
+  <section class="warp" id="features" aria-roledescription="carousel" aria-label="ما يفعله مون · What Moon does">
+    <div class="warp-glow top" aria-hidden="true"></div>
+    <div class="warp-glow bottom" aria-hidden="true"></div>
+    <div class="warp-track">
+      <article class="wcard" style="--a:#2a0f5c;--b:#7b3cff;--c:#c08cff" aria-roledescription="slide">
+        <div class="wtop"><h2>BIBFRAME 3.0.1</h2><span class="wtag">المعيار</span></div>
+        <div class="wbig" dir="ltr">3.0.1</div>
+        <p>العمل والطبعة والنسخة (Work / Instance / Item) كما يعرّفها المعيار، مع فحص البيانات المنشورة مقابله. <a href="/score.html">بطاقة القياس</a></p>
+      </article>
+      <article class="wcard" style="--a:#03102e;--b:#1747d6;--c:#3fd3ff" aria-roledescription="slide">
+        <div class="wtop"><h2>مارك 21 دخولًا وخروجًا</h2><span class="wtag">MARC</span></div>
+        <div class="wbig" dir="ltr">21</div>
+        <p>استيراد سجلات MARC وتصديرها، مع جدول يبيّن أين يذهب كل حقل. <a href="/marc.html">أين حقل مارك؟</a> · <a href="/round-trip.html">رحلة الذهاب والإياب</a></p>
+      </article>
+      <article class="wcard" style="--a:#5a1606;--b:#e2521d;--c:#ffc94a" aria-roledescription="slide">
+        <div class="wtop"><h2>بيانات مترابطة</h2><span class="wtag">Linked data</span></div>
+        <div class="wbig" dir="ltr">URI</div>
+        <p>عنوان دائم لكل عمل وشخص وموضوع، بصيغ JSON-LD وTurtle وN-Triples، ونقطة SPARQL، وتنزيل كامل. <a href="/api.html">الواجهة البرمجية</a></p>
+      </article>
+      <article class="wcard" style="--a:#022b2b;--b:#0c8f86;--c:#6ff0c8" aria-roledescription="slide">
+        <div class="wtop"><h2>ملف استناد</h2><span class="wtag">Authorities</span></div>
+        <div class="wbig">أ</div>
+        <p>أسماء الأشخاص والهيئات والأماكن والموضوعات في ملف استناد واحد، يُبحث فيه من المحرر ومن الواجهة البرمجية.</p>
+      </article>
+      <article class="wcard" style="--a:#4a0a2e;--b:#d12f7a;--c:#ff9ccf" aria-roledescription="slide">
+        <div class="wtop"><h2>بالعربية أولًا</h2><span class="wtag">عربي · English</span></div>
+        <div class="wbig">ع</div>
+        <p>واجهة عربية وإنجليزية، وتسميات عربية لمصطلحات BIBFRAME منشورة بترخيص مفتوح (CC0). <a href="/bibframe-ar.html">BIBFRAME بالعربية</a></p>
+      </article>
+      <article class="wcard" style="--a:#0d2a0f;--b:#2f9e3a;--c:#c6f36b" aria-roledescription="slide">
+        <div class="wtop"><h2>فهرس عام</h2><span class="wtag">OPAC</span></div>
+        <div class="wbig" dir="ltr">OPAC</div>
+        <p>كل سجل يُنشر يظهر في فهرس عام يبحث فيه القرّاء عن الكتب والمؤلفين والموضوعات. <a href="/opac.html">افتح الفهرس</a></p>
+      </article>
+    </div>
+    <div class="warp-nav" hidden>
+      <button type="button" class="wbtn" data-step="-1" aria-label="السابق · Previous">›</button>
+      <div class="wdots" role="tablist" aria-label="البطاقات"></div>
+      <button type="button" class="wbtn" data-step="1" aria-label="التالي · Next">‹</button>
+    </div>
+  </section>
 
   <section class="card glass" id="en" lang="en" dir="ltr">
     <h2>Moon: a BIBFRAME cataloging editor</h2>
@@ -86,6 +152,70 @@ footer{margin:32px 0 40px;padding:16px 20px;color:var(--ink-2);font-size:14px;di
       <li><a href="/bibframe-ar.html">BIBFRAME in Arabic</a> — open Arabic labels for BIBFRAME terms</li>
     </ul>
   </section>
+
+  <script>
+  // The warp carousel: one card in front, its neighbours bent away. Arrows, dots, keys, a swipe or a click on a
+  // side card bring another to the front. Left as a plain row for readers who ask for less motion.
+  (function () {
+    var root = document.getElementById('features');
+    if (!root || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var cards = Array.prototype.slice.call(root.querySelectorAll('.wcard'));
+    var dots = root.querySelector('.wdots');
+    var track = root.querySelector('.warp-track');
+    var rtl = getComputedStyle(root).direction === 'rtl';
+    var n = cards.length, front = 0;
+    root.classList.add('is-warp');
+    root.querySelector('.warp-nav').hidden = false;
+    track.tabIndex = 0;
+    track.setAttribute('aria-live', 'polite');
+    cards.forEach(function (card, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-label', card.querySelector('h2').textContent);
+      b.addEventListener('click', function () { show(i); });
+      dots.appendChild(b);
+      // A click on a side card brings it to the front (its links wait until it is there).
+      card.addEventListener('click', function (e) { if (i !== front) { e.preventDefault(); show(i); } });
+    });
+    function show(i) {
+      front = (i + n) % n;
+      cards.forEach(function (card, k) {
+        var d = k - front;
+        if (d > n / 2) d -= n;
+        if (d < -n / 2) d += n;
+        var ad = Math.min(Math.abs(d), 2);
+        // Next is to the reader's reading side: left in Arabic, right in English.
+        card.style.setProperty('--d', String(Math.max(-2, Math.min(2, d)) * (rtl ? -1 : 1)));
+        card.style.setProperty('--ad', String(ad));
+        card.style.setProperty('--far', ad >= 2 ? '1' : '0');
+        card.toggleAttribute('data-front', d === 0);
+        card.setAttribute('aria-hidden', d === 0 ? 'false' : 'true');
+        card.querySelectorAll('a').forEach(function (a) { a.tabIndex = d === 0 ? 0 : -1; });
+      });
+      dots.querySelectorAll('button').forEach(function (b, k) { b.setAttribute('aria-selected', String(k === front)); });
+    }
+    root.querySelectorAll('.wbtn').forEach(function (b) {
+      b.addEventListener('click', function () { show(front + Number(b.dataset.step)); });
+    });
+    track.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      var forward = (e.key === 'ArrowLeft') === rtl;
+      show(front + (forward ? 1 : -1));
+    });
+    var x0 = null;
+    track.addEventListener('pointerdown', function (e) { x0 = e.clientX; });
+    track.addEventListener('pointerup', function (e) {
+      if (x0 === null) return;
+      var dx = e.clientX - x0;
+      x0 = null;
+      if (Math.abs(dx) < 40) return;
+      show(front + ((dx < 0) === rtl ? -1 : 1));
+    });
+    show(0);
+  })();
+  </script>
 
   <footer class="glass">
     <span>مون · Moon</span>
