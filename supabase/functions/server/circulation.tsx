@@ -122,6 +122,8 @@ export function readPatron(raw: any): { patron: PatronInput } | { error: string 
 export interface FoundCopy {
   itemId: string;
   barcode: string;
+  /** The copy's accession number (bf:AccessionNumber), or "". */
+  accession: string;
   library: string;
   location: string;
   shelfMark: string;
@@ -158,11 +160,13 @@ export function copiesIn(document: any): FoundCopy[] {
     const ids = list(n["bf:identifiedBy"] ?? n["identifiedBy"]);
     const bc = ids.find((i) => typed(i, "Barcode"));
     const barcode = bc ? textOf(bc) : textOf(n["bf:barcode"] ?? n["barcode"]);
+    const acc = ids.find((i) => typed(i, "AccessionNumber"));
     if (!barcode || seen.has(barcode)) return [];
     seen.add(barcode);
     return [{
       itemId: String(n["@id"] || ""),
       barcode,
+      accession: acc ? textOf(acc) : "",
       library: textOf(n["bf:heldBy"] ?? n["heldBy"]),
       location: textOf(n["bf:sublocation"] ?? n["sublocation"]),
       shelfMark: textOf(n["bf:shelfMark"] ?? n["shelfMark"]),

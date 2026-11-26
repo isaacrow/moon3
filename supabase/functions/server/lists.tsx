@@ -48,7 +48,7 @@ export const ENTITIES: Record<EntityId, ListEntity> = {
   copies: {
     id: "copies", en: "Copies", ar: "النسخ",
     fields: [
-      t("barcode", "Barcode", "الباركود"), t("record_id", "Record number", "رقم التسجيلة"), t("title", "Title", "العنوان"),
+      t("barcode", "Barcode", "الباركود"), t("accession", "Accession number", "رقم التزويد"), t("record_id", "Record number", "رقم التسجيلة"), t("title", "Title", "العنوان"),
       t("location", "Location", "المكان"), t("shelf_mark", "Shelf mark", "رقم الرف"), t("copy_number", "Copy number", "رقم النسخة"),
       t("reference_only", "Reference only", "للاطلاع فقط", "bool"), t("on_loan", "On loan now", "معارة الآن", "bool"),
     ],

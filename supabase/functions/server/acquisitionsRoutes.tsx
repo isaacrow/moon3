@@ -233,7 +233,9 @@ acquisitionsRoutes.post(`${P}/orders/:id/add-copies`, async (c) => {
       if ((data || []).some((r: any) => copiesIn(r.document).some((x) => x.barcode === b))) return c.json({ error: `The barcode ${b} is already on a copy` }, 409);
     }
     const already = (rec.document?.["@graph"] || []).filter((n: any) => [].concat(n?.["@type"] || []).some((t: any) => typeof t === "string" && /(^|[:/])Item$/.test(t))).length;
-    const rows = receiptRows(read.input, order, st.library, already + 1);
+    // Each copy takes an accession number from the library's accession sequence (H6), when it has one.
+    const { data: accessions } = await sb().rpc("moon_take_numbers", { p_library: st.library, p_kind: "accession", p_count: read.input.count });
+    const rows = receiptRows(read.input, order, st.library, already + 1, accessions || []);
     const document = withCopies(rec.document, instance, rows as any, Date.now().toString(36));
     await recordStore.saveRecord({ ...rec, document, saved: new Date().toISOString() }, st.username, `acquisitions: ${order.number} received`,
       Number.isInteger(rec.version) ? rec.version : undefined);

@@ -11,7 +11,8 @@ test('a number is the prefix and the number padded to the width', () => {
 
 test('sequences are checked so their numbers stay valid barcodes and cards', () => {
   assert.deepEqual(readSequence('barcode', { prefix: 'B', next: 100, width: 6 }), { sequence: { kind: 'barcode', prefix: 'B', next: 100, width: 6 } });
-  assert.ok('error' in readSequence('accession', { next: 1 }));
+  assert.ok('error' in readSequence('shelf', { next: 1 }));
+  assert.deepEqual(readSequence('accession', { prefix: 'A', next: 5, width: 4 }), { sequence: { kind: 'accession', prefix: 'A', next: 5, width: 4 } });
   assert.ok('error' in readSequence('card', { prefix: 'C D', next: 1 }), 'no spaces');
   assert.ok('error' in readSequence('card', { prefix: 'C', next: 0 }));
   assert.ok('error' in readSequence('card', { prefix: 'C', next: 1, width: 13 }));

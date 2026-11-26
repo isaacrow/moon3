@@ -80,7 +80,7 @@ export function LibraryRulesPage({ isAr }: { isAr: boolean }) {
   );
 }
 
-/** Number sequences (plan step H6): where new barcodes and borrower cards come from when none is typed. */
+/** Number sequences (plan step H6): where new barcodes, borrower cards and copies' accession numbers come from. */
 function Sequences({ isAr }: { isAr: boolean }) {
   const [data, setData] = useState<any>(null);
   const [draft, setDraft] = useState<Record<string, { prefix: string; next: string; width: string }>>({});
@@ -90,13 +90,14 @@ function Sequences({ isAr }: { isAr: boolean }) {
     setData(r.data);
     setDraft(Object.fromEntries(r.data.kinds.map((k: string) => {
       const s = r.data.sequences[k];
-      return [k, s ? { prefix: s.prefix, next: String(s.next), width: String(s.width) } : { prefix: k === 'barcode' ? 'B' : 'C', next: '1', width: '6' }];
+      return [k, s ? { prefix: s.prefix, next: String(s.next), width: String(s.width) } : { prefix: k === 'barcode' ? 'B' : k === 'accession' ? 'A' : 'C', next: '1', width: '6' }];
     })));
   });
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   if (!data) return null;
   const NAMES: Record<string, [string, string, string, string]> = {
     barcode: ['Copy barcodes', 'باركودات النسخ', 'Used when copies are added from an order without barcodes.', 'تُستعمل عند إضافة نسخ طلب شراء بلا باركود.'],
+    accession: ['Accession numbers', 'أرقام التزويد', 'Each copy added from an order takes the next one.', 'تأخذ كل نسخة تُضاف من طلب شراء الرقم التالي.'],
     card: ['Borrower cards', 'بطاقات المستفيدين', 'Used when a new borrower is added without a card number.', 'تُستعمل عند إضافة مستفيد جديد بلا رقم بطاقة.'],
   };
   const save = async (kind: string, off = false) => {

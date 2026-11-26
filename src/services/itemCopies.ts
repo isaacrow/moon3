@@ -4,7 +4,7 @@
  *   bf:heldBy → the library (bf:Organization, rdfs:label)
  *   bf:sublocation → where in the library (bf:Sublocation, rdfs:label)
  *   bf:shelfMark → the call number on the spine (bf:ShelfMark, rdfs:label)
- *   bf:identifiedBy → the barcode (bf:Barcode, rdf:value)
+ *   bf:identifiedBy → the barcode (bf:Barcode, rdf:value) and the accession number (bf:AccessionNumber, rdf:value)
  *   bf:enumerationAndChronology → the copy number (bf:Enumeration, rdfs:label "c. 2")
  *   bf:usageAndAccessPolicy → "Reference only" (bf:UsePolicy)
  *   bf:note → a note (bf:Note, rdfs:label)
@@ -21,6 +21,8 @@ export interface ItemCopy extends CopyCondition {
   location: string;
   shelfMark: string;
   barcode: string;
+  /** The accession number, when the copy has one (from the library's accession sequence or typed). */
+  accession?: string;
   copyNumber: string;
   referenceOnly: boolean;
   note: string;
@@ -57,6 +59,7 @@ function eventsOf(node: any): { events?: TransmissionEvent[] } {
 export function nodeToCopy(node: any): ItemCopy {
   const ids = list(node?.['bf:identifiedBy'] ?? node?.['identifiedBy']);
   const barcodeNode = ids.find((i) => typeIs(i, 'Barcode'));
+  const accessionNode = ids.find((i) => typeIs(i, 'AccessionNumber'));
   const copyRaw = textOf(node?.['bf:enumerationAndChronology'] ?? node?.['enumerationAndChronology'] ?? node?.['copyNumber']);
   const policies = list(node?.['bf:usageAndAccessPolicy'] ?? node?.['usageAndAccessPolicy']);
   return {
@@ -65,6 +68,7 @@ export function nodeToCopy(node: any): ItemCopy {
     location: textOf(node?.['bf:sublocation'] ?? node?.['sublocation'] ?? node?.['bf:physicalLocation'] ?? node?.['physicalLocation']),
     shelfMark: textOf(node?.['bf:shelfMark'] ?? node?.['shelfMark']),
     barcode: barcodeNode ? textOf(barcodeNode) : textOf(node?.['bf:barcode'] ?? node?.['barcode']),
+    ...(accessionNode && textOf(accessionNode) ? { accession: textOf(accessionNode) } : {}),
     copyNumber: copyRaw.replace(/^c\.\s*/i, ''),
     referenceOnly: policies.some((p) => /reference|للاطلاع/i.test(textOf(p))) || node?.['status'] === 'reference_only',
     note: textOf(list(node?.['bf:note'] ?? node?.['note']).filter((n) => !isBindingNote(n))),
@@ -76,7 +80,7 @@ export function nodeToCopy(node: any): ItemCopy {
 
 /** Whether a copy says anything a reader could use (an empty Item is not a copy). */
 export function hasCopyData(c: ItemCopy): boolean {
-  return !!(c.library || c.location || c.shelfMark || c.barcode || c.copyNumber || c.note || c.events?.length
+  return !!(c.library || c.location || c.shelfMark || c.barcode || c.accession?.trim() || c.copyNumber || c.note || c.events?.length
     || c.binding?.trim() || c.condition?.trim() || c.marks?.some((m) => m.text.trim()) || c.actions?.length);
 }
 
@@ -87,7 +91,10 @@ export function copyToNode(c: ItemCopy, instanceId: string): any {
   if (t(c.library)) node['bf:heldBy'] = { '@type': 'bf:Organization', 'rdfs:label': t(c.library) };
   if (t(c.location)) node['bf:sublocation'] = { '@type': 'bf:Sublocation', 'rdfs:label': t(c.location) };
   if (t(c.shelfMark)) node['bf:shelfMark'] = { '@type': 'bf:ShelfMark', 'rdfs:label': t(c.shelfMark) };
-  if (t(c.barcode)) node['bf:identifiedBy'] = [{ '@type': 'bf:Barcode', 'rdf:value': t(c.barcode) }];
+  const ids: any[] = [];
+  if (t(c.barcode)) ids.push({ '@type': 'bf:Barcode', 'rdf:value': t(c.barcode) });
+  if (t(c.accession || '')) ids.push({ '@type': 'bf:AccessionNumber', 'rdf:value': t(c.accession || '') });
+  if (ids.length) node['bf:identifiedBy'] = ids;
   if (t(c.copyNumber)) node['bf:enumerationAndChronology'] = { '@type': 'bf:Enumeration', 'rdfs:label': `c. ${t(c.copyNumber)}` };
   if (c.referenceOnly) node['bf:usageAndAccessPolicy'] = { '@type': 'bf:UsePolicy', 'rdfs:label': REFERENCE_ONLY };
   if (t(c.note)) node['bf:note'] = { '@type': 'bf:Note', 'rdfs:label': t(c.note) };

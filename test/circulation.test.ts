@@ -56,7 +56,7 @@ test('a copy is found in a record by its barcode, as the editor writes copies', 
   const doc = { '@graph': [{ '@id': inst, '@type': 'bf:Instance' }, copyToNode(a, inst), copyToNode(b, inst), copyToNode(c, inst)] };
   const found = copiesIn(doc);
   assert.equal(found.length, 2, 'only copies with a barcode');
-  assert.deepEqual(found[0], { itemId: a.id, barcode: '30001', library: 'Main library', location: '', shelfMark: '892.7 MAH', copyNumber: '1', referenceOnly: false });
+  assert.deepEqual(found[0], { itemId: a.id, barcode: '30001', accession: '', library: 'Main library', location: '', shelfMark: '892.7 MAH', copyNumber: '1', referenceOnly: false });
   assert.equal(found[1].referenceOnly, true);
   // An older record with the Item nested under the Instance.
   assert.equal(copiesIn({ '@graph': [{ '@type': 'bf:Instance', 'bf:hasItem': [{ '@type': 'bf:Item', 'bf:barcode': '777' }] }] })[0].barcode, '777');
