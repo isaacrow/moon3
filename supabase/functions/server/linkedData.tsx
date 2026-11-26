@@ -89,6 +89,12 @@ export function toJsonLd(document: any): any {
   return { "@context": CONTEXT, "@graph": Array.isArray(document?.["@graph"]) ? document["@graph"] : [] };
 }
 
+/** The document flattened and expanded (full IRIs, every value in a list), as FOLIO's linked-data import reads. */
+export async function flattened(document: any): Promise<any[]> {
+  const flat: any = await jsonld.flatten(toJsonLd(document));
+  return Array.isArray(flat) ? flat : Array.isArray(flat?.["@graph"]) ? flat["@graph"] : [];
+}
+
 export async function toNTriples(document: any): Promise<string> {
   return await jsonld.toRDF(toJsonLd(document), { format: "application/n-quads" }) as string;
 }
