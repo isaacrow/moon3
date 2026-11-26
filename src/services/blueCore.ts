@@ -105,16 +105,24 @@ async function addLabels(record: ImportedRecord, f: Fetch) {
   }));
 }
 
+/**
+ * Blue Core resources (a Work, its Instance) read with Blue Core's context into a Moon editor record. Also how a
+ * record Moon wrote in Blue Core's shape (server/blueCoreExport.tsx) comes back, so one record goes both ways.
+ */
+export async function importBlueCoreResources(context: any, resources: any[]): Promise<ImportedRecord> {
+  const strip = (n: any) => { const { '@context': _c, ...rest } = n || {}; return rest; };
+  const record = await importBibframe(JSON.stringify({ '@context': context, '@graph': resources.map(strip) }), 'jsonld');
+  if (!record || (!record.work && !record.instance)) throw new Error('Blue Core returned no Work or Instance for this record.');
+  return record;
+}
+
 /** Takes a Blue Core Work or Instance, with the record it is linked to, as a Moon editor record. */
 export async function importFromBlueCore(hit: Pick<BlueCoreHit, 'type' | 'uri'>, fetchImpl: Fetch = fetch): Promise<ImportedRecord> {
   const f = fetchImpl;
   const [context, first] = await Promise.all([loadContext(f), getJsonLd(f, hit.uri)]);
   const otherUri = hit.type === 'works' ? firstRef(first.hasInstance) : firstRef(first.instanceOf);
   const other = otherUri ? await getJsonLd(f, otherUri).catch(() => null) : null;
-  const strip = (n: any) => { const { '@context': _c, ...rest } = n || {}; return rest; };
-  const graph = [strip(first), ...(other ? [strip(other)] : [])];
-  const record = await importBibframe(JSON.stringify({ '@context': context, '@graph': graph }), 'jsonld');
-  if (!record || (!record.work && !record.instance)) throw new Error('Blue Core returned no Work or Instance for this record.');
+  const record = await importBlueCoreResources(context, [first, ...(other ? [other] : [])]);
   await addLabels(record, f);
   // Where it came from, as BIBFRAME records it: the new description is derived from Blue Core's.
   const work = record.work || {};

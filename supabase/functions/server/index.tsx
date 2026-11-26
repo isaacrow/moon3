@@ -35,6 +35,7 @@ import lcWorksRoutes from "./lcWorksRoutes.tsx";
 import * as bfArabic from "./bibframeArabic.tsx";
 import * as arabicGenres from "./arabicGenres.tsx";
 import * as quality from "./quality.tsx";
+import { toBlueCore } from "./blueCoreExport.tsx";
 import { workFacts } from "./lcWorks.tsx";
 import * as libraryRules from "./libraryRules.tsx";
 import { readSequence, formatNumber, SEQUENCE_KINDS } from "./sequences.tsx";
@@ -1522,6 +1523,18 @@ app.get("/make-server-49c0e13c/folio/status", async (c) => {
 
 // What the record becomes in FOLIO (nothing is sent), and whether it changed since it was last sent. The
 // published document comes with it, so the browser can show and send the same record as MARC.
+// A published record in Blue Core's shape (blueCoreExport.tsx, plan step A4): its Work and Instance as Blue Core's
+// API serves and takes them. Public, like the record itself.
+app.get("/make-server-49c0e13c/resource/bluecore/:id", async (c) => {
+  const id = c.req.param('id');
+  if (!/^[A-Za-z0-9._:-]{1,120}$/.test(id)) return c.json({ error: 'Not a record number' }, 400);
+  const record = await recordStore.getPublishedRecord(id).catch(() => null);
+  if (!record) return c.json({ error: 'No published record has this number' }, 404);
+  const resources = toBlueCore(linkedData.publishedDocument(record as any));
+  return c.json({ works: resources.filter((r) => r.type === 'works'), instances: resources.filter((r) => r.type === 'instances') },
+    200, { 'Cache-Control': 'public, max-age=600', 'Access-Control-Allow-Origin': '*' });
+});
+
 app.get("/make-server-49c0e13c/folio/record/:id", async (c) => {
   if (!(await getSession(c))) return c.json({ error: 'Sign in to use FOLIO' }, 401);
   const id = c.req.param('id');
