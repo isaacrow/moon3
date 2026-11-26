@@ -1,0 +1,86 @@
+[
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/INSTANCE_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Instance"
+        ],
+        "http://id.loc.gov/ontologies/bibframe/adminMetadata": [
+            {
+                "@id": "http://test-tobe-changed.folio.com/resources/ADMIN_METADATA_ID"
+            }
+        ]
+    },
+    {
+        "@id": "http://test-tobe-changed.folio.com/resources/ADMIN_METADATA_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/AdminMetadata"
+        ],
+        "http://id.loc.gov/ontologies/bibframe/creationDate": [
+            {
+                "@value": "2025-11-19"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/identifiedBy": [
+            {
+                "@id": "_:CONTROL_NUMBER_1_ID"
+            },
+            {
+                "@id": "_:FOLIO_INVENTORY_ID_1_ID"
+            }
+        ]
+    },
+    {
+        "@id": "_:CONTROL_NUMBER_1_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Local"
+        ],
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#value": [
+            {
+                "@value": "in00123"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/note": [
+            {
+                "@id": "_:note_in00123"
+            }
+        ]
+    },
+    {
+        "@id": "_:FOLIO_INVENTORY_ID_1_ID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Local"
+        ],
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#value": [
+            {
+                "@value": "FOLIO_UUID"
+            }
+        ],
+        "http://id.loc.gov/ontologies/bibframe/note": [
+            {
+                "@id": "_:note_FOLIO_UUID"
+            }
+        ]
+    },
+    {
+        "@id": "_:note_in00123",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Note"
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+            {
+                "@value": "FOLIO HRID"
+            }
+        ]
+    },
+    {
+        "@id": "_:note_FOLIO_UUID",
+        "@type": [
+            "http://id.loc.gov/ontologies/bibframe/Note"
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+            {
+                "@value": "FOLIO Inventory UUID"
+            }
+        ]
+    }
+]

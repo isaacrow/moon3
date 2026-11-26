@@ -12,6 +12,7 @@ import { marcToBibframe, ImportedMarcRecord } from '../../../services/marc/marcT
 import { importMarcBatch, BatchResult } from '../../../services/marc/marcBatch';
 import { AuthorityReportPanel } from './AuthorityReportPanel';
 import { searchBlueCore, importFromBlueCore, BlueCoreHit } from '../../../services/blueCore';
+import { isFolioLdExport, importFolioLdExport, FolioLdRecord } from '../../../services/folioLdImport';
 import { listSruTargets, searchSru, SruIndex, SruTargetInfo } from '../../../services/sruClient';
 import { saveRecord, checkDuplicates } from '../../utils/recordStorageBackend';
 import { useAuth } from '../../contexts/AuthContext';
@@ -29,6 +30,9 @@ export function ImportRecordDialog({ isOpen, onClose, onImport }: ImportRecordDi
   // MARC files (.mrc, .mrk, MARCXML) can hold many records, e.g. a Koha export; the cataloger picks one.
   const [marcRecords, setMarcRecords] = useState<ImportedMarcRecord[]>([]);
   const [marcIndex, setMarcIndex] = useState(0);
+  // FOLIO Data Export's linked-data file (BIBFRAME JSON Lines, one Instance a line); the cataloger picks one.
+  const [folioRecords, setFolioRecords] = useState<FolioLdRecord[]>([]);
+  const [folioIndex, setFolioIndex] = useState(0);
   const [error, setError] = useState<string>('');
   const { user, username } = useAuth();
   const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
@@ -114,16 +118,18 @@ export function ImportRecordDialog({ isOpen, onClose, onImport }: ImportRecordDi
     setMarcRecords([]);
     setBatchResult(null);
     setMarcIndex(0);
+    setFolioRecords([]);
+    setFolioIndex(0);
     if (extension === 'mrc' || extension === 'mrk' || extension === 'marc') {
       setFileType('marc');
-    } else if (extension === 'json' || extension === 'jsonld') {
+    } else if (extension === 'json' || extension === 'jsonld' || extension === 'jsonl' || extension === 'ndjson') {
       setFileType('jsonld');
     } else if (extension === 'xml' || extension === 'rdf' || extension === 'marcxml') {
       setFileType('xml');
     } else if (extension === 'ttl' || extension === 'n3' || extension === 'nt') {
       setFileType('rdf');
     } else {
-      setError('Unsupported file type. Please use MARC (.mrc, .mrk, MARCXML), JSON-LD, Turtle or N-Triples.');
+      setError('Unsupported file type. Please use MARC (.mrc, .mrk, MARCXML), JSON-LD (including FOLIO\'s linked-data export), Turtle or N-Triples.');
       return;
     }
 
@@ -143,6 +149,11 @@ export function ImportRecordDialog({ isOpen, onClose, onImport }: ImportRecordDi
         } catch (err) {
           setError(err instanceof Error ? err.message : 'This MARC file could not be read.');
         }
+      } else if (isFolioLdExport(content)) {
+        setFileType('jsonld');
+        importFolioLdExport(content)
+          .then(setFolioRecords)
+          .catch((err) => setError(err instanceof Error ? err.message : 'This FOLIO file could not be read.'));
       }
     };
     reader.onerror = () => {
@@ -156,6 +167,13 @@ export function ImportRecordDialog({ isOpen, onClose, onImport }: ImportRecordDi
       if (fileType === 'marc') {
         const chosen = marcRecords[marcIndex];
         if (!chosen) { setError('No MARC record to import.'); return; }
+        onImport(chosen.work, chosen.instance, chosen.item);
+        onClose();
+        return;
+      }
+      if (folioRecords.length) {
+        const chosen = folioRecords[folioIndex];
+        if (!chosen) { setError('No FOLIO record to import.'); return; }
         onImport(chosen.work, chosen.instance, chosen.item);
         onClose();
         return;
@@ -202,7 +220,7 @@ export function ImportRecordDialog({ isOpen, onClose, onImport }: ImportRecordDi
         {/* Content */}
         <div className="p-6 space-y-5">
           <p className="text-sm text-white/80">
-            Import a MARC record (from Koha, MarcEdit or any library system) or a BIBFRAME record (RDF/XML, JSON-LD, Turtle or N-Triples, including id.loc.gov records) into MOON.
+            Import a MARC record (from Koha, MarcEdit or any library system) or a BIBFRAME record (RDF/XML, JSON-LD, Turtle or N-Triples, including id.loc.gov records and FOLIO's linked-data export) into MOON.
           </p>
 
           {/* Copy cataloguing: LC and the LD4P libraries' shared BIBFRAME store */}
@@ -286,7 +304,7 @@ export function ImportRecordDialog({ isOpen, onClose, onImport }: ImportRecordDi
               type="file"
               id="file-upload"
               className="hidden"
-              accept=".mrc,.mrk,.marc,.xml,.marcxml,.json,.jsonld,.ttl,.n3,.nt,.rdf"
+              accept=".mrc,.mrk,.marc,.xml,.marcxml,.json,.jsonld,.jsonl,.ndjson,.ttl,.n3,.nt,.rdf"
               onChange={handleFileSelect}
             />
             <label
@@ -371,6 +389,23 @@ export function ImportRecordDialog({ isOpen, onClose, onImport }: ImportRecordDi
                     : `Save all ${marcRecords.length} records (skipping books already in Moon)`}
                 </button>
               )}
+            </div>
+          )}
+
+          {/* FOLIO's linked-data export: which Instance to open */}
+          {folioRecords.length > 0 && !error && (
+            <div>
+              <label htmlFor="folio-record" className="block text-xs font-semibold text-white/80 mb-1.5 uppercase tracking-wider">
+                {folioRecords.length === 1 ? 'FOLIO record' : `${folioRecords.length} FOLIO records: choose one`}
+              </label>
+              <select
+                id="folio-record"
+                value={folioIndex}
+                onChange={(e) => setFolioIndex(Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-xl text-sm bg-black/40 border border-white/20 text-white"
+              >
+                {folioRecords.map((r, i) => <option key={i} value={i}>{i + 1}. {r.title}{r.hrid ? ` (${r.hrid})` : ''}</option>)}
+              </select>
             </div>
           )}
 
