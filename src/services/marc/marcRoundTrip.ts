@@ -27,8 +27,8 @@ export function toMoonDocument(r: MarcRecord): { '@graph': any[] } {
   return { '@graph': graph };
 }
 
-export function roundTrip(r: MarcRecord): { back: MarcRecord; issues: RoundTripIssue[] } {
-  const back = bibframeToMarc(toMoonDocument(r) as any, { recordId: 'rt' });
+export function roundTrip(r: MarcRecord, now?: Date): { back: MarcRecord; issues: RoundTripIssue[] } {
+  const back = bibframeToMarc(toMoonDocument(r) as any, { recordId: 'rt', now });
   const issues: RoundTripIssue[] = [];
   const out = back.fields.filter((f): f is DataField => !isControl(f));
   for (const f of r.fields) {
@@ -78,9 +78,12 @@ export interface PublicRoundTrip {
 
 /**
  * The public round-trip report (plan step A2): for a fixed set of records, each record's MARC as it went in and as
- * Moon gave it back, and what did not come back. Nothing in it changes with the day (005 is left out), so the same
- * converter always gives the same report; test/roundTripPublic.test.ts checks the published one is current.
+ * Moon gave it back, and what did not come back. Nothing in it changes with the day (005 is left out, and 008's
+ * date entered is the fixed REPORT_DATE), so the same converter always gives the same report;
+ * test/roundTripPublic.test.ts checks the published one is current.
  */
+export const REPORT_DATE = new Date('2026-11-25T12:00:00Z');
+
 export function publicRoundTrip(records: MarcRecord[], set: { name: string; source: string }): PublicRoundTrip {
   const summary = roundTripReport(records);
   return {
@@ -89,7 +92,7 @@ export function publicRoundTrip(records: MarcRecord[], set: { name: string; sour
     clean: summary.clean,
     counts: summary.counts,
     records: records.map((r) => {
-      const { back, issues } = roundTrip(r);
+      const { back, issues } = roundTrip(r, REPORT_DATE);
       const f245 = r.fields.find((f) => f.tag === '245');
       const title = f245 && !isControl(f245) ? f245.subfields.filter(([c]) => /[abnp]/.test(c)).map(([, v]) => v).join(' ').replace(/\s*[/:;=.,]\s*$/, '') : '';
       const id = r.fields.find((f) => f.tag === '001');
