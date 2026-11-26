@@ -424,10 +424,11 @@ export function OpacApp({ onOpenEditor }: { onOpenEditor?: () => void }) {
       <main>
         {/* The home page shows at once (its search box ready to type in) and stays the same element when the books
             arrive, so what a reader has typed is kept; every other view waits for the catalogue. */}
-        {!ready && view.mode !== 'home' ? <Loading /> : (
+        {!ready && view.mode !== 'home' && !(view.mode === 'search' && quickSearchable(view.query, view.params)) ? <Loading /> : (
           <div className="view" key={viewKey(view)}>
             {view.mode === 'home' && <Home ctx={ctx} loading={!ready} />}
-            {view.mode === 'search' && <Results key={`${view.query}|${view.params || ''}`} ctx={ctx} query={view.query} />}
+            {view.mode === 'search' && !ready && <QuickResults key={view.query} ctx={ctx} query={view.query} />}
+            {view.mode === 'search' && ready && <Results key={`${view.query}|${view.params || ''}`} ctx={ctx} query={view.query} />}
             {view.mode === 'work' && <WorkPage key={view.id} ctx={ctx} id={view.id} />}
             {view.mode === 'person' && <PersonPage key={view.key} ctx={ctx} k={view.key} />}
             {view.mode === 'subject' && <SubjectPage key={view.key} ctx={ctx} k={view.key} />}
@@ -1101,6 +1102,62 @@ function EResourceMatches({ query }: { query: string }) {
     <div style={{ margin: '8px 0 14px' }}>
       <h4 style={{ margin: '0 0 6px' }}>{t('من اشتراكات المكتبة', 'From the library’s subscriptions')}</h4>
       <div className="rows">{hits.map(r => <EResourceLink key={r.id} r={r} />)}</div>
+    </div>
+  );
+}
+
+/**
+ * Whether a search can be answered from the server's paged search before the whole catalogue has arrived (plan
+ * step B3): words alone, in every field, relevance order. Filters, a field, the advanced search, exact words or
+ * another order need every book, so they wait for the catalogue.
+ */
+function quickSearchable(query: string, params?: string): boolean {
+  if (!query.trim()) return false;
+  const p = new URLSearchParams(params || '');
+  for (const [k, v] of p) {
+    if (k === 'page' || k === 'group' || k === 'q') continue;
+    if (k === 'sort' && v === 'relevance') continue;
+    if (k === 'in' && v === 'all') continue;
+    return false;
+  }
+  return true;
+}
+
+/**
+ * The first page of results from the server's search (the same rules as the catalogue page: searchDocs.tsx), shown
+ * while the whole catalogue is still arriving; the full results, with their filters, take its place when it has.
+ */
+function QuickResults({ ctx, query }: { ctx: Ctx; query: string }) {
+  const [state, setState] = useState<{ works: OpacWorkEntity[]; total: number } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch(`${MOON_API}/records/search?view=published&limit=${PAGE_SIZE}&q=${encodeURIComponent(query.trim().slice(0, 200))}`, { headers: moonHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive && d) setState({ works: wolfMoonOpacService.worksFromRecords(d.records || []), total: Number(d.total) || 0 }); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [query]);
+  return (
+    <div className="wrap">
+      <div className="page-head">
+        <Crumbs ctx={ctx} items={[{ label: t('نتائج البحث', 'Search results') }]} />
+        <h1 className="page-title">{t(`نتائج «${query}»`, `Results for “${query}”`)}</h1>
+      </div>
+      <div style={{ maxWidth: 720 }}><SearchBox ctx={ctx} initial={query} compact /></div>
+      {!state ? <Loading /> : (
+        <section aria-live="polite">
+          <div className="results-bar glass">
+            <span className="count">
+              {state.total
+                ? t(`${state.total} نتيجة · تظهر أوّلها الآن، وتأتي الفلاتر بعد لحظات`, `${state.total} results · the first are shown now; the filters follow in a moment`)
+                : t('لا نتائج بعد · ما زال الفهرس يصل', 'No results yet · the catalogue is still arriving')}
+            </span>
+          </div>
+          <div className="rows">
+            {state.works.map((w, i) => <ResultCard key={w.id} w={w} ctx={ctx} i={i} />)}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
