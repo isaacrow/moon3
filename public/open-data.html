@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open metadata · البيانات المفتوحة</title>
+<meta name="description" content="Moon's open metadata policy: what is published, under which licence, in which formats, and what is never published.">
+<style>
+  :root { --bg: #f8fafc; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --card: #fff; --ok: #047857; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0b1020; --ink: #e5e7eb; --muted: #94a3b8; --line: #1f2937; --card: #111827; --ok: #34d399; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.65 system-ui, "Segoe UI", Tahoma, sans-serif; }
+  main { max-width: 50rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  h1 { font-size: 1.8rem; margin: 0 0 .2rem; } h2 { font-size: 1.15rem; margin: 2rem 0 .5rem; }
+  .ar { display: block; direction: rtl; text-align: right; color: var(--muted); font-size: .95rem; margin-top: .3rem; }
+  .lede { font-size: 1.05rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1.1rem; margin: .6rem 0; }
+  .big { font-size: 1.3rem; font-weight: 800; color: var(--ok); }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; font-size: .92rem; }
+  th, td { text-align: start; padding: .5rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .78rem; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  code { font-size: .85rem; } a { color: inherit; }
+  ul { padding-inline-start: 1.2rem; } li { margin: .2rem 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Open metadata</h1>
+  <span class="ar">البيانات المفتوحة</span>
+  <p class="lede">Moon's catalogue descriptions are open: anyone may copy, change and share them, for any purpose, without asking. This page says what that covers, how to get the data, and what Moon never publishes.
+    <span class="ar">أوصاف فهرس مون مفتوحة: لأي أحد أن ينسخها ويغيّرها وينشرها، لأي غرض، دون استئذان. تبيّن هذه الصفحة ما يشمله ذلك، وكيف تُؤخذ البيانات، وما لا ينشره مون أبدًا.</span></p>
+
+  <div class="card">
+    <div class="big">CC0 1.0</div>
+    Descriptions are released under <a href="https://creativecommons.org/publicdomain/zero/1.0/">Creative Commons Zero</a>, as the Library of Congress, the British Library and most national libraries release theirs. Each published record says so in its admin metadata (<code>dcterms:license</code>), with who made the description (<code>bf:assigner</code>).
+    <span class="ar">تُطلق الأوصاف بترخيص CC0 (ملك عام)، كما تطلق مكتبة الكونغرس والمكتبة البريطانية ومعظم المكتبات الوطنية أوصافها. وكل تسجيلة منشورة تذكر ذلك في بياناتها الإدارية، مع الجهة التي أعدّت الوصف.</span>
+  </div>
+
+  <h2>Records with other terms <span class="ar">تسجيلات بشروط أخرى</span></h2>
+  <p>A description that came from somewhere with its own terms keeps them, and its page shows them: CC BY 4.0 (credit the source), ODC-By 1.0 (as WorldCat data), or not for redistribution. A record not for redistribution is left out of every bulk export below; only its own page shows it.
+    <span class="ar">الوصف الذي جاء من مصدر له شروطه يبقى بها، وتُعرض في صفحته: CC BY 4.0 أو ODC-By 1.0 أو «لا يُعاد نشره». والتسجيلة التي لا يُعاد نشرها تُستبعد من كل التصديرات المجمّعة أدناه، ولا تظهر إلا في صفحتها.</span></p>
+
+  <h2>How to get the data <span class="ar">كيف تؤخذ البيانات</span></h2>
+  <table>
+    <thead><tr><th>What</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td>Every published record, refreshed each night (BIBFRAME 3.0.1)</td><td><a href="/resource/dump.nt">N-Triples</a> · <a href="/resource/dump.jsonld">JSON-LD</a></td></tr>
+      <tr><td>One record, as a page or as data</td><td><code>/resource/work/&lt;id&gt;</code>, <code>/resource/instance/&lt;id&gt;</code> (add <code>.jsonld</code>, <code>.ttl</code>, <code>.rdf</code> or <code>.nt</code>)</td></tr>
+      <tr><td>What changed, for harvesting</td><td><a href="/resource/changes">Change feed</a> · <a href="/resource/oai?verb=Identify">OAI-PMH</a></td></tr>
+      <tr><td>Queries</td><td><a href="/resource/sparql?query=SELECT%20*%20WHERE%20%7B%3Fs%20%3Fp%20%3Fo%7D%20LIMIT%2010">SPARQL</a> · <a href="/resource/reconcile">Reconciliation (OpenRefine)</a></td></tr>
+      <tr><td>The dataset described</td><td><a href="/resource/void.ttl">VoID</a></td></tr>
+      <tr><td>Vocabularies Moon publishes</td><td><a href="bibframe-ar.html">BIBFRAME in Arabic</a> · <a href="/resource/genres-ar.ttl">Arabic genre and form terms</a> (both CC0)</td></tr>
+      <tr><td>How it all works, for developers</td><td><a href="api.html">API</a></td></tr>
+    </tbody>
+  </table>
+  <p class="ar">التسجيلات المنشورة كلها تُحدَّث كل ليلة، وكل تسجيلة بصفحتها وبياناتها، وما تغيّر (للحصاد)، والاستعلام (SPARQL والمطابقة)، ووصف المجموعة، والمفردات التي ينشرها مون، ودليل المطوّرين.</p>
+
+  <h2>What Moon never publishes <span class="ar">ما لا ينشره مون أبدًا</span></h2>
+  <ul>
+    <li>Borrowers, loans, holds and fines. A loan forgets its borrower when the copy comes back, so Moon keeps no reading history; a reader may keep their own, which only they see.</li>
+    <li>Acquisitions: vendors, prices, funds, orders and invoices. Only the databases and e-journals readers can open are listed, by title and link.</li>
+    <li>Staff accounts, and who changed what (the history is for the library's staff).</li>
+    <li>Drafts: a description is published only after review.</li>
+  </ul>
+  <p class="ar">لا ينشر مون: المستفيدين والإعارات والحجوزات والغرامات (الإعارة تنسى مستفيدها عند إرجاع النسخة، فلا سجل قراءة؛ وللقارئ أن يحفظ سجله لنفسه)، ولا التزويد (الموردين والأسعار والصناديق والطلبات والفواتير)، ولا حسابات الموظفين وسجل التغييرات، ولا المسودات قبل مراجعتها.</p>
+
+  <h2>A request, not a condition <span class="ar">طلب لا شرط</span></h2>
+  <p>CC0 asks nothing. If you use the data, we would still be glad of a mention of "Moon (mooon.site)" and to hear what you made with it.
+    <span class="ar">لا يشترط CC0 شيئًا. ومع ذلك يسعدنا ذكر «مون (mooon.site)» إن استعملت البيانات، وأن نعرف ما صنعت بها.</span></p>
+
+  <p style="margin-top:2rem;color:var(--muted);font-size:.9rem">See also: <a href="privacy.html">Privacy</a> · <a href="score.html">Scorecard</a> · <a href="opac.html">Catalogue</a></p>
+</main>
+</body>
+</html>
