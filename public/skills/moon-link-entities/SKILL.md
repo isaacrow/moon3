@@ -15,7 +15,8 @@ entities is read-only and needs no account.
    both work.
 2. The reply lists Moon's own entities first, then LC's, each with a label and a permanent address (URI).
    **Prefer Moon's entity when there is one**: it already links to LC, VIAF or Wikidata, and it holds the
-   Arabic-script name.
+   Arabic-script name. LC often refuses requests from Moon's shared server addresses. When it does, the reply
+   gives LC's own search address (`lcSearch`): ask it yourself, and use the `uri` of the hit you choose.
 3. Choose only when the dates, the role or the subject leave no doubt. If two candidates could both be right,
    do not choose; say so in the note for the cataloguer.
 4. Put the address in the record as `@id` on the agent, subject or place node. Keep its `rdfs:label`:

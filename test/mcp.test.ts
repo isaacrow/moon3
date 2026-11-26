@@ -99,3 +99,10 @@ test('find_entities: Moon\'s own first, then LC; a kind is one of three', async 
   const names = list.result.tools.map((t: any) => t.name);
   assert.ok(names.includes('lookup_isbn') && names.includes('find_entities'));
 });
+
+test('find_entities: when LC was not reached, the agent gets LC\'s own search address', async () => {
+  const d = { ...deps(), findEntities: async () => [] };
+  const r: any = await call('find_entities', { name: 'Ibn Khaldun', kind: 'agent' }, d);
+  assert.equal(r.result.structuredContent.lcSearch, 'https://id.loc.gov/authorities/names/suggest2?q=Ibn%20Khaldun&searchtype=keyword');
+  assert.match(r.result.content[0].text, /^Nothing in Moon's authority file/);
+});
