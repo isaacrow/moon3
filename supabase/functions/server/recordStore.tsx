@@ -62,6 +62,12 @@ function fromRow(row: any): StoredRecord {
 }
 
 /** A row of the published_records view: the record as the public catalogue shows it. */
+/**
+ * The published_records view's columns a record needs. Not "*": the view also builds search_text by normalizing the
+ * whole document of every record, which the record itself never uses, and which made the published list slow.
+ */
+const PUBLISHED_COLUMNS = "id, title, document, metadata, cataloger, created_at, updated_at, approved_by, approved_at, published_version, cover_url";
+
 function fromPublishedRow(row: any): StoredRecord {
   return {
     id: row.id,
@@ -121,7 +127,7 @@ export async function listRecords(): Promise<StoredRecord[]> {
  * for review. Null when it was never published, was deleted or does not exist.
  */
 export async function getPublishedRecord(id: string): Promise<StoredRecord | null> {
-  const { data, error } = await sb().from("published_records").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await sb().from("published_records").select(PUBLISHED_COLUMNS).eq("id", id).maybeSingle();
   if (error) throw new Error(`[records] published read ${id} failed: ${error.message}`);
   if (data) return fromPublishedRow(data);
   // A record not copied to the table yet is public if its key-value row is published.
@@ -133,17 +139,25 @@ export async function getPublishedRecord(id: string): Promise<StoredRecord | nul
 
 /** Every published record, each at its published version. */
 export async function listPublishedRecords(): Promise<StoredRecord[]> {
+  // Page by page: the database gives at most 1,000 rows a request, and the catalogue must not stop at a thousand.
+  const pages = async (build: (from: number, to: number) => any, size = 500): Promise<any[]> => {
+    const rows: any[] = [];
+    for (let from = 0; ; from += size) {
+      const { data, error } = await build(from, from + size - 1);
+      if (error) throw new Error(`[records] published list failed: ${error.message}`);
+      rows.push(...(data || []));
+      if (!data || data.length < size) return rows;
+    }
+  };
   const [published, all] = await Promise.all([
-    sb().from("published_records").select("*"),
-    sb().from("records").select("id"),
+    pages((from, to) => sb().from("published_records").select(PUBLISHED_COLUMNS).order("id").range(from, to)),
+    pages((from, to) => sb().from("records").select("id").order("id").range(from, to), 1000),
   ]);
-  if (published.error) throw new Error(`[records] published list failed: ${published.error.message}`);
-  if (all.error) throw new Error(`[records] list failed: ${all.error.message}`);
-  const inTable = new Set((all.data || []).map((r: any) => r.id));
+  const inTable = new Set(all.map((r: any) => r.id));
   const notCopied = (await kv.getByPrefix("bibframe:record:"))
     .map(fromKv)
     .filter((r): r is StoredRecord => !!r && !!r.id && !inTable.has(r.id) && r.status === "complete");
-  return [...(published.data || []).map(fromPublishedRow), ...notCopied];
+  return [...published.map(fromPublishedRow), ...notCopied];
 }
 
 /** Records that were published and are now deleted (for the change feed's Delete activities). */
