@@ -1,0 +1,818 @@
+[
+ {
+  "id": "record-1794080317705",
+  "expressionOfHub": {
+   "uri": "https://mooon.site/resource/hub/gilgamesh-english-4612efd3",
+   "label": "Gilgamesh. English"
+  },
+  "uri": "https://catalog.moonlib.org/entity/work/1794080317705",
+  "canonicalMoonUri": "moon:work:record-1794080317705",
+  "title": "The epic of Gilgamesh",
+  "subtitle": "Old Babylonian and Standard versions",
+  "language": "http://id.loc.gov/vocabulary/languages/eng",
+  "languageLabel": "http://id.loc.gov/vocabulary/languages/eng",
+  "originDate": "2017",
+  "era": "القرن الحادي والعشرون (2000+)",
+  "primaryCreator": {
+   "id": "person-Jastrow%2C%20Morris%2C%20Jr.%2C%201861-1921",
+   "uri": "https://catalog.moonlib.org/entity/agent/Jastrow%252C%2520Morris%252C%2520Jr.%252C%25201861-1921",
+   "canonicalMoonUri": "moon:person:person-Jastrow%2C%20Morris%2C%20Jr.%2C%201861-1921",
+   "name": "Jastrow, Morris, Jr., 1861-1921",
+   "nameArabic": "Jastrow, Morris, Jr., 1861-1921",
+   "role": "translator",
+   "authorityLinks": [
+    "https://mooon.site/resource/agent/jastrow-morris-jr-1861-1921-498b96c4"
+   ],
+   "worksCount": 1,
+   "workIds": [
+    "record-1794080317705"
+   ]
+  },
+  "contributors": [
+   {
+    "id": "person-Clay%2C%20Albert%20Tobias%2C%201866-1925",
+    "uri": "https://catalog.moonlib.org/entity/agent/Clay%252C%2520Albert%2520Tobias%252C%25201866-1925",
+    "canonicalMoonUri": "moon:person:person-Clay%2C%20Albert%20Tobias%2C%201866-1925",
+    "name": "Clay, Albert Tobias, 1866-1925",
+    "nameArabic": "Clay, Albert Tobias, 1866-1925",
+    "role": "translator",
+    "authorityLinks": [
+     "https://mooon.site/resource/agent/clay-albert-tobias-1866-1925-86ff089c"
+    ],
+    "worksCount": 1,
+    "workIds": [
+     "record-1794080317705"
+    ]
+   },
+   {
+    "id": "person-Thompson%2C%20R.%20Campbell%201876-194",
+    "uri": "https://catalog.moonlib.org/entity/agent/Thompson%252C%2520R.%2520Campbell%25201876-194",
+    "canonicalMoonUri": "moon:person:person-Thompson%2C%20R.%20Campbell%201876-194",
+    "name": "Thompson, R. Campbell 1876-1941",
+    "nameArabic": "Thompson, R. Campbell 1876-1941",
+    "role": "translator",
+    "authorityLinks": [
+     "https://mooon.site/resource/agent/thompson-r-campbell-1876-1941-14a8d625"
+    ],
+    "worksCount": 1,
+    "workIds": [
+     "record-1794080317705"
+    ]
+   },
+   {
+    "id": "person-Smith%2C%20George%2C%201840-1876",
+    "uri": "https://catalog.moonlib.org/entity/agent/Smith%252C%2520George%252C%25201840-1876",
+    "canonicalMoonUri": "moon:person:person-Smith%2C%20George%2C%201840-1876",
+    "name": "Smith, George, 1840-1876",
+    "nameArabic": "Smith, George, 1840-1876",
+    "role": "translator",
+    "authorityLinks": [
+     "https://mooon.site/resource/agent/smith-george-1840-1876-2eb6ce2f"
+    ],
+    "worksCount": 1,
+    "workIds": [
+     "record-1794080317705"
+    ]
+   },
+   {
+    "id": "person-Sayce%2C%20A.%20H.%201845-1933",
+    "uri": "https://catalog.moonlib.org/entity/agent/Sayce%252C%2520A.%2520H.%25201845-1933",
+    "canonicalMoonUri": "moon:person:person-Sayce%2C%20A.%20H.%201845-1933",
+    "name": "Sayce, A. H. 1845-1933",
+    "nameArabic": "Sayce, A. H. 1845-1933",
+    "role": "مؤلف",
+    "authorityLinks": [
+     "https://mooon.site/resource/agent/sayce-a-h-1845-1933-6f6dccc4"
+    ],
+    "worksCount": 1,
+    "workIds": [
+     "record-1794080317705"
+    ]
+   },
+   {
+    "id": "person-Johns%2C%20C.%20H.%20W.%201857-1920",
+    "uri": "https://catalog.moonlib.org/entity/agent/Johns%252C%2520C.%2520H.%2520W.%25201857-1920",
+    "canonicalMoonUri": "moon:person:person-Johns%2C%20C.%20H.%20W.%201857-1920",
+    "name": "Johns, C. H. W. 1857-1920",
+    "nameArabic": "Johns, C. H. W. 1857-1920",
+    "role": "مؤلف",
+    "authorityLinks": [
+     "https://mooon.site/resource/agent/johns-c-h-w-1857-1920-5b3ce826"
+    ],
+    "worksCount": 1,
+    "workIds": [
+     "record-1794080317705"
+    ]
+   },
+   {
+    "id": "person-Olmstead%2C%20A.%20T.%201880-1945",
+    "uri": "https://catalog.moonlib.org/entity/agent/Olmstead%252C%2520A.%2520T.%25201880-1945",
+    "canonicalMoonUri": "moon:person:person-Olmstead%2C%20A.%20T.%201880-1945",
+    "name": "Olmstead, A. T. 1880-1945",
+    "nameArabic": "Olmstead, A. T. 1880-1945",
+    "role": "مؤلف",
+    "authorityLinks": [
+     "https://mooon.site/resource/agent/olmstead-a-t-1880-1945-7e11e279"
+    ],
+    "worksCount": 1,
+    "workIds": [
+     "record-1794080317705"
+    ]
+   },
+   {
+    "id": "person-Delphi%20Classics%20(Firm)",
+    "uri": "https://catalog.moonlib.org/entity/agent/Delphi%2520Classics%2520(Firm)",
+    "canonicalMoonUri": "moon:person:person-Delphi%20Classics%20(Firm)",
+    "name": "Delphi Classics (Firm)",
+    "nameArabic": "Delphi Classics (Firm)",
+    "role": "publisher",
+    "authorityLinks": [
+     "https://mooon.site/resource/agent/delphi-classics-firm-602ac671"
+    ],
+    "worksCount": 1,
+    "workIds": [
+     "record-1794080317705"
+    ]
+   }
+  ],
+  "subjects": [
+   {
+    "id": "subj-Gilgamesh--Translations%20into%20E",
+    "uri": "https://mooon.site/resource/topic/gilgamesh-translations-into-english-5207b4ce",
+    "label": "Gilgamesh--Translations into English",
+    "scheme": "arabic-authority",
+    "worksCount": 1,
+    "workIds": [
+     "record-1794080317705"
+    ]
+   },
+   {
+    "id": "subj-Epic%20poetry%2C%20Assyro-Babylonian",
+    "uri": "https://mooon.site/resource/topic/epic-poetry-assyro-babylonian-translatio-a2f31008",
+    "label": "Epic poetry, Assyro-Babylonian--Translations into English",
+    "scheme": "arabic-authority",
+    "worksCount": 1,
+    "workIds": [
+     "record-1794080317705"
+    ]
+   },
+   {
+    "id": "subj-Babylonia--History--Sources",
+    "uri": "https://mooon.site/resource/place/babylonia-history-sources-08a2e784",
+    "label": "Babylonia--History--Sources",
+    "scheme": "arabic-authority",
+    "worksCount": 1,
+    "workIds": [
+     "record-1794080317705"
+    ]
+   },
+   {
+    "id": "subj-Assyria--History--Sources",
+    "uri": "https://mooon.site/resource/place/assyria-history-sources-93dc8bc2",
+    "label": "Assyria--History--Sources",
+    "scheme": "arabic-authority",
+    "worksCount": 1,
+    "workIds": [
+     "record-1794080317705"
+    ]
+   }
+  ],
+  "instances": [
+   {
+    "id": "1794080275174",
+    "uri": "https://catalog.moonlib.org/entity/instance/1794080275174",
+    "title": "The epic of Gilgamesh",
+    "subtitle": "Old Babylonian and Standard versions",
+    "workId": "record-1794080317705",
+    "workTitle": "The epic of Gilgamesh",
+    "publisher": "Delphi Classics",
+    "publicationPlace": "Hastings, East Sussex",
+    "publicationYear": "2017",
+    "extent": "## : illustrations",
+    "carrierType": "##",
+    "format": "online",
+    "holdingStatus": "not_connected",
+    "items": []
+   }
+  ],
+  "publisher": {
+   "id": "pub-Delphi%20Classics",
+   "name": "Delphi Classics",
+   "city": "Hastings, East Sussex",
+   "worksCount": 1,
+   "workIds": [
+    "record-1794080317705"
+   ]
+  },
+  "tableOfContents": "The Epic of Gilgamesh -- Brief introduction: Epic of Gilgamesh -- Old Babylonian version (translated by Morris Jastrow Jr. and Albert T. Clay) -- Standard version (translated by R. Campbell Thompson) -- The Chaldaean account of Genesis / translated by George Smith -- Ishtar and Izdubar -- The contextual works: Babylonians and Assyrians, life and customs / by A.H. Sayce -- Babylonian and Assyrian laws, contracts and letters / by C.H.W. Johns -- Assyrian historiography: a source study / by A.T. Olmstead -- The Delphi Classics catalogue.",
+  "series": "Delphi poets series",
+  "genreForm": [
+   "Epic poetry",
+   "Electronic books"
+  ],
+  "category": "book",
+  "notes": [
+   "##",
+   "Description based on online resource; title from digital title screen."
+  ],
+  "extent": "## : illustrations",
+  "adminMetadata": "Wolf Moon OPAC | BIBFRAME 2.0",
+  "relatedWorks": [
+   {
+    "predicate": "bf:expressionOf",
+    "predicateLabel": "المجمع التعبيري العام (Expression Hub)",
+    "targetTitle": "Gilgamesh. English",
+    "targetUri": "https://mooon.site/resource/hub/gilgamesh-english-4612efd3",
+    "targetType": "bf:Hub"
+   },
+   {
+    "predicate": "bf:hasSeries",
+    "predicateLabel": "السلسلة (Series)",
+    "targetTitle": "Delphi poets series",
+    "targetType": "bf:Hub"
+   }
+  ],
+  "containedWorks": [],
+  "holdingItems": [],
+  "rawBibframeTriples": [
+   {
+    "subject": "record-1794080317705",
+    "predicate": "rdf:type",
+    "object": "bf:Work / bf:Text",
+    "objectUri": "http://id.loc.gov/ontologies/bibframe/Work"
+   },
+   {
+    "subject": "record-1794080317705",
+    "predicate": "bf:title",
+    "object": "The epic of Gilgamesh"
+   },
+   {
+    "subject": "record-1794080317705",
+    "predicate": "bf:contribution",
+    "object": "Jastrow, Morris, Jr., 1861-1921 (translator)",
+    "objectUri": "https://catalog.moonlib.org/entity/agent/Jastrow%252C%2520Morris%252C%2520Jr.%252C%25201861-1921"
+   },
+   {
+    "subject": "record-1794080317705",
+    "predicate": "bf:language",
+    "object": "http://id.loc.gov/vocabulary/languages/eng",
+    "objectUri": "http://id.loc.gov/vocabulary/languages/http://id.loc.gov/vocabulary/languages/eng"
+   },
+   {
+    "subject": "record-1794080317705",
+    "predicate": "bf:subject",
+    "object": "Gilgamesh--Translations into English",
+    "objectUri": "https://mooon.site/resource/topic/gilgamesh-translations-into-english-5207b4ce"
+   },
+   {
+    "subject": "record-1794080317705",
+    "predicate": "bf:subject",
+    "object": "Epic poetry, Assyro-Babylonian--Translations into English",
+    "objectUri": "https://mooon.site/resource/topic/epic-poetry-assyro-babylonian-translatio-a2f31008"
+   },
+   {
+    "subject": "record-1794080317705",
+    "predicate": "bf:subject",
+    "object": "Babylonia--History--Sources",
+    "objectUri": "https://mooon.site/resource/place/babylonia-history-sources-08a2e784"
+   },
+   {
+    "subject": "record-1794080317705",
+    "predicate": "bf:subject",
+    "object": "Assyria--History--Sources",
+    "objectUri": "https://mooon.site/resource/place/assyria-history-sources-93dc8bc2"
+   },
+   {
+    "subject": "record-1794080317705",
+    "predicate": "bf:expressionOf",
+    "object": "Gilgamesh. English",
+    "objectUri": "https://mooon.site/resource/hub/gilgamesh-english-4612efd3"
+   },
+   {
+    "subject": "record-1794080317705",
+    "predicate": "bf:hasSeries",
+    "object": "Delphi poets series"
+   },
+   {
+    "subject": "1794080275174",
+    "predicate": "bf:instanceOf",
+    "object": "record-1794080317705"
+   }
+  ],
+  "source": "wolf-moon",
+  "catalogingInterface": "Wolf Moon",
+  "createdAt": "2026-11-07T19:37:55.212Z",
+  "modifiedAt": "2026-11-07T19:38:40.002+00:00"
+ },
+ {
+  "id": "record-1789649846891",
+  "expressionOfHub": {
+   "uri": "http://id.loc.gov/resources/hubs/mir-damad-qabasat",
+   "label": "الميرداماد، محمد باقر بن محمد، توفي 1041 هجري. القبسات"
+  },
+  "uri": "https://catalog.moonlib.org/entity/work/1789649846891",
+  "canonicalMoonUri": "moon:work:record-1789649846891",
+  "title": "القبسات",
+  "language": "http://id.loc.gov/vocabulary/languages/ara",
+  "languageLabel": "http://id.loc.gov/vocabulary/languages/ara",
+  "summaryArabic": "كتاب فلسفي كلامي للميرداماد يناقش حدوث العالم وقدمه ومسألة الدهر والزمان والمصادر الوجودية وفق الحكمة المتعالية والمشائية.",
+  "originDate": "1650",
+  "era": "القرن السابع عشر الميلادي",
+  "primaryCreator": {
+   "id": "person-%D9%84%D9%84%D9%85%D9%8A%D8%B1%D8%AF%D8%A7%D9%85%D8%A7%D8%AF%20%D9%85%D8%AD%D9%85%D8%AF%20%D8%A8%D8%A7%D9%82%D8%B1%20%D8%A7%D9%84%D8%AD%D8%B3%D9%8A%D9%86%D9%8A%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D8%B1",
+   "uri": "https://catalog.moonlib.org/entity/agent/%25D9%2584%25D9%2584%25D9%2585%25D9%258A%25D8%25B1%25D8%25AF%25D8%25A7%25D9%2585%25D8%25A7%25D8%25AF%2520%25D9%2585%25D8%25AD%25D9%2585%25D8%25AF%2520%25D8%25A8%25D8%25A7%25D9%2582%25D8%25B1%2520%25D8%25A7%25D9%2584%25D8%25AD%25D8%25B3%25D9%258A%25D9%2586%25D9%258A%2520%25D8%25A7%25D9%2584%25D8%25A7%25D8%25B3%25D8%25AA%25D8%25B1",
+   "canonicalMoonUri": "moon:person:person-%D9%84%D9%84%D9%85%D9%8A%D8%B1%D8%AF%D8%A7%D9%85%D8%A7%D8%AF%20%D9%85%D8%AD%D9%85%D8%AF%20%D8%A8%D8%A7%D9%82%D8%B1%20%D8%A7%D9%84%D8%AD%D8%B3%D9%8A%D9%86%D9%8A%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D8%B1",
+   "name": "للميرداماد محمد باقر الحسيني الاسترآبادي.",
+   "nameArabic": "للميرداماد محمد باقر الحسيني الاسترآبادي.",
+   "role": "Author (مؤلف)",
+   "authorityLinks": [
+    "http://id.loc.gov/authorities/names/n85043844"
+   ],
+   "otherNames": [
+    "الميرداماد، محمد باقر بن محمد، توفي 1041 هجري"
+   ],
+   "worksCount": 1,
+   "workIds": [
+    "record-1789649846891"
+   ]
+  },
+  "contributors": [],
+  "subjects": [
+   {
+    "id": "subj-%D8%A7%D9%84%D9%81%D9%84%D8%B3%D9%81%D8%A9%20%D8%A7%D9%84%D8%A7%D8%B3%D9%84%D8%A7%D9%85%D9%8A%D8%A9%20%D8%A7%D9%84%D8%B4%D9%8A%D8%B9%D9%8A%D8%A9",
+    "uri": "http://id.loc.gov/authorities/subjects/sh85068499",
+    "label": "الفلسفة الاسلامية الشيعية",
+    "scheme": "lcsh",
+    "worksCount": 1,
+    "workIds": [
+     "record-1789649846891"
+    ]
+   },
+   {
+    "id": "subj-%D9%85%D8%AE%D8%B7%D9%88%D8%B7%D8%A7%D8%AA%20%D8%A7%D8%B3%D9%84%D8%A7%D9%85%D9%8A%D8%A9",
+    "uri": "http://id.loc.gov/authorities/genreForms/gf2014026139",
+    "label": "مخطوطات اسلامية",
+    "scheme": "lcsh",
+    "worksCount": 1,
+    "workIds": [
+     "record-1789649846891"
+    ]
+   }
+  ],
+  "instances": [
+   {
+    "id": "record-1789649846891",
+    "uri": "https://catalog.moonlib.org/entity/instance/1789649846891",
+    "title": "القبسات",
+    "workId": "record-1789649846891",
+    "workTitle": "القبسات",
+    "publisher": "خطاط غير مصرح (خط النستعليق)",
+    "publicationPlace": "كربلاء المقدسة / طهران",
+    "publicationYear": "1650",
+    "extent": "344 ورقة (18 سطرًا)",
+    "dimensions": "ورق، حبر اسود، خط النستعليق (18 سطرًا في الصفحة)",
+    "carrierType": "مصدر الكتروني",
+    "format": "online",
+    "callNumber": "B753.D363 Q23 1650",
+    "shelfLocation": "مكتبة العتبة العباسية المقدسة (IQ-KaCCS)",
+    "holdingStatus": "not_connected",
+    "items": [
+     {
+      "id": "b125923",
+      "uri": "https://catalog.moonlib.org/entity/item/b125923",
+      "instanceId": "record-1789649846891",
+      "heldBy": "مكتبة العتبة العباسية المقدسة",
+      "shelfMark": "B753.D363 Q23 1650",
+      "extent": "344 ورقة (18 سطرًا)",
+      "dimensions": "ورق، حبر اسود، خط النستعليق (18 سطرًا في الصفحة)",
+      "notes": [],
+      "status": "not_connected"
+     }
+    ]
+   }
+  ],
+  "publisher": {
+   "id": "pub-%D8%AE%D8%B7%D8%A7%D8%B7%20%D8%BA%D9%8A%D8%B1%20%D9%85%D8%B5%D8%B1%D8%AD%20(%D8%AE%D8%B7%20%D8%A7%D9%84%D9%86%D8%B3%D8%AA%D8%B9%D9%84%D9%8A%D9%82)",
+   "name": "خطاط غير مصرح (خط النستعليق)",
+   "city": "كربلاء المقدسة / طهران",
+   "worksCount": 1,
+   "workIds": [
+    "record-1789649846891"
+   ]
+  },
+  "classificationDdc": "181.07",
+  "classificationLcc": "B753.D363 Q23 1650",
+  "tableOfContents": "مقدمة في حدوث العالم، الومضة الأولى في الوجود والعدم، القبسة الأولى في مراتب الوجود والدهر والسرمد، القبسة الثانية في إثبات الواجب، القبسة الثالثة في الحركة والزمان والآن.",
+  "series": "تراث الحكمة والفلسفة الاسلامية — القسم الفلسفي 14",
+  "genreForm": [
+   "مخطوطات"
+  ],
+  "category": "manuscript",
+  "notes": [
+   "أوله : الحمد لله الواحد الاحد الصمد المصمود مهيمن كل وجود وجاعل كل موجود، والصلاة على من اقتفاه من زمرة الانبياء، واصطفاه من رسل الرسل فابتعثه بالذكر...",
+   "آخره : ولا تخلنا اللهم مع ذلك من عواطف رأفتك وسوابغ رحمتك ولطايف كفايتك وحوط عنايتك وحسن كلائتك بجودك ومنك وفضلك وطولك يا أرحم الراحمين.",
+   "الذريعة الى تصانيف الشيعة، الجزء 17، الصفحه 32، الرقم 183.",
+   "مكتبة مجلس الشورى : 4662، طهران، ايران (ir)",
+   "مرتبة بنظام التعقيبات.",
+   "في اولها مجموعة اختام.",
+   "النسخة مجدولة والورقة الاولى عليها زخرفة.",
+   "الغلاف : جلد، احمر."
+  ],
+  "incipit": "أوله : الحمد لله الواحد الاحد الصمد المصمود مهيمن كل وجود وجاعل كل موجود، والصلاة على من اقتفاه من زمرة الانبياء، واصطفاه من رسل الرسل فابتعثه بالذكر...",
+  "explicit": "آخره : ولا تخلنا اللهم مع ذلك من عواطف رأفتك وسوابغ رحمتك ولطايف كفايتك وحوط عنايتك وحسن كلائتك بجودك ومنك وفضلك وطولك يا أرحم الراحمين.",
+  "extent": "344 ورقة (18 سطرًا)",
+  "dimensions": "ورق، حبر اسود، خط النستعليق (18 سطرًا في الصفحة)",
+  "adminMetadata": "Wolf Moon OPAC | BIBFRAME 2.0",
+  "relatedWorks": [
+   {
+    "predicate": "bf:expressionOf",
+    "predicateLabel": "المجمع التعبيري العام (Expression Hub)",
+    "targetTitle": "الميرداماد، محمد باقر بن محمد، توفي 1041 هجري. القبسات",
+    "targetUri": "http://id.loc.gov/resources/hubs/mir-damad-qabasat",
+    "targetType": "bf:Hub"
+   },
+   {
+    "predicate": "bf:relatedTo",
+    "predicateLabel": "عمل مرجعي وتوثيق ببليوغرافي (Related Work)",
+    "targetTitle": "الذريعة الى تصانيف الشيعة (الرقم 183)",
+    "targetUri": "http://id.loc.gov/resources/works/al-dhariah",
+    "targetType": "bf:Work"
+   },
+   {
+    "predicate": "rel:translationof",
+    "predicateLabel": "Translation of",
+    "targetTitle": "الأصل العربي — مخطوط في دار الكتب والوثائق",
+    "targetType": "bf:Work"
+   },
+   {
+    "predicate": "bf:hasDerivative",
+    "predicateLabel": "شرح / مصنف مشتق (Derivative Work)",
+    "targetTitle": "شرح القبسات للعلامة عبد الرزاق اللاهيجي",
+    "targetType": "bf:Work"
+   },
+   {
+    "predicate": "bf:hasSeries",
+    "predicateLabel": "سلسلة ببليوغرافية (Monographic Series)",
+    "targetTitle": "تراث الحكمة والفلسفة الاسلامية — القسم الفلسفي 14",
+    "targetType": "bf:Series",
+    "details": "رقم السلسلة: القسم الفلسفي 14"
+   },
+   {
+    "predicate": "bf:partOf",
+    "predicateLabel": "مجموعة وحاوية الحفظ (Collection / Fond)",
+    "targetTitle": "مجموعة مخطوطات الفلسفة والحكمة الإلهية",
+    "targetType": "bf:Collection"
+   },
+   {
+    "predicate": "bf:hasPart",
+    "predicateLabel": "قسم / جزء من العمل (Constituent Part)",
+    "targetTitle": "القبسة الأولى في مراتب الوجود والدهر",
+    "targetType": "bf:Part"
+   },
+   {
+    "predicate": "bf:hasExpression",
+    "predicateLabel": "تعبير محفوظ معتمد (Realized Expression)",
+    "targetTitle": "النسخة المخطوطة المحفوظة في العتبة العباسية",
+    "targetType": "bf:Instance"
+   }
+  ],
+  "containedWorks": [
+   {
+    "title": "القبسة الأولى في مراتب الوجود والدهر"
+   }
+  ],
+  "holdingItems": [
+   {
+    "id": "b125923",
+    "uri": "https://catalog.moonlib.org/entity/item/b125923",
+    "instanceId": "record-1789649846891",
+    "heldBy": "مكتبة العتبة العباسية المقدسة",
+    "shelfMark": "B753.D363 Q23 1650",
+    "extent": "344 ورقة (18 سطرًا)",
+    "dimensions": "ورق، حبر اسود، خط النستعليق (18 سطرًا في الصفحة)",
+    "notes": [],
+    "status": "not_connected"
+   }
+  ],
+  "rawBibframeTriples": [
+   {
+    "subject": "record-1789649846891",
+    "predicate": "rdf:type",
+    "object": "bf:Work / bf:Text",
+    "objectUri": "http://id.loc.gov/ontologies/bibframe/Work"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:title",
+    "object": "القبسات"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:contribution",
+    "object": "للميرداماد محمد باقر الحسيني الاسترآبادي. (Author (مؤلف))",
+    "objectUri": "https://catalog.moonlib.org/entity/agent/%25D9%2584%25D9%2584%25D9%2585%25D9%258A%25D8%25B1%25D8%25AF%25D8%25A7%25D9%2585%25D8%25A7%25D8%25AF%2520%25D9%2585%25D8%25AD%25D9%2585%25D8%25AF%2520%25D8%25A8%25D8%25A7%25D9%2582%25D8%25B1%2520%25D8%25A7%25D9%2584%25D8%25AD%25D8%25B3%25D9%258A%25D9%2586%25D9%258A%2520%25D8%25A7%25D9%2584%25D8%25A7%25D8%25B3%25D8%25AA%25D8%25B1"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:language",
+    "object": "http://id.loc.gov/vocabulary/languages/ara",
+    "objectUri": "http://id.loc.gov/vocabulary/languages/http://id.loc.gov/vocabulary/languages/ara"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:classification",
+    "object": "B753.D363 Q23 1650"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:subject",
+    "object": "الفلسفة الاسلامية الشيعية",
+    "objectUri": "http://id.loc.gov/authorities/subjects/sh85068499"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:subject",
+    "object": "مخطوطات اسلامية",
+    "objectUri": "http://id.loc.gov/authorities/genreForms/gf2014026139"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:expressionOf",
+    "object": "الميرداماد، محمد باقر بن محمد، توفي 1041 هجري. القبسات",
+    "objectUri": "http://id.loc.gov/resources/hubs/mir-damad-qabasat"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:relatedTo",
+    "object": "الذريعة الى تصانيف الشيعة (الرقم 183)",
+    "objectUri": "http://id.loc.gov/resources/works/al-dhariah"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "rel:translationof",
+    "object": "الأصل العربي — مخطوط في دار الكتب والوثائق"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:hasDerivative",
+    "object": "شرح القبسات للعلامة عبد الرزاق اللاهيجي"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:hasSeries",
+    "object": "تراث الحكمة والفلسفة الاسلامية — القسم الفلسفي 14"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:partOf",
+    "object": "مجموعة مخطوطات الفلسفة والحكمة الإلهية"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:hasPart",
+    "object": "القبسة الأولى في مراتب الوجود والدهر"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:hasExpression",
+    "object": "النسخة المخطوطة المحفوظة في العتبة العباسية"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:instanceOf",
+    "object": "record-1789649846891"
+   },
+   {
+    "subject": "record-1789649846891",
+    "predicate": "bf:hasItem",
+    "object": "مكتبة العتبة العباسية المقدسة [B753.D363 Q23 1650]",
+    "objectUri": "https://catalog.moonlib.org/entity/item/b125923"
+   }
+  ],
+  "source": "wolf-moon",
+  "catalogingInterface": "Blue Moon",
+  "createdAt": "2026-09-17T12:57:26.891Z",
+  "modifiedAt": "2026-11-07T19:00:37.196+00:00"
+ },
+ {
+  "id": "sample-9789649080055",
+  "expressionOfHub": {
+   "uri": "https://mooon.site/resource/hub/fusus-al-hikam-4ec63c18",
+   "label": "محيي الدين بن عربي. Fuṣūṣ al-ḥikam"
+  },
+  "coverUrl": "https://gfbagczwhvxxstbfrfhu.supabase.co/storage/v1/object/public/covers/sample-9789649080055.jpg?v=1794345069922",
+  "uri": "https://catalog.moonlib.org/entity/work/9789649080055",
+  "canonicalMoonUri": "moon:work:sample-9789649080055",
+  "title": "Fuṣūṣ al-ḥikam",
+  "language": "http://id.loc.gov/vocabulary/languages/ara",
+  "languageLabel": "http://id.loc.gov/vocabulary/languages/ara",
+  "originDate": "1999",
+  "era": "القرن العشرون",
+  "primaryCreator": {
+   "id": "person-Mu%E1%B8%A5y%C4%AB%20al-D%C4%ABn%20Mu%E1%B8%A5ammad%20ibn%20%CA%BBAl%C4%AB%20ibn%20",
+   "uri": "https://catalog.moonlib.org/entity/agent/Mu%25E1%25B8%25A5y%25C4%25AB%2520al-D%25C4%25ABn%2520Mu%25E1%25B8%25A5ammad%2520ibn%2520%25CA%25BBAl%25C4%25AB%2520ibn%2520",
+   "canonicalMoonUri": "moon:person:person-Mu%E1%B8%A5y%C4%AB%20al-D%C4%ABn%20Mu%E1%B8%A5ammad%20ibn%20%CA%BBAl%C4%AB%20ibn%20",
+   "name": "Muḥyī al-Dīn Muḥammad ibn ʻAlī ibn Muḥammad al-Ṭāʼī al-Ḥātimī al-Mursī Ibn ʻArabī",
+   "nameArabic": "Muḥyī al-Dīn Muḥammad ibn ʻAlī ibn Muḥammad al-Ṭāʼī al-Ḥātimī al-Mursī Ibn ʻArabī",
+   "role": "Author (مؤلف)",
+   "worksCount": 1,
+   "workIds": [
+    "sample-9789649080055"
+   ]
+  },
+  "contributors": [
+   {
+    "id": "person-shar%E1%B8%A5%20%E1%B9%A2%C4%81%CA%BCin%20al-D%C4%ABn%20%CA%BBAl%C4%AB%20ibn%20Mu",
+    "uri": "https://catalog.moonlib.org/entity/agent/shar%25E1%25B8%25A5%2520%25E1%25B9%25A2%25C4%2581%25CA%25BCin%2520al-D%25C4%25ABn%2520%25CA%25BBAl%25C4%25AB%2520ibn%2520Mu",
+    "canonicalMoonUri": "moon:person:person-shar%E1%B8%A5%20%E1%B9%A2%C4%81%CA%BCin%20al-D%C4%ABn%20%CA%BBAl%C4%AB%20ibn%20Mu",
+    "name": "sharḥ Ṣāʼin al-Dīn ʻAlī ibn Muḥammad al-Turkah",
+    "nameArabic": "sharḥ Ṣāʼin al-Dīn ʻAlī ibn Muḥammad al-Turkah",
+    "role": "Contributor (مشارك)",
+    "worksCount": 1,
+    "workIds": [
+     "sample-9789649080055"
+    ]
+   },
+   {
+    "id": "person-ta%E1%B8%A5q%C4%ABq%20wa-ta%CA%BBl%C4%ABq%20Mu%E1%B8%A5sin%20B%C4%ABd%C4%81rf",
+    "uri": "https://catalog.moonlib.org/entity/agent/ta%25E1%25B8%25A5q%25C4%25ABq%2520wa-ta%25CA%25BBl%25C4%25ABq%2520Mu%25E1%25B8%25A5sin%2520B%25C4%25ABd%25C4%2581rf",
+    "canonicalMoonUri": "moon:person:person-ta%E1%B8%A5q%C4%ABq%20wa-ta%CA%BBl%C4%ABq%20Mu%E1%B8%A5sin%20B%C4%ABd%C4%81rf",
+    "name": "taḥqīq wa-taʻlīq Muḥsin Bīdārfar",
+    "nameArabic": "taḥqīq wa-taʻlīq Muḥsin Bīdārfar",
+    "role": "Contributor (مشارك)",
+    "worksCount": 1,
+    "workIds": [
+     "sample-9789649080055"
+    ]
+   },
+   {
+    "id": "person-%D9%85%D8%AD%D9%8A%D9%8A%20%D8%A7%D9%84%D8%AF%D9%8A%D9%86%20%D8%A8%D9%86%20%D8%B9%D8%B1%D8%A8%D9%8A",
+    "uri": "https://catalog.moonlib.org/entity/agent/%25D9%2585%25D8%25AD%25D9%258A%25D9%258A%2520%25D8%25A7%25D9%2584%25D8%25AF%25D9%258A%25D9%2586%2520%25D8%25A8%25D9%2586%2520%25D8%25B9%25D8%25B1%25D8%25A8%25D9%258A",
+    "canonicalMoonUri": "moon:person:person-%D9%85%D8%AD%D9%8A%D9%8A%20%D8%A7%D9%84%D8%AF%D9%8A%D9%86%20%D8%A8%D9%86%20%D8%B9%D8%B1%D8%A8%D9%8A",
+    "name": "محيي الدين بن عربي",
+    "nameArabic": "محيي الدين بن عربي",
+    "role": "Author (مؤلف)",
+    "authorityLinks": [
+     "https://mooon.site/resource/agent/ibn-al-arabi-92d97a88",
+     "http://www.wikidata.org/entity/Q46420",
+     "http://viaf.org/viaf/95223177",
+     "http://id.loc.gov/authorities/names/n50082069",
+     "https://isni.org/isni/0000000121441989"
+    ],
+    "worksCount": 1,
+    "workIds": [
+     "sample-9789649080055"
+    ]
+   }
+  ],
+  "subjects": [
+   {
+    "id": "subj-Sufism",
+    "uri": "https://mooon.site/resource/topic/sufism-2b4fc873",
+    "label": "Sufism",
+    "scheme": "arabic-authority",
+    "worksCount": 1,
+    "workIds": [
+     "sample-9789649080055"
+    ]
+   },
+   {
+    "id": "subj-Early%20works%20to%201800",
+    "uri": "https://mooon.site/resource/topic/early-works-to-1800-e78fcf7f",
+    "label": "Early works to 1800",
+    "scheme": "arabic-authority",
+    "worksCount": 1,
+    "workIds": [
+     "sample-9789649080055"
+    ]
+   },
+   {
+    "id": "subj-Spirituality",
+    "uri": "https://mooon.site/resource/topic/spirituality-91725ece",
+    "label": "Spirituality",
+    "scheme": "arabic-authority",
+    "worksCount": 1,
+    "workIds": [
+     "sample-9789649080055"
+    ]
+   },
+   {
+    "id": "subj-Christian%20literature%2C%20early%20(c",
+    "uri": "https://mooon.site/resource/topic/christian-literature-early-collections-6aec922c",
+    "label": "Christian literature, early (collections)",
+    "scheme": "arabic-authority",
+    "worksCount": 1,
+    "workIds": [
+     "sample-9789649080055"
+    ]
+   }
+  ],
+  "instances": [
+   {
+    "id": "s9789649080055",
+    "uri": "https://catalog.moonlib.org/entity/instance/s9789649080055",
+    "title": "Fuṣūṣ al-ḥikam",
+    "workId": "sample-9789649080055",
+    "workTitle": "Fuṣūṣ al-ḥikam",
+    "publisher": "Intishārāt Baydār",
+    "publicationPlace": "Qum",
+    "publicationYear": "1999",
+    "carrierType": "مجلد",
+    "format": "print",
+    "isbn": "9789649080055",
+    "holdingStatus": "not_connected",
+    "items": []
+   }
+  ],
+  "publisher": {
+   "id": "pub-Intish%C4%81r%C4%81t%20Bayd%C4%81r",
+   "name": "Intishārāt Baydār",
+   "city": "Qum",
+   "worksCount": 1,
+   "workIds": [
+    "sample-9789649080055"
+   ]
+  },
+  "genreForm": [
+   "تصوف"
+  ],
+  "category": "book",
+  "notes": [],
+  "adminMetadata": "Wolf Moon OPAC | BIBFRAME 2.0",
+  "relatedWorks": [
+   {
+    "predicate": "bf:expressionOf",
+    "predicateLabel": "المجمع التعبيري العام (Expression Hub)",
+    "targetTitle": "محيي الدين بن عربي. Fuṣūṣ al-ḥikam",
+    "targetUri": "https://mooon.site/resource/hub/fusus-al-hikam-4ec63c18",
+    "targetType": "bf:Hub"
+   }
+  ],
+  "containedWorks": [],
+  "holdingItems": [],
+  "rawBibframeTriples": [
+   {
+    "subject": "sample-9789649080055",
+    "predicate": "rdf:type",
+    "object": "bf:Work / bf:Text",
+    "objectUri": "http://id.loc.gov/ontologies/bibframe/Work"
+   },
+   {
+    "subject": "sample-9789649080055",
+    "predicate": "bf:title",
+    "object": "Fuṣūṣ al-ḥikam"
+   },
+   {
+    "subject": "sample-9789649080055",
+    "predicate": "bf:contribution",
+    "object": "Muḥyī al-Dīn Muḥammad ibn ʻAlī ibn Muḥammad al-Ṭāʼī al-Ḥātimī al-Mursī Ibn ʻArabī (Author (مؤلف))",
+    "objectUri": "https://catalog.moonlib.org/entity/agent/Mu%25E1%25B8%25A5y%25C4%25AB%2520al-D%25C4%25ABn%2520Mu%25E1%25B8%25A5ammad%2520ibn%2520%25CA%25BBAl%25C4%25AB%2520ibn%2520"
+   },
+   {
+    "subject": "sample-9789649080055",
+    "predicate": "bf:language",
+    "object": "http://id.loc.gov/vocabulary/languages/ara",
+    "objectUri": "http://id.loc.gov/vocabulary/languages/http://id.loc.gov/vocabulary/languages/ara"
+   },
+   {
+    "subject": "sample-9789649080055",
+    "predicate": "bf:subject",
+    "object": "Sufism",
+    "objectUri": "https://mooon.site/resource/topic/sufism-2b4fc873"
+   },
+   {
+    "subject": "sample-9789649080055",
+    "predicate": "bf:subject",
+    "object": "Early works to 1800",
+    "objectUri": "https://mooon.site/resource/topic/early-works-to-1800-e78fcf7f"
+   },
+   {
+    "subject": "sample-9789649080055",
+    "predicate": "bf:subject",
+    "object": "Spirituality",
+    "objectUri": "https://mooon.site/resource/topic/spirituality-91725ece"
+   },
+   {
+    "subject": "sample-9789649080055",
+    "predicate": "bf:subject",
+    "object": "Christian literature, early (collections)",
+    "objectUri": "https://mooon.site/resource/topic/christian-literature-early-collections-6aec922c"
+   },
+   {
+    "subject": "sample-9789649080055",
+    "predicate": "bf:expressionOf",
+    "object": "محيي الدين بن عربي. Fuṣūṣ al-ḥikam",
+    "objectUri": "https://mooon.site/resource/hub/fusus-al-hikam-4ec63c18"
+   },
+   {
+    "subject": "s9789649080055",
+    "predicate": "bf:instanceOf",
+    "object": "sample-9789649080055"
+   }
+  ],
+  "source": "wolf-moon",
+  "catalogingInterface": "Sample records",
+  "createdAt": "2026-11-10T21:11:11.509Z",
+  "modifiedAt": "2026-11-10T21:11:06.507+00:00"
+ }
+]

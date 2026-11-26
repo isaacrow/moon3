@@ -18,27 +18,9 @@ export interface PersonClues {
   deathYear?: string;
 }
 
-const AR_DIACRITICS = /[ً-ٰٟـ]/g;
-
-/** Words of a name, folded: no diacritics, alef/yaa/taa marbuta unified, "al-"/"ال" dropped, Latin accents gone. */
-export function nameTokens(name: string): string[] {
-  const s = (name || '')
-    .normalize('NFKD').replace(/[̀-ͯ]/g, '')
-    .replace(AR_DIACRITICS, '')
-    .replace(/[إأآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
-    .toLowerCase()
-    .replace(/[ʻʼ'’`‘]/g, '')
-    .replace(/[^\p{L}\p{N}]+/gu, ' ');
-  return s.split(' ')
-    .map((w) => w.replace(/^(al|el)(?=[a-z]{3,})/, '').replace(/^ال(?=\p{L}{3,})/u, ''))
-    .filter((w) => w.length >= 3 && !/^\d+$/.test(w) && !['dr', 'د'].includes(w));
-}
-
-/** Two names share a real word (so "Darwish, Mahmoud" and "Mahmoud Darwish" match, "Eberhard, Birgit" does not). */
-export function namesAgree(a: string, b: string): boolean {
-  const x = new Set(nameTokens(a));
-  return nameTokens(b).some((w) => x.has(w));
-}
+// Name matching lives with the server (nameTokens.tsx): the record reader there uses it too.
+import { namesAgree } from '../../supabase/functions/server/nameTokens.tsx';
+export { nameTokens, namesAgree } from '../../supabase/functions/server/nameTokens.tsx';
 
 /** "درويش، محمود، 1941-2008" → the years; "Darwish, Mahmoud" → "Mahmoud Darwish" for searching. */
 export function splitHeading(heading: string): { name: string; birthYear?: string; deathYear?: string } {
