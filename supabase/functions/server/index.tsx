@@ -1255,6 +1255,23 @@ app.post("/make-server-49c0e13c/resource/mcp", async (c) => {
     },
     sparql: async (query) => (await sparqlStore.runQuery(query, { format: "json", accept: "application/sparql-results+json", loadNTriples: loadPublishedNTriples })).body,
     validate: (document) => ({ missing: missingForPublish(document) }),
+    // D4: an ISBN to a draft (Open Library), and entities to link (Moon's own, then LC's).
+    lookupIsbn: async (isbn) => {
+      const r = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`, { signal: AbortSignal.timeout(10000) }).catch(() => null);
+      if (!r?.ok) return null;
+      const j = await r.json().catch(() => ({}));
+      return j?.[`ISBN:${isbn}`] || null;
+    },
+    findEntities: async (name, kind) => {
+      const ours = ((await recordStore.searchAuthorities(name, kind, 5).catch(() => [])) as any[])
+        .map((e) => ({ label: e.label, uri: `${linkedData.BASE_URI}/${e.kind}/${e.id}`, source: "moon" as const, kind: e.kind }));
+      const scheme = kind === "agent" ? "names" : "subjects";
+      const lc = await fetch(`https://id.loc.gov/authorities/${scheme}/suggest2?q=${encodeURIComponent(name)}&searchtype=keyword&count=5`, { signal: AbortSignal.timeout(10000) })
+        .then((r) => (r.ok ? r.json() : { hits: [] })).catch(() => ({ hits: [] }));
+      const theirs = ((lc as any).hits || []).filter((h: any) => typeof h?.uri === "string")
+        .map((h: any) => ({ label: String(h.aLabel || h.suggestLabel), uri: h.uri, source: "lc" as const, kind }));
+      return [...ours, ...theirs];
+    },
     createDraft: async ({ title, document, agent, note }) => {
       const id = `mcp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const now = new Date().toISOString();
